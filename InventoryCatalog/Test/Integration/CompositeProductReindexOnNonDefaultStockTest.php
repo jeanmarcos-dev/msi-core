@@ -15,6 +15,7 @@ use Magento\CatalogInventory\Api\StockRegistryInterface;
 use Magento\ConfigurableProduct\Test\Fixture\Attribute as AttributeFixture;
 use Magento\ConfigurableProduct\Test\Fixture\Product as ConfigurableProductFixture;
 use Magento\GroupedProduct\Test\Fixture\Product as GroupedProductFixture;
+use Magento\Indexer\Test\Fixture\Indexer as IndexerFixture;
 use Magento\InventoryApi\Test\Fixture\Source as SourceFixture;
 use Magento\InventoryApi\Test\Fixture\SourceItems as SourceItemsFixture;
 use Magento\InventoryApi\Test\Fixture\Stock as StockFixture;
@@ -22,9 +23,13 @@ use Magento\InventoryApi\Test\Fixture\StockSourceLinks as StockSourceLinksFixtur
 use Magento\InventoryIndexer\Model\ResourceModel\GetStockItemData;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 use Magento\InventorySalesApi\Test\Fixture\StockSalesChannels as StockSalesChannelsFixture;
+use Magento\Store\Test\Fixture\Group as StoreGroupFixture;
+use Magento\Store\Test\Fixture\Store as StoreFixture;
+use Magento\Store\Test\Fixture\Website as WebsiteFixture;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Fixture\DbIsolation;
+use Magento\TestFramework\Fixture\ScopeFixture;
 use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 
@@ -56,7 +61,11 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
 
     #[
         DbIsolation(false),
-        DataFixture(SourceFixture::class, as: 'source'),
+        DataFixture(ScopeFixture::class, ['type' => 'website', 'code' => 'base'], as: 'website1'),
+        DataFixture(WebsiteFixture::class, as: 'website2'),
+        DataFixture(StoreGroupFixture::class, ['website_id' => '$website2.id$'], 'group2'),
+        DataFixture(StoreFixture::class, ['store_group_id' => '$group2.id$'], 'store2'),
+        DataFixture(SourceFixture::class, ['source_code' => 'source_bundle'], 'source'),
         DataFixture(StockFixture::class, as: 'stock'),
         DataFixture(
             StockSourceLinksFixture::class,
@@ -64,9 +73,13 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
         ),
         DataFixture(
             StockSalesChannelsFixture::class,
-            ['stock_id' => '$stock.stock_id$', 'sales_channels' => ['base']]
+            ['stock_id' => '$stock.stock_id$', 'sales_channels' => ['$website2.code$']]
         ),
-        DataFixture(ProductFixture::class, as: 'child'),
+        DataFixture(
+            ProductFixture::class,
+            ['sku' => 'child-bundle', 'website_ids' => ['1', '$website2.id$']],
+            'child'
+        ),
         DataFixture(
             SourceItemsFixture::class,
             [['sku' => '$child.sku$', 'source_code' => '$source.source_code$', 'quantity' => 10, 'status' => 1]]
@@ -75,7 +88,12 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
         DataFixture(BundleOptionFixture::class, ['product_links' => ['$link$'], 'required' => true], 'opt'),
         DataFixture(
             BundleProductFixture::class,
-            ['_options' => ['$opt$'], 'shipment_type' => 1],
+            [
+                'sku' => 'bundle-parent',
+                'website_ids' => ['1', '$website2.id$'],
+                '_options' => ['$opt$'],
+                'shipment_type' => 1,
+            ],
             'parent_product'
         ),
     ]
@@ -86,7 +104,11 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
 
     #[
         DbIsolation(false),
-        DataFixture(SourceFixture::class, as: 'source'),
+        DataFixture(ScopeFixture::class, ['type' => 'website', 'code' => 'base'], as: 'website1'),
+        DataFixture(WebsiteFixture::class, as: 'website2'),
+        DataFixture(StoreGroupFixture::class, ['website_id' => '$website2.id$'], 'group2'),
+        DataFixture(StoreFixture::class, ['store_group_id' => '$group2.id$'], 'store2'),
+        DataFixture(SourceFixture::class, ['source_code' => 'source_grouped'], 'source'),
         DataFixture(StockFixture::class, as: 'stock'),
         DataFixture(
             StockSourceLinksFixture::class,
@@ -106,6 +128,7 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
             ['product_links' => ['$child.sku$']],
             'parent_product'
         ),
+        DataFixture(IndexerFixture::class),
     ]
     public function testShouldReindexGroupedProductStockStatusAfterSave(): void
     {
@@ -114,7 +137,11 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
 
     #[
         DbIsolation(false),
-        DataFixture(SourceFixture::class, as: 'source'),
+        DataFixture(ScopeFixture::class, ['type' => 'website', 'code' => 'base'], as: 'website1'),
+        DataFixture(WebsiteFixture::class, as: 'website2'),
+        DataFixture(StoreGroupFixture::class, ['website_id' => '$website2.id$'], 'group2'),
+        DataFixture(StoreFixture::class, ['store_group_id' => '$group2.id$'], 'store2'),
+        DataFixture(SourceFixture::class, ['source_code' => 'source_configurable'], 'source'),
         DataFixture(StockFixture::class, as: 'stock'),
         DataFixture(
             StockSourceLinksFixture::class,
@@ -135,6 +162,7 @@ class CompositeProductReindexOnNonDefaultStockTest extends TestCase
             ['_options' => ['$attr$'],'_links' => ['$child$']],
             'parent_product'
         ),
+        DataFixture(IndexerFixture::class),
     ]
     public function testShouldReindexConfigurableProductStockStatusAfterSave(): void
     {
