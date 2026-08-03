@@ -6,12 +6,73 @@
 -->
 <div class="admin__field-complex" css="$data.additionalClasses" visible="visible" attr="'data-index': index">
     <div class="admin__field-complex-content">
-        <div repeat="foreach: $data.salable_quantity || [], item: '$salableQuantityData'">
-            <div>
-                <strong text="$salableQuantityData().stock_name"></strong>
+        <div class="salable-qty-stock" repeat="foreach: $data.salable_quantity || [], item: '$stock'">
+            <!-- ko ifnot: $stock().sources && $stock().sources.length -->
+            <div class="salable-qty-stock-total">
+                <strong text="$stock().stock_name"></strong>
                 :
-                <span text="$salableQuantityData().qty"></span>
+                <span text="$stock().qty"></span>
             </div>
+            <!-- /ko -->
+            <!-- ko if: $stock().sources && $stock().sources.length -->
+            <div class="admin__field">
+                <label class="admin__field-label">
+                    <span data-bind="text: $stock().stock_name"></span>
+                </label>
+                <div class="admin__field-control">
+                    <div class="admin__control-table-wrapper">
+                        <table class="admin__dynamic-rows data-grid salable-qty-sources">
+                            <thead>
+                                <tr>
+                                    <th class="data-grid-th"><span data-bind="i18n: 'Source'"></span></th>
+                                    <th class="data-grid-th salable-qty-number">
+                                        <span data-bind="i18n: 'On Hand'"></span>
+                                    </th>
+                                    <!-- ko if: $stock().source_reservations_enabled -->
+                                    <th class="data-grid-th salable-qty-number">
+                                        <span data-bind="i18n: 'Reservations'"></span>
+                                    </th>
+                                    <!-- /ko -->
+                                    <th class="data-grid-th salable-qty-number">
+                                        <span data-bind="i18n: 'Salable'"></span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- ko foreach: $stock().sources -->
+                                <tr class="data-row" data-bind="css: {'_odd-row': $index() % 2}">
+                                    <td>
+                                        <span data-bind="text: source_name"></span>
+                                        <!-- ko ifnot: source_enabled -->
+                                        <span class="salable-qty-flag" data-bind="i18n: 'Disabled'"></span>
+                                        <!-- /ko -->
+                                        <!-- ko if: source_item_out_of_stock -->
+                                        <span class="salable-qty-flag" data-bind="i18n: 'Out of Stock'"></span>
+                                        <!-- /ko -->
+                                    </td>
+                                    <td class="salable-qty-number" data-bind="text: physical"></td>
+                                    <!-- ko if: $stock().source_reservations_enabled -->
+                                    <td class="salable-qty-number" data-bind="text: reserved,
+                                        css: {'salable-qty-muted': !reserved}"></td>
+                                    <!-- /ko -->
+                                    <td class="salable-qty-number" data-bind="text: salable,
+                                        css: {'salable-qty-muted': !salable}"></td>
+                                </tr>
+                                <!-- /ko -->
+                                <tr class="data-row salable-qty-total-row">
+                                    <td data-bind="i18n: 'Salable quantity'"></td>
+                                    <td class="salable-qty-number"></td>
+                                    <!-- ko if: $stock().source_reservations_enabled -->
+                                    <td class="salable-qty-number"></td>
+                                    <!-- /ko -->
+                                    <td class="salable-qty-number salable-qty-total" data-bind="text: $stock().qty"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <!-- /ko -->
         </div>
     </div>
 </div>

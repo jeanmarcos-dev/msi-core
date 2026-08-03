@@ -16,7 +16,62 @@
             <!-- ko if: $salableQuantityData.stock_name -->
             <strong data-bind="text: $salableQuantityData.stock_name"></strong>:
             <span data-bind="text: $salableQuantityData.qty"></span>
+            <!-- ko if: $col.isRowExpanded($row()) && $salableQuantityData.sources && $salableQuantityData.sources.length -->
+            <div class="admin__control-table-wrapper">
+                <table class="admin__dynamic-rows salable-qty-sources salable-qty-sources-cell">
+                    <thead>
+                        <tr>
+                            <th class="data-grid-th"><span data-bind="i18n: 'Source'"></span></th>
+                            <th class="data-grid-th salable-qty-number">
+                                <span data-bind="i18n: 'On Hand'"></span>
+                            </th>
+                            <!-- ko if: $salableQuantityData.source_reservations_enabled -->
+                            <th class="data-grid-th salable-qty-number">
+                                <span data-bind="i18n: 'Res.'"></span>
+                            </th>
+                            <!-- /ko -->
+                            <th class="data-grid-th salable-qty-number">
+                                <span data-bind="i18n: 'Salable'"></span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody data-bind="foreach: $salableQuantityData.sources">
+                        <tr class="data-row" data-bind="css: {'_odd-row': $index() % 2}">
+                            <td>
+                                <span data-bind="text: source_name"></span>
+                                <!-- ko ifnot: source_enabled -->
+                                <span class="salable-qty-flag" data-bind="i18n: 'Disabled'"></span>
+                                <!-- /ko -->
+                                <!-- ko if: source_item_out_of_stock -->
+                                <span class="salable-qty-flag" data-bind="i18n: 'Out of Stock'"></span>
+                                <!-- /ko -->
+                            </td>
+                            <td class="salable-qty-number" data-bind="text: physical"></td>
+                            <!-- ko if: $salableQuantityData.source_reservations_enabled -->
+                            <td class="salable-qty-number" data-bind="text: reserved,
+                                css: {'salable-qty-muted': !reserved}"></td>
+                            <!-- /ko -->
+                            <td class="salable-qty-number" data-bind="text: salable,
+                                css: {'salable-qty-muted': !salable}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- /ko -->
             <!-- /ko -->
         </li>
     </ul>
+    <!-- ko if: $col.hasSourceBreakdown($row()) -->
+    <button class="salable-qty-toggle"
+            type="button"
+            data-bind="click: function (data, event) { return $col.toggleRow($row(), event); },
+                       css: {'_expanded': $col.isRowExpanded($row())}">
+        <!-- ko ifnot: $col.isRowExpanded($row()) -->
+        <span data-bind="i18n: 'Show sources'"></span>
+        <!-- /ko -->
+        <!-- ko if: $col.isRowExpanded($row()) -->
+        <span data-bind="i18n: 'Hide sources'"></span>
+        <!-- /ko -->
+    </button>
+    <!-- /ko -->
 </div>

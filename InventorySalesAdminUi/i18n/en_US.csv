@@ -4,4 +4,12 @@
 Websites,Websites
 "Product Salable Quantity","Product Salable Quantity"
 "Salable Quantity","Salable Quantity"
-"Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty)", "Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty)"
+"Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty). The breakdown reports, for each source of the stock, the quantity on hand, its source reservation balance and the salable quantity they add up to.","Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty). The breakdown reports, for each source of the stock, the quantity on hand, its source reservation balance and the salable quantity they add up to."
+Source,Source
+"On Hand","On Hand"
+Reservations,Reservations
+Salable,Salable
+Disabled,Disabled
+"Out of Stock","Out of Stock"
+"Show sources","Show sources"
+"Hide sources","Hide sources"

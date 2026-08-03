@@ -9,8 +9,8 @@ namespace Magento\InventorySalesAdminUi\Test\Unit\Ui\Component\Listing\Column;
 
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
-use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
+use Magento\InventorySalesAdminUi\Model\AddSourceSalableQuantityBreakdown;
 use Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku;
 use Magento\InventorySalesAdminUi\Model\ResourceModel\GetAssignedStockIdsBySku;
 use Magento\InventorySalesAdminUi\Ui\Component\Listing\Column\SalableQuantity;
@@ -35,11 +35,6 @@ class SalableQuantityTest extends TestCase
     private $isSourceItemManagementAllowedForProductTypeMock;
 
     /**
-     * @var IsSingleSourceModeInterface|MockObject
-     */
-    private $isSingleSourceModeMock;
-
-    /**
      * @var GetSalableQuantityDataBySku|MockObject
      */
     private $getSalableQuantityDataBySkuMock;
@@ -48,6 +43,11 @@ class SalableQuantityTest extends TestCase
      * @var GetAssignedStockIdsBySku|MockObject
      */
     private $getAssignedStockIdsBySkuMock;
+
+    /**
+     * @var AddSourceSalableQuantityBreakdown|MockObject
+     */
+    private $addSourceSalableQuantityBreakdownMock;
 
     /**
      * @var SalableQuantity
@@ -61,17 +61,18 @@ class SalableQuantityTest extends TestCase
         $this->isSourceItemManagementAllowedForProductTypeMock = $this->createMock(
             IsSourceItemManagementAllowedForProductTypeInterface::class
         );
-        $this->isSingleSourceModeMock = $this->createMock(IsSingleSourceModeInterface::class);
         $this->getSalableQuantityDataBySkuMock = $this->createMock(GetSalableQuantityDataBySku::class);
         $this->getAssignedStockIdsBySkuMock = $this->createMock(GetAssignedStockIdsBySku::class);
+        $this->addSourceSalableQuantityBreakdownMock = $this->createMock(AddSourceSalableQuantityBreakdown::class);
+        $this->addSourceSalableQuantityBreakdownMock->method('execute')->willReturnArgument(0);
 
         $this->salableQuantity = new SalableQuantity(
             $this->contextMock,
             $this->uiComponentFactoryMock,
             $this->isSourceItemManagementAllowedForProductTypeMock,
-            $this->isSingleSourceModeMock,
             $this->getSalableQuantityDataBySkuMock,
             $this->getAssignedStockIdsBySkuMock,
+            $this->addSourceSalableQuantityBreakdownMock,
             2
         );
     }
@@ -147,5 +148,105 @@ class SalableQuantityTest extends TestCase
             ],
         ];
         self::assertEquals($expectedDataSource, $dataSource);
+    }
+
+    public function testHandsEveryRowOfThePageToTheBreakdownInOneCall(): void
+    {
+        $this->isSourceItemManagementAllowedForProductTypeMock->method('execute')->willReturn(true);
+        $this->getAssignedStockIdsBySkuMock->method('execute')->willReturn([2]);
+        $stockEntries = [['stock_id' => 2, 'stock_name' => 'Stock 2', 'qty' => 1, 'manage_stock' => true]];
+        $this->getSalableQuantityDataBySkuMock->method('execute')->willReturn($stockEntries);
+
+        $this->addSourceSalableQuantityBreakdownMock = $this->createMock(AddSourceSalableQuantityBreakdown::class);
+        $this->addSourceSalableQuantityBreakdownMock->expects(self::once())
+            ->method('execute')
+            ->with(['product1' => $stockEntries, 'product2' => $stockEntries])
+            ->willReturnArgument(0);
+        $column = new SalableQuantity(
+            $this->contextMock,
+            $this->uiComponentFactoryMock,
+            $this->isSourceItemManagementAllowedForProductTypeMock,
+            $this->getSalableQuantityDataBySkuMock,
+            $this->getAssignedStockIdsBySkuMock,
+            $this->addSourceSalableQuantityBreakdownMock,
+            2
+        );
+
+        $column->prepareDataSource([
+            'data' => [
+                'totalRecords' => 2,
+                'items' => [
+                    ['sku' => 'product1', 'type_id' => 'simple'],
+                    ['sku' => 'product2', 'type_id' => 'simple'],
+                ],
+            ],
+        ]);
+    }
+
+    public function testRendersTheBreakdownResolvedForTheRow(): void
+    {
+        $this->isSourceItemManagementAllowedForProductTypeMock->method('execute')->willReturn(true);
+        $this->getAssignedStockIdsBySkuMock->method('execute')->willReturn([2]);
+        $this->getSalableQuantityDataBySkuMock->method('execute')->willReturn(
+            [['stock_id' => 2, 'stock_name' => 'Stock 2', 'qty' => 8, 'manage_stock' => true]]
+        );
+
+        $brokenDown = $this->createMock(AddSourceSalableQuantityBreakdown::class);
+        $brokenDown->method('execute')->willReturn([
+            'product1' => [
+                [
+                    'stock_id' => 2,
+                    'stock_name' => 'Stock 2',
+                    'qty' => 8,
+                    'manage_stock' => true,
+                    'sources' => [['source_code' => 'src_a', 'salable' => 8.0]],
+                    'source_reservations_enabled' => true,
+                ],
+            ],
+        ]);
+        $column = new SalableQuantity(
+            $this->contextMock,
+            $this->uiComponentFactoryMock,
+            $this->isSourceItemManagementAllowedForProductTypeMock,
+            $this->getSalableQuantityDataBySkuMock,
+            $this->getAssignedStockIdsBySkuMock,
+            $brokenDown,
+            2
+        );
+
+        $dataSource = $column->prepareDataSource([
+            'data' => ['totalRecords' => 1, 'items' => [['sku' => 'product1', 'type_id' => 'simple']]],
+        ]);
+
+        self::assertSame(
+            'src_a',
+            $dataSource['data']['items'][0]['salable_quantity'][0]['sources'][0]['source_code']
+        );
+    }
+
+    public function testDecodesTheSkuBeforeHandingTheRowToTheBreakdown(): void
+    {
+        $this->isSourceItemManagementAllowedForProductTypeMock->method('execute')->willReturn(true);
+        $this->getAssignedStockIdsBySkuMock->method('execute')->willReturn([2]);
+        $this->getSalableQuantityDataBySkuMock->method('execute')->willReturn([]);
+
+        $brokenDown = $this->createMock(AddSourceSalableQuantityBreakdown::class);
+        $brokenDown->expects(self::once())
+            ->method('execute')
+            ->with(['sku&1' => []])
+            ->willReturnArgument(0);
+        $column = new SalableQuantity(
+            $this->contextMock,
+            $this->uiComponentFactoryMock,
+            $this->isSourceItemManagementAllowedForProductTypeMock,
+            $this->getSalableQuantityDataBySkuMock,
+            $this->getAssignedStockIdsBySkuMock,
+            $brokenDown,
+            2
+        );
+
+        $column->prepareDataSource([
+            'data' => ['totalRecords' => 1, 'items' => [['sku' => 'sku&amp;1', 'type_id' => 'simple']]],
+        ]);
     }
 }

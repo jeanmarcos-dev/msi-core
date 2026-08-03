@@ -10,7 +10,7 @@
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">
                 <item name="tooltip" xsi:type="array">
-                    <item name="description" xsi:type="string" translate="true">Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty).</item>
+                    <item name="description" xsi:type="string" translate="true">Aggregated inventory available to purchase for a stock. The amount aggregates assigned source's Quantity subtracting the Out-of-Stock Threshold (or MinQty). The breakdown reports, for each source of the stock, the quantity on hand, its source reservation balance and the salable quantity they add up to.</item>
                 </item>
             </item>
         </argument>

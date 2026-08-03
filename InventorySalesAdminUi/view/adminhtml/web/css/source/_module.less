@@ -16,3 +16,67 @@
     }
     margin-top: 0;
 }
+
+//
+//  Per-source salable quantity breakdown
+//  ---------------------------------------------
+
+.salable-qty-stock {
+    + .salable-qty-stock {
+        margin-top: 2rem;
+    }
+}
+
+.salable-qty-number {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.salable-qty-muted {
+    color: @color-gray65;
+}
+
+.salable-qty-flag {
+    color: @color-gray65;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    margin-left: .6rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.salable-qty-total-row {
+    td {
+        background-color: @color-white;
+        border-top: .1rem solid @color-lighter-grayish;
+        font-weight: 600;
+    }
+}
+
+.salable-qty-total {
+    font-size: 1.5rem;
+}
+
+.salable-qty-sources-cell.admin__dynamic-rows {
+    margin-top: .5rem;
+
+    td,
+    th {
+        padding: .5rem .6rem;
+    }
+}
+
+.salable-qty-toggle {
+    background: none;
+    border: 0;
+    color: @color-phoenix;
+    cursor: pointer;
+    padding: .3rem 0 0;
+    text-decoration: underline;
+
+    &:hover {
+        color: @color-phoenix-dark;
+    }
+}

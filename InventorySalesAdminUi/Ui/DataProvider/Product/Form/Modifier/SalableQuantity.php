@@ -9,8 +9,8 @@ namespace Magento\InventorySalesAdminUi\Ui\DataProvider\Product\Form\Modifier;
 
 use Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\AbstractModifier;
 use Magento\Catalog\Model\Locator\LocatorInterface;
+use Magento\InventorySalesAdminUi\Model\AddSourceSalableQuantityBreakdown;
 use Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku;
-use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
 
 /**
@@ -29,31 +29,31 @@ class SalableQuantity extends AbstractModifier
     private $locator;
 
     /**
-     * @var IsSingleSourceModeInterface
-     */
-    private $isSingleSourceMode;
-
-    /**
      * @var GetSalableQuantityDataBySku
      */
     private $getSalableQuantityDataBySku;
 
     /**
+     * @var AddSourceSalableQuantityBreakdown
+     */
+    private $addSourceSalableQuantityBreakdown;
+
+    /**
      * @param IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType
      * @param LocatorInterface $locator
-     * @param IsSingleSourceModeInterface $isSingleSourceMode
      * @param GetSalableQuantityDataBySku $getSalableQuantityDataBySku
+     * @param AddSourceSalableQuantityBreakdown $addSourceSalableQuantityBreakdown
      */
     public function __construct(
         IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType,
         LocatorInterface $locator,
-        IsSingleSourceModeInterface $isSingleSourceMode,
-        GetSalableQuantityDataBySku $getSalableQuantityDataBySku
+        GetSalableQuantityDataBySku $getSalableQuantityDataBySku,
+        AddSourceSalableQuantityBreakdown $addSourceSalableQuantityBreakdown
     ) {
         $this->isSourceItemManagementAllowedForProductType = $isSourceItemManagementAllowedForProductType;
         $this->locator = $locator;
-        $this->isSingleSourceMode = $isSingleSourceMode;
         $this->getSalableQuantityDataBySku = $getSalableQuantityDataBySku;
+        $this->addSourceSalableQuantityBreakdown = $addSourceSalableQuantityBreakdown;
     }
 
     /**
@@ -69,7 +69,11 @@ class SalableQuantity extends AbstractModifier
             return $data;
         }
 
-        $data[$product->getId()]['salable_quantity'] = $this->getSalableQuantityDataBySku->execute($product->getSku());
+        $sku = (string) $product->getSku();
+        $stockEntries = $this->getSalableQuantityDataBySku->execute($sku);
+        $data[$product->getId()]['salable_quantity'] =
+            $this->addSourceSalableQuantityBreakdown->execute([$sku => $stockEntries])[$sku];
+
         return $data;
     }
 
