@@ -40,7 +40,9 @@ jobs:
         id: changed
         run: |
           git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
-          git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD" -- '*.php' > changed.txt || true
+          # .github/ is excluded: it carries CI tooling inherited from upstream (CLI scripts
+          # that legitimately use echo/exit) and is not part of the distributed code.
+          git diff --name-only --diff-filter=ACMR "origin/${{ github.base_ref }}...HEAD" -- '*.php' ':(exclude).github/' > changed.txt || true
           echo "Changed PHP files:"
           cat changed.txt || true
           echo "count=$(grep -c . changed.txt || echo 0)" >> "$GITHUB_OUTPUT"

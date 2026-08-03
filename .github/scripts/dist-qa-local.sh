@@ -28,12 +28,15 @@ fi
 
 echo "Base ref: $BASE"
 
+# .github/ is excluded: it carries CI tooling inherited from upstream (CLI scripts that
+# legitimately use echo/exit), which the Magento2 standard rejects and which is not part
+# of the distributed code.
 CHANGED=$(
     {
-        git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- '*.php'
-        git diff --name-only --diff-filter=ACMR -- '*.php'
-        git diff --name-only --diff-filter=ACMR --cached -- '*.php'
-        git ls-files --others --exclude-standard -- '*.php'
+        git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- '*.php' ':(exclude).github/'
+        git diff --name-only --diff-filter=ACMR -- '*.php' ':(exclude).github/'
+        git diff --name-only --diff-filter=ACMR --cached -- '*.php' ':(exclude).github/'
+        git ls-files --others --exclude-standard -- '*.php' ':(exclude).github/'
     } 2>/dev/null | sort -u | grep -v '^$' || true
 )
 
