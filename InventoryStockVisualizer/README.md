@@ -152,6 +152,29 @@ without a manual cache flush.
   `bin/magento queue:consumers:start inventory.stockvisualizer.purge` (or via the
   standard consumer cron).
 
+### Generating performance-toolkit fixtures
+
+While this module is enabled, `setup:performance:generate-fixtures` aborts with
+`The entity ID field for the "queue_message" table wasn't found`.
+
+The fixture generator saves one template product and uses `SqlCollector` to record
+every `INSERT INTO` that save emits, treating each captured table as belonging to the
+product entity. Saving the template writes source items, which fires the supply seam
+and publishes a purge message onto the database-backed queue, so `queue_message` ends
+up in that set. `EntityGenerator` then looks for a foreign key from it to
+`catalog_product_entity`, finds none, and throws.
+
+Disable the module while generating the catalog:
+
+    bin/magento module:disable Magento_InventoryStockVisualizer
+    bin/magento setup:performance:generate-fixtures <profile>
+    bin/magento module:enable Magento_InventoryStockVisualizer
+    bin/magento setup:di:compile
+
+This affects fixture generation only — never storefront or admin behaviour. Any module
+that publishes to the database-backed queue during a product save runs into the same
+generator limitation.
+
 ## Extension points and service contracts
 
 Public service contracts live in this module's `Api` namespace:
