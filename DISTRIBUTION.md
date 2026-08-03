@@ -70,6 +70,22 @@ This mirrors the target Magento version and does not collide with Adobe's own
   - Concurrent orders on different stocks sharing a source are not serialized
     against each other (the place-order lock is per stock); totals per stock
     are always preserved.
+- **Salable quantity broken down by source**: the *Product Salable Quantity*
+  section of the product form and the *Salable Quantity* column of the product
+  grid report, for every source of a stock, the quantity on hand, that source's
+  reservation balance and the salable quantity they add up to. The aggregate
+  Magento already showed becomes the total of that breakdown, so a salable
+  quantity lower than the quantity on hand can be traced to the source holding
+  the difference. Sources that contribute nothing are still listed and labelled
+  — a disabled source, or a source item set out of stock — so a zero reads as a
+  reason rather than a defect. Notes:
+  - Single-source mode is untouched: with one source the breakdown would only
+    repeat the aggregate, so the section renders exactly as before.
+  - Without source-level reservations the breakdown degrades to the quantity on
+    hand, since reservations are then held per stock and cannot be attributed
+    to a source.
+  - The grid resolves a whole page in one pair of queries and keeps the
+    breakdown collapsed until it is expanded, which costs no further request.
 - **Storefront stock visualizer** (opt-in, default off): a product-page
   *Availability* panel driven by MSI, shipped as the additive
   `Magento_InventoryStockVisualizer` module (no core module is replaced). The
