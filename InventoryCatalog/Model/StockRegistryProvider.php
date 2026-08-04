@@ -87,18 +87,22 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      */
     public function getStockItem($productId, $scopeId)
     {
+        // The SPI is untyped but the registry storage is not, and it rejects the string ids the indexer passes.
+        $productId = (int)$productId;
+        $scopeId = (int)$scopeId;
+
         $stockItem = $this->stockRegistryStorage->getStockItem($productId, $scopeId);
         if (null !== $stockItem) {
             return $stockItem;
         }
 
-        $sku = $this->getSku((int)$productId);
+        $sku = $this->getSku($productId);
         if (null === $sku) {
             return $this->stockItemFactory->create();
         }
 
-        $stockId = (int)$this->stockByWebsiteIdResolver->execute((int)$scopeId)->getStockId();
-        $stockItem = $this->buildStockItem($sku, (int)$productId, $stockId, (int)$scopeId);
+        $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
+        $stockItem = $this->buildStockItem($sku, $productId, $stockId, $scopeId);
         $this->stockRegistryStorage->setStockItem($productId, $scopeId, $stockItem);
 
         return $stockItem;
@@ -109,22 +113,25 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      */
     public function getStockStatus($productId, $scopeId)
     {
+        $productId = (int)$productId;
+        $scopeId = (int)$scopeId;
+
         $stockStatus = $this->stockRegistryStorage->getStockStatus($productId, $scopeId);
         if (null !== $stockStatus) {
             return $stockStatus;
         }
 
-        $sku = $this->getSku((int)$productId);
+        $sku = $this->getSku($productId);
         if (null === $sku) {
             return $this->stockStatusFactory->create();
         }
 
-        $stockId = (int)$this->stockByWebsiteIdResolver->execute((int)$scopeId)->getStockId();
+        $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
         $indexData = $this->getIndexData($sku, $stockId);
 
         /** @var StockStatusInterface $stockStatus */
         $stockStatus = $this->stockStatusFactory->create();
-        $stockStatus->setProductId((int)$productId);
+        $stockStatus->setProductId($productId);
         $stockStatus->setStockId($stockId);
         $stockStatus->setQty((float)($indexData[GetStockItemDataInterface::QUANTITY] ?? 0));
         $stockStatus->setStockStatus((int)($indexData[GetStockItemDataInterface::IS_SALABLE] ?? 0));
