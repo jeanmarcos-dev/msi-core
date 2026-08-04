@@ -41,9 +41,9 @@ class ManageStockCondition
         $globalManageStock = (int)$this->configuration->getManageStock();
 
         $condition = '
-        (legacy_stock_item.use_config_manage_stock = 0 AND legacy_stock_item.manage_stock = 1)';
+        (stock_item_configuration.use_config_manage_stock = 0 AND stock_item_configuration.manage_stock = 1)';
         if (1 === $globalManageStock) {
-            $condition .= ' OR legacy_stock_item.use_config_manage_stock = 1';
+            $condition .= ' OR stock_item_configuration.use_config_manage_stock = 1';
         }
 
         return $condition;

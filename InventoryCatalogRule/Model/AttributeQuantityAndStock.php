@@ -12,7 +12,6 @@ use Magento\Catalog\Model\ResourceModel\Product\Collection as CatalogCollection;
 use Magento\Framework\Api\Filter;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Inventory\Model\ResourceModel\Stock\CollectionFactory;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 
 /**
@@ -38,26 +37,18 @@ class AttributeQuantityAndStock implements CustomConditionInterface
     private $stockIndexTableNameResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @param ResourceConnection $resourceConnection
      * @param CollectionFactory $stockCollectionFactory
      * @param StockIndexTableNameResolverInterface $stockIndexTableNameResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      */
     public function __construct(
         ResourceConnection $resourceConnection,
         CollectionFactory $stockCollectionFactory,
-        StockIndexTableNameResolverInterface $stockIndexTableNameResolver,
-        DefaultStockProviderInterface $defaultStockProvider,
+        StockIndexTableNameResolverInterface $stockIndexTableNameResolver
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->stockCollectionFactory = $stockCollectionFactory;
         $this->stockIndexTableNameResolver = $stockIndexTableNameResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
     }
 
     /**
@@ -69,37 +60,20 @@ class AttributeQuantityAndStock implements CustomConditionInterface
     public function build(Filter $filter): string
     {
         $collection = $this->stockCollectionFactory->create();
-        $defaultStockId = $this->defaultStockProvider->getId();
         $quantitySelect = $this->resourceConnection->getConnection()->select()
             ->from(
                 ['cpe' => $this->resourceConnection->getTableName('catalog_product_entity')],
                 'cpe.entity_id'
             );
-        $stockIndexTableNameDefault = $this->resourceConnection->getTableName('cataloginventory_stock_status');
-
         foreach ($collection->getAllIds() as $stockId) {
-            if ((int)$stockId === $defaultStockId) {
-                $quantitySelect->joinInner(
-                    ['child_stock_default' => $stockIndexTableNameDefault],
-                    'child_stock_default.product_id = product_website.product_id',
-                    []
-                )->joinInner(
-                    ['parent_stock_default' => $stockIndexTableNameDefault],
-                    'parent_stock_default.product_id = cpe.entity_id',
-                    []
-                )->where(
-                    'child_stock_default.stock_status = 1 OR parent_stock_default.stock_status = 0'
-                );
-            } else {
-                $stockIndexTableName = $this->stockIndexTableNameResolver->execute((int)$stockId);
-                $quantitySelect->joinInner(
-                    ['stock_'.$stockId => $stockIndexTableName],
-                    'stock_'.$stockId.'.sku = cpe.sku',
-                    []
-                )->orWhere(
-                    'stock_' . $stockId . '.is_salable =' . $filter->getValue()
-                );
-            }
+            $stockIndexTableName = $this->stockIndexTableNameResolver->execute((int)$stockId);
+            $quantitySelect->joinInner(
+                ['stock_'.$stockId => $stockIndexTableName],
+                'stock_'.$stockId.'.sku = cpe.sku',
+                []
+            )->orWhere(
+                'stock_' . $stockId . '.is_salable =' . $filter->getValue()
+            );
         }
         $selectCondition = [
             $this->mapConditionType($filter->getConditionType()) => $quantitySelect

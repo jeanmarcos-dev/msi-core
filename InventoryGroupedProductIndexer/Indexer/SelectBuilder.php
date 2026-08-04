@@ -55,9 +55,10 @@ class SelectBuilder implements SiblingSelectBuilderInterface
         $metadata = $this->metadataPool->getMetadata(ProductInterface::class);
         $linkField = $metadata->getLinkField();
 
-        $manageStock = '(inventory_stock_item.use_config_manage_stock = 0 AND inventory_stock_item.manage_stock = 1)';
+        $manageStock = '(stock_item_configuration.use_config_manage_stock = 0'
+            . ' AND stock_item_configuration.manage_stock = 1)';
         if (((int)$this->configuration->getManageStock()) === 1) {
-            $manageStock .= ' OR inventory_stock_item.use_config_manage_stock = 1';
+            $manageStock .= ' OR stock_item_configuration.use_config_manage_stock = 1';
             $manageStock = "($manageStock)";
         }
 
@@ -85,15 +86,17 @@ class SelectBuilder implements SiblingSelectBuilderInterface
             [
                 IndexStructure::QUANTITY => 'SUM(child_stock.quantity)',
                 IndexStructure::IS_SALABLE =>
-                    "IF(inventory_stock_item.is_in_stock = 0 AND $manageStock, 0, MAX(child_stock.is_salable))",
+                    "IF(stock_item_configuration.is_in_stock = 0 AND $manageStock, 0, MAX(child_stock.is_salable))",
             ]
         )->joinInner(
             ['child_filter_product_entity' => $this->resourceConnection->getTableName('catalog_product_entity')],
             "child_filter_product_entity.entity_id = parent_link.linked_product_id",
             []
         )->joinLeft(
-            ['inventory_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-            'inventory_stock_item.product_id = parent_product_entity.entity_id',
+            ['stock_item_configuration' => $this->resourceConnection->getTableName(
+                'inventory_stock_item_configuration'
+            )],
+            'stock_item_configuration.sku = parent_product_entity.sku',
             []
         )->where(
             'parent_link.link_type_id = ' . Link::LINK_TYPE_GROUPED

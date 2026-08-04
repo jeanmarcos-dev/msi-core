@@ -12,7 +12,6 @@ use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use Magento\InventoryBundleProductIndexer\Indexer\OptionsStatusSelectBuilder;
 use Magento\InventoryBundleProductIndexer\Indexer\SelectBuilder;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryConfigurationApi\Model\InventoryConfigurationInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -39,9 +38,6 @@ class SelectBuilderTest extends TestCase
         $resourceConnection->method('getConnection')->willReturn($this->connection);
         $resourceConnection->method('getTableName')->willReturnArgument(0);
 
-        $defaultStockProvider = $this->createMock(DefaultStockProviderInterface::class);
-        $defaultStockProvider->method('getId')->willReturn(1);
-
         $optionsStatusSelectBuilder = $this->createMock(OptionsStatusSelectBuilder::class);
         $optionsStatusSelectBuilder->method('execute')->willReturn($this->createMock(Select::class));
 
@@ -50,7 +46,6 @@ class SelectBuilderTest extends TestCase
 
         $this->selectBuilder = new SelectBuilder(
             $resourceConnection,
-            $defaultStockProvider,
             $optionsStatusSelectBuilder,
             $configuration
         );

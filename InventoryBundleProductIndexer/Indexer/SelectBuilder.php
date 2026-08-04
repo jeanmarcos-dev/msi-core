@@ -10,7 +10,6 @@ namespace Magento\InventoryBundleProductIndexer\Indexer;
 use Magento\Bundle\Model\Product\Type as BundleProductType;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryConfigurationApi\Model\InventoryConfigurationInterface;
 use Magento\InventoryIndexer\Indexer\IndexStructure;
 use Magento\InventoryIndexer\Indexer\SiblingSelectBuilderInterface;
@@ -27,29 +26,21 @@ class SelectBuilder implements SiblingSelectBuilderInterface
     private $resourceConnection;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @var OptionsStatusSelectBuilder
      */
     private $optionsStatusSelectBuilder;
 
     /**
      * @param ResourceConnection $resourceConnection
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param OptionsStatusSelectBuilder $optionsStatusSelectBuilder
      * @param InventoryConfigurationInterface $configuration
      */
     public function __construct(
         ResourceConnection $resourceConnection,
-        DefaultStockProviderInterface $defaultStockProvider,
         OptionsStatusSelectBuilder $optionsStatusSelectBuilder,
         private readonly InventoryConfigurationInterface $configuration
     ) {
         $this->resourceConnection = $resourceConnection;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->optionsStatusSelectBuilder = $optionsStatusSelectBuilder;
     }
 
@@ -67,9 +58,10 @@ class SelectBuilder implements SiblingSelectBuilderInterface
             '0'
         );
 
-        $manageStock = '(legacy_stock_item.use_config_manage_stock = 0 AND legacy_stock_item.manage_stock = 1)';
+        $manageStock = '(stock_item_configuration.use_config_manage_stock = 0'
+            . ' AND stock_item_configuration.manage_stock = 1)';
         if (((int)$this->configuration->getManageStock()) === 1) {
-            $manageStock .= ' OR legacy_stock_item.use_config_manage_stock = 1';
+            $manageStock .= ' OR stock_item_configuration.use_config_manage_stock = 1';
             $manageStock = "($manageStock)";
         }
 
@@ -82,9 +74,10 @@ class SelectBuilder implements SiblingSelectBuilderInterface
                 'options.sku = product_entity.sku',
                 []
             )->joinLeft(
-                ['legacy_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-                'legacy_stock_item.product_id = product_entity.entity_id'
-                . ' AND legacy_stock_item.stock_id = ' . $this->defaultStockProvider->getId(),
+                ['stock_item_configuration' => $this->resourceConnection->getTableName(
+                    'inventory_stock_item_configuration'
+                )],
+                'stock_item_configuration.sku = product_entity.sku',
                 []
             )->where(
                 'product_entity.type_id = ?',
@@ -95,7 +88,7 @@ class SelectBuilder implements SiblingSelectBuilderInterface
                 IndexStructure::SKU => 'product_entity.sku',
                 IndexStructure::QUANTITY => $connection->getIfNullSql('SUM(options.quantity)', '0'),
                 IndexStructure::IS_SALABLE => $connection->getCheckSql(
-                    "(legacy_stock_item.is_in_stock = 0 AND $manageStock) OR options.sku IS NULL",
+                    "(stock_item_configuration.is_in_stock = 0 AND $manageStock) OR options.sku IS NULL",
                     '0',
                     'MAX(' . $isRequiredOptionUnavailable . ') = 0 AND MAX(options.stock_status) = 1'
                 ),

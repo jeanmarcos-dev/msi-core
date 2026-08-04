@@ -93,8 +93,10 @@ class SelectBuilder implements SelectBuilderInterface
             'product.sku = source_item.' . SourceItemInterface::SKU,
             []
         )->joinLeft(
-            ['legacy_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-            'product.entity_id = legacy_stock_item.product_id',
+            ['stock_item_configuration' => $this->resourceConnection->getTableName(
+                'inventory_stock_item_configuration'
+            )],
+            'product.sku = stock_item_configuration.sku',
             []
         )->joinLeft(
             [

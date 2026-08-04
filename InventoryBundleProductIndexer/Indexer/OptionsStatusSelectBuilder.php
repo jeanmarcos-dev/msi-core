@@ -11,7 +11,6 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\EntityManager\MetadataPool;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryConfigurationApi\Model\InventoryConfigurationInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\Stock\ReservationsIndexTable;
@@ -26,7 +25,6 @@ class OptionsStatusSelectBuilder
      * @param IndexNameBuilder $indexNameBuilder
      * @param IndexNameResolverInterface $indexNameResolver
      * @param MetadataPool $metadataPool
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param InventoryConfigurationInterface $inventoryConfiguration
      * @param ReservationsIndexTable $reservationsIndexTable
      */
@@ -35,7 +33,6 @@ class OptionsStatusSelectBuilder
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexNameResolverInterface $indexNameResolver,
         private readonly MetadataPool $metadataPool,
-        private readonly DefaultStockProviderInterface $defaultStockProvider,
         private readonly InventoryConfigurationInterface $inventoryConfiguration,
         private readonly ReservationsIndexTable $reservationsIndexTable,
     ) {
@@ -77,9 +74,10 @@ class OptionsStatusSelectBuilder
                 'bundle_option.option_id = bundle_selection.option_id',
                 []
             )->joinLeft(
-                ['stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-                'stock_item.product_id = product_entity.entity_id'
-                . ' AND stock_item.stock_id = ' . $this->defaultStockProvider->getId(),
+                ['stock_item_configuration' => $this->resourceConnection->getTableName(
+                    'inventory_stock_item_configuration'
+                )],
+                'stock_item_configuration.sku = product_entity.sku',
                 []
             )->joinInner(
                 ['parent_product_entity' => $this->resourceConnection->getTableName('catalog_product_entity')],
@@ -118,7 +116,7 @@ class OptionsStatusSelectBuilder
         $connection = $this->resourceConnection->getConnection();
 
         $reservationQty = $connection->getIfNullSql('reservations.reservation_qty');
-        $quantity = '(stock.quantity - stock_item.min_qty + ' . $reservationQty . ')';
+        $quantity = '(stock.quantity - stock_item_configuration.min_qty + ' . $reservationQty . ')';
         $isAvailableExpr = $connection->getCheckSql(
             'bundle_selection.selection_can_change_qty = 0 AND bundle_selection.selection_qty > ' . $quantity,
             '0',
@@ -127,13 +125,13 @@ class OptionsStatusSelectBuilder
 
         if ($this->inventoryConfiguration->getBackorders()) {
             $backordersExpr = $connection->getCheckSql(
-                'stock_item.use_config_backorders = 0 AND stock_item.backorders = 0',
+                'stock_item_configuration.use_config_backorders = 0 AND stock_item_configuration.backorders = 0',
                 $isAvailableExpr,
                 'stock.is_salable'
             );
         } else {
             $backordersExpr = $connection->getCheckSql(
-                'stock_item.use_config_backorders = 0 AND stock_item.backorders > 0',
+                'stock_item_configuration.use_config_backorders = 0 AND stock_item_configuration.backorders > 0',
                 'stock.is_salable',
                 $isAvailableExpr
             );
@@ -141,13 +139,13 @@ class OptionsStatusSelectBuilder
 
         if ($this->inventoryConfiguration->getManageStock()) {
             $statusExpr = $connection->getCheckSql(
-                'stock_item.use_config_manage_stock = 0 AND stock_item.manage_stock = 0',
+                'stock_item_configuration.use_config_manage_stock = 0 AND stock_item_configuration.manage_stock = 0',
                 1,
                 $backordersExpr
             );
         } else {
             $statusExpr = $connection->getCheckSql(
-                'stock_item.use_config_manage_stock = 0 AND stock_item.manage_stock = 1',
+                'stock_item_configuration.use_config_manage_stock = 0 AND stock_item_configuration.manage_stock = 1',
                 $backordersExpr,
                 1
             );

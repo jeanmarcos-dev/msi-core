@@ -15,7 +15,6 @@ use Magento\Eav\Model\Config;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\EntityManager\MetadataPool;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryConfigurationApi\Model\InventoryConfigurationInterface;
 use Magento\InventoryIndexer\Indexer\IndexStructure;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
@@ -37,7 +36,6 @@ class SelectBuilder implements SiblingSelectBuilderInterface
      * @param IndexNameBuilder $indexNameBuilder
      * @param IndexNameResolverInterface $indexNameResolver
      * @param MetadataPool $metadataPool
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param Config $eavConfig
      * @param InventoryConfigurationInterface $configuration
      */
@@ -46,7 +44,6 @@ class SelectBuilder implements SiblingSelectBuilderInterface
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexNameResolverInterface $indexNameResolver,
         private readonly MetadataPool $metadataPool,
-        private readonly DefaultStockProviderInterface $defaultStockProvider,
         private readonly Config $eavConfig,
         private readonly InventoryConfigurationInterface $configuration
     ) {
@@ -67,9 +64,10 @@ class SelectBuilder implements SiblingSelectBuilderInterface
         $linkField = $metadata->getLinkField();
         $statusAttributeId = $this->getAttribute(ProductInterface::STATUS)->getId();
 
-        $manageStock = '(inventory_stock_item.use_config_manage_stock = 0 AND inventory_stock_item.manage_stock = 1)';
+        $manageStock = '(stock_item_configuration.use_config_manage_stock = 0'
+            . ' AND stock_item_configuration.manage_stock = 1)';
         if (((int)$this->configuration->getManageStock()) === 1) {
-            $manageStock .= ' OR inventory_stock_item.use_config_manage_stock = 1';
+            $manageStock .= ' OR stock_item_configuration.use_config_manage_stock = 1';
             $manageStock = "($manageStock)";
         }
 
@@ -85,7 +83,7 @@ class SelectBuilder implements SiblingSelectBuilderInterface
                     IndexStructure::SKU => 'parent_product_entity.sku',
                     IndexStructure::QUANTITY => 'SUM(stock.quantity)',
                     IndexStructure::IS_SALABLE =>
-                        "IF(inventory_stock_item.is_in_stock = 0 AND $manageStock, 0, $enabledChildIsSalable)",
+                        "IF(stock_item_configuration.is_in_stock = 0 AND $manageStock, 0, $enabledChildIsSalable)",
                 ]
             )->joinInner(
                 ['product_entity' => $this->resourceConnection->getTableName('catalog_product_entity')],
@@ -100,9 +98,10 @@ class SelectBuilder implements SiblingSelectBuilderInterface
                 'parent_product_entity.' . $linkField . ' = parent_link.parent_id',
                 []
             )->joinLeft(
-                ['inventory_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-                'inventory_stock_item.product_id = parent_product_entity.entity_id'
-                . ' AND inventory_stock_item.stock_id = ' . $this->defaultStockProvider->getId(),
+                ['stock_item_configuration' => $this->resourceConnection->getTableName(
+                    'inventory_stock_item_configuration'
+                )],
+                'stock_item_configuration.sku = parent_product_entity.sku',
                 []
             )->joinLeft(
                 ['product_status' => $this->resourceConnection->getTableName('catalog_product_entity_int')],

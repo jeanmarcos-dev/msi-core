@@ -37,12 +37,13 @@ class BackordersCondition implements GetIsStockItemSalableConditionInterface
     public function execute(Select $select): string
     {
         $globalBackorders = (int)$this->configuration->getBackorders();
-        $itemBackordersCondition = 'legacy_stock_item.backorders <> ' . StockItemConfigurationInterface::BACKORDERS_NO;
-        $useDefaultBackorders = 'legacy_stock_item.use_config_backorders';
-        $itemMinQty = 'legacy_stock_item.min_qty';
+        $itemBackordersCondition = 'stock_item_configuration.backorders <> '
+            . StockItemConfigurationInterface::BACKORDERS_NO;
+        $useDefaultBackorders = 'stock_item_configuration.use_config_backorders';
+        $itemMinQty = 'stock_item_configuration.min_qty';
         $globalMinQty = (float) $this->configuration->getMinQty();
         $minQty =  (string) $select->getConnection()->getCheckSql(
-            'legacy_stock_item.use_config_min_qty = 1',
+            'stock_item_configuration.use_config_min_qty = 1',
             $globalMinQty,
             $itemMinQty
         );

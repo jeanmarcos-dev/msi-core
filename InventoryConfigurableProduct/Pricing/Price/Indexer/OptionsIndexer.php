@@ -14,7 +14,6 @@ use Magento\ConfigurableProduct\Model\ResourceModel\Product\Indexer\Price\Option
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\DB\Sql\Expression;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
@@ -46,11 +45,6 @@ class OptionsIndexer implements OptionsIndexerInterface
     private $stockResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @var TableMaintainer
      */
     private $tableMaintainer;
@@ -75,7 +69,6 @@ class OptionsIndexer implements OptionsIndexerInterface
      * @param StockConfigurationInterface $stockConfig
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param ResourceConnection $resourceConnection
      * @param OptionsSelectBuilderInterface $optionsSelectBuilder
      * @param TableMaintainer $tableMaintainer
@@ -86,7 +79,6 @@ class OptionsIndexer implements OptionsIndexerInterface
         StockConfigurationInterface $stockConfig,
         StoreManagerInterface $storeManager,
         StockResolverInterface $stockResolver,
-        DefaultStockProviderInterface $defaultStockProvider,
         ResourceConnection $resourceConnection,
         OptionsSelectBuilderInterface $optionsSelectBuilder,
         TableMaintainer $tableMaintainer,
@@ -96,7 +88,6 @@ class OptionsIndexer implements OptionsIndexerInterface
         $this->stockConfig = $stockConfig;
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->resourceConnection = $resourceConnection;
         $this->optionsSelectBuilder = $optionsSelectBuilder;
         $this->tableMaintainer = $tableMaintainer;
@@ -115,42 +106,28 @@ class OptionsIndexer implements OptionsIndexerInterface
                 $stock = $this->stockResolver->execute(SalesChannelInterface::TYPE_WEBSITE, $website->getCode());
                 $stocks[(int) $stock->getStockId()][] = (int) $website->getId();
             }
-            $defaultStockId = $this->defaultStockProvider->getId();
             $stocksCount = count($stocks);
             foreach ($stocks as $stockId => $websiteIds) {
                 $selectClone = clone $select;
-                if ($stockId === $defaultStockId) {
-                    $stockIndexTableName = $this->resourceConnection->getTableName('cataloginventory_stock_status');
-                    $selectClone->joinInner(
-                        ['child_stock_default' => $stockIndexTableName],
-                        'child_stock_default.product_id = l.product_id',
-                        []
-                    )->joinInner(
-                        ['parent_stock_default' => $stockIndexTableName],
-                        'parent_stock_default.product_id = le.entity_id',
-                        []
-                    )->where(
-                        'child_stock_default.stock_status = 1 OR parent_stock_default.stock_status = 0'
-                    );
-                } else {
-                    $selectClone->joinInner(
-                        ['child_entity' => $this->resourceConnection->getTableName('catalog_product_entity')],
-                        'child_entity.entity_id = l.product_id',
-                        []
-                    )->joinInner(
-                        ['child_stock' => $this->stockIndexTableNameResolver->execute($stockId)],
-                        'child_stock.sku = child_entity.sku',
-                        []
-                    )->joinInner(
-                        ['parent_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-                        'parent_stock_item.product_id = le.entity_id',
-                        []
-                    )->where(
-                        'child_stock.is_salable = 1'
-                        . ' OR parent_stock_item.is_in_stock = 0'
-                        . ' OR NOT EXISTS ('. $this->getInStockOptionsSelect($indexTable, $stockId)->assemble() .')'
-                    );
-                }
+                $selectClone->joinInner(
+                    ['child_entity' => $this->resourceConnection->getTableName('catalog_product_entity')],
+                    'child_entity.entity_id = l.product_id',
+                    []
+                )->joinInner(
+                    ['child_stock' => $this->stockIndexTableNameResolver->execute($stockId)],
+                    'child_stock.sku = child_entity.sku',
+                    []
+                )->joinInner(
+                    ['parent_stock_item' => $this->resourceConnection->getTableName(
+                        'inventory_stock_item_configuration'
+                    )],
+                    'parent_stock_item.sku = le.sku',
+                    []
+                )->where(
+                    'child_stock.is_salable = 1'
+                    . ' OR parent_stock_item.is_in_stock = 0'
+                    . ' OR NOT EXISTS ('. $this->getInStockOptionsSelect($indexTable, $stockId)->assemble() .')'
+                );
 
                 if ($stocksCount > 1) {
                     $selectClone->where(

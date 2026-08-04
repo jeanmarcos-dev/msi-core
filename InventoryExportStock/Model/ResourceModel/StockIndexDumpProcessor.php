@@ -127,8 +127,8 @@ class StockIndexDumpProcessor
         $stockIndexTableName = $this->resourceConnection
             ->getTableName($this->stockIndexTableNameResolver->execute($stockId));
 
-        $legacyStockItemTable = $this->resourceConnection
-            ->getTableName('cataloginventory_stock_item');
+        $stockItemConfigurationTable = $this->resourceConnection
+            ->getTableName('inventory_stock_item_configuration');
         $productEntityTable = $this->resourceConnection
             ->getTableName('catalog_product_entity');
         $productWebsiteTable = $this->resourceConnection
@@ -156,12 +156,12 @@ class StockIndexDumpProcessor
             'product_entity.sku=stock_index.sku',
             ''
         )->join(
-            ['legacy_stock_item' => $legacyStockItemTable],
-            'legacy_stock_item.product_id = product_entity.entity_id',
+            ['stock_item_configuration' => $stockItemConfigurationTable],
+            'stock_item_configuration.sku = product_entity.sku',
             ''
         )->join(
             ['prod_website' => $productWebsiteTable],
-            'legacy_stock_item.product_id = prod_website.product_id',
+            'product_entity.entity_id = prod_website.product_id',
             ''
         )->where(
             $this->manageStockCondition->execute($select)
@@ -181,8 +181,8 @@ class StockIndexDumpProcessor
      */
     private function getStockItemSelect(int $websiteId): Select
     {
-        $legacyStockItemTable = $this->resourceConnection
-            ->getTableName('cataloginventory_stock_item');
+        $stockItemConfigurationTable = $this->resourceConnection
+            ->getTableName('inventory_stock_item_configuration');
         $productEntityTable = $this->resourceConnection
             ->getTableName('catalog_product_entity');
         $productWebsiteTable = $this->resourceConnection
@@ -202,16 +202,16 @@ class StockIndexDumpProcessor
             ' . $getQtyForNotManageStock . '
         )';
         $select->from(
-            ['legacy_stock_item' => $legacyStockItemTable],
+            ['stock_item_configuration' => $stockItemConfigurationTable],
             ['qty' =>new \Zend_Db_Expr($ifExpression),
                 new \Zend_Db_Expr('"1" as is_salable')]
         )->join(
             ['product_entity' => $productEntityTable],
-            'legacy_stock_item.product_id = product_entity.entity_id',
+            'stock_item_configuration.sku = product_entity.sku',
             ['sku']
         )->join(
             ['pr_web' => $productWebsiteTable],
-            'legacy_stock_item.product_id = pr_web.product_id',
+            'product_entity.entity_id = pr_web.product_id',
             ''
         )->where(
             $this->notManageStockCondition->execute($select)

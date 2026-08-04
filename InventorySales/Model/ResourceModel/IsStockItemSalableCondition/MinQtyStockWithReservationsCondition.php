@@ -36,7 +36,7 @@ class MinQtyStockWithReservationsCondition implements GetIsStockItemSalableCondi
     public function execute(Select $select): string
     {
         $globalMinQty = (float) $this->configuration->getMinQty();
-        $itemMinQty = 'legacy_stock_item.min_qty';
+        $itemMinQty = 'stock_item_configuration.min_qty';
         $inStockQty = (string) $select->getConnection()->getCheckSql(
             'source_item.' . SourceItemInterface::STATUS . ' = ' . SourceItemInterface::STATUS_OUT_OF_STOCK,
             0,
@@ -44,7 +44,7 @@ class MinQtyStockWithReservationsCondition implements GetIsStockItemSalableCondi
         );
         $inStockQty = 'SUM(' . $inStockQty . ')';
         $minQty =  (string) $select->getConnection()->getCheckSql(
-            'legacy_stock_item.use_config_min_qty = 1',
+            'stock_item_configuration.use_config_min_qty = 1',
             $globalMinQty,
             $itemMinQty
         );

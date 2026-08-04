@@ -55,9 +55,10 @@ class MinQtyStockCondition implements GetIsStockItemSalableConditionInterface
         $quantityExpression = 'SUM(' . $quantityExpression . ')';
 
         $condition =
-            '(legacy_stock_item.use_config_min_qty = 1 AND ' . $quantityExpression . ' > ' . $globalMinQty . ')'
+            '(stock_item_configuration.use_config_min_qty = 1 AND ' . $quantityExpression . ' > ' . $globalMinQty . ')'
             . ' OR '
-            . '(legacy_stock_item.use_config_min_qty = 0 AND ' . $quantityExpression . ' > legacy_stock_item.min_qty)';
+            . '(stock_item_configuration.use_config_min_qty = 0 AND ' . $quantityExpression
+            . ' > stock_item_configuration.min_qty)';
 
         return $condition;
     }

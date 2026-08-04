@@ -65,11 +65,15 @@ class ApplyBaseJoins
             $configurationJoinCondition,
             ['source_item_config.' . SourceItemConfigurationInterface::INVENTORY_NOTIFY_QTY]
         )->join(
-            ['legacy_stock_item' => $this->resourceConnection->getTableName('cataloginventory_stock_item')],
-            'legacy_stock_item.product_id = product.entity_id',
             [
-                'legacy_stock_item.' . StockItemInterface::LOW_STOCK_DATE,
-                'use_config' => 'legacy_stock_item.' . StockItemInterface::USE_CONFIG_NOTIFY_STOCK_QTY
+                'stock_item_configuration' => $this->resourceConnection->getTableName(
+                    'inventory_stock_item_configuration'
+                )
+            ],
+            'stock_item_configuration.sku = product.' . ProductInterface::SKU,
+            [
+                'stock_item_configuration.' . StockItemInterface::LOW_STOCK_DATE,
+                'use_config' => 'stock_item_configuration.' . StockItemInterface::USE_CONFIG_NOTIFY_STOCK_QTY
             ]
         )->group('main_table.' . SourceItem::ID_FIELD_NAME);
     }
