@@ -10,7 +10,6 @@ namespace Magento\InventoryVisualMerchandiser\Plugin\Model\Sorting;
 use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
@@ -39,26 +38,18 @@ class OutStockBottomSortingPlugin
     private $stockIndexTableNameResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
      * @param StockIndexTableNameResolverInterface $stockIndexTableNameResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         StockResolverInterface $stockResolver,
-        StockIndexTableNameResolverInterface $stockIndexTableNameResolver,
-        DefaultStockProviderInterface $defaultStockProvider
+        StockIndexTableNameResolverInterface $stockIndexTableNameResolver
     ) {
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
         $this->stockIndexTableNameResolver = $stockIndexTableNameResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
     }
 
     /**
@@ -77,10 +68,6 @@ class OutStockBottomSortingPlugin
         $websiteCode = $this->storeManager->getWebsite()->getCode();
         $stock = $this->stockResolver->execute(SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
         $stockId = (int)$stock->getStockId();
-
-        if ($stockId === $this->defaultStockProvider->getId()) {
-            return $proceed($collection);
-        }
 
         $select = $collection->getSelect();
         if (!array_key_exists('inventory_stock', $select->getPart(Select::FROM))) {

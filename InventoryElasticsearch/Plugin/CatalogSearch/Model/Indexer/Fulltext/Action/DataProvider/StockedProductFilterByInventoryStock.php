@@ -7,13 +7,9 @@ declare(strict_types=1);
 
 namespace Magento\InventoryElasticsearch\Plugin\CatalogSearch\Model\Indexer\Fulltext\Action\DataProvider;
 
-use Magento\CatalogInventory\Api\Data\StockStatusInterface;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
-use Magento\CatalogInventory\Api\StockStatusCriteriaInterfaceFactory;
-use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
 use Magento\CatalogSearch\Model\Indexer\Fulltext\Action\DataProvider;
 use Magento\Framework\App\ResourceConnection;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\Store\Api\StoreRepositoryInterface;
@@ -44,21 +40,6 @@ class StockedProductFilterByInventoryStock
     private $stockByWebsiteIdResolver;
 
     /**
-     * @var StockStatusCriteriaInterfaceFactory
-     */
-    private $stockStatusCriteriaFactory;
-
-    /**
-     * @var StockStatusRepositoryInterface
-     */
-    private $stockStatusRepository;
-
-    /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @var StoreRepositoryInterface
      */
     private $storeRepository;
@@ -68,9 +49,6 @@ class StockedProductFilterByInventoryStock
      * @param StockIndexTableNameResolverInterface $stockIndexTableNameResolver
      * @param ResourceConnection $resourceConnection
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
-     * @param StockStatusCriteriaInterfaceFactory $stockStatusCriteriaFactory
-     * @param StockStatusRepositoryInterface $stockStatusRepository
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param StoreRepositoryInterface $storeRepository
      */
     public function __construct(
@@ -78,18 +56,12 @@ class StockedProductFilterByInventoryStock
         StockIndexTableNameResolverInterface $stockIndexTableNameResolver,
         ResourceConnection $resourceConnection,
         StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
-        StockStatusCriteriaInterfaceFactory $stockStatusCriteriaFactory,
-        StockStatusRepositoryInterface $stockStatusRepository,
-        DefaultStockProviderInterface $defaultStockProvider,
         StoreRepositoryInterface $storeRepository
     ) {
         $this->stockConfiguration = $stockConfiguration;
         $this->stockIndexTableNameResolver = $stockIndexTableNameResolver;
         $this->resourceConnection = $resourceConnection;
         $this->stockByWebsiteIdResolver = $stockByWebsiteIdResolver;
-        $this->stockStatusCriteriaFactory = $stockStatusCriteriaFactory;
-        $this->stockStatusRepository = $stockStatusRepository;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->storeRepository = $storeRepository;
     }
 
@@ -115,11 +87,7 @@ class StockedProductFilterByInventoryStock
             $stock = $this->stockByWebsiteIdResolver->execute((int)$store->getWebsiteId());
             $stockId = $stock->getStockId();
 
-            if ($this->defaultStockProvider->getId() === $stockId) {
-                $stockStatuses = $this->getStockStatusesFromDefaultStock($productIds);
-            } else {
-                $stockStatuses = $this->getStockStatusesFromCustomStock($productIds, $stockId);
-            }
+            $stockStatuses = $this->getStockStatusesFromCustomStock($productIds, $stockId);
 
             $indexData = array_intersect_key($indexData, $stockStatuses);
         }
@@ -129,27 +97,6 @@ class StockedProductFilterByInventoryStock
             $productData,
             $storeId,
         ];
-    }
-
-    /**
-     * Get product stock statuses on default stock.
-     *
-     * @param array $productIds
-     * @return array
-     */
-    private function getStockStatusesFromDefaultStock(array $productIds): array
-    {
-        $stockStatusCriteria = $this->stockStatusCriteriaFactory->create();
-        $stockStatusCriteria->setProductsFilter($productIds);
-        $stockStatusCollection = $this->stockStatusRepository->getList($stockStatusCriteria);
-        $stockStatuses = $stockStatusCollection->getItems();
-
-        return array_filter(
-            $stockStatuses,
-            function (StockStatusInterface $stockStatus) {
-                return StockStatusInterface::STATUS_IN_STOCK === (int)$stockStatus->getStockStatus();
-            }
-        );
     }
 
     /**

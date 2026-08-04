@@ -12,7 +12,6 @@ use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryCatalog\Model\ResourceModel\StockStatusFilter;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -31,10 +30,6 @@ class StockStatusFilterPlugin
      */
     private $stockResolver;
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-    /**
      * @var StockStatusFilter
      */
     private $stockStatusFilter;
@@ -42,18 +37,15 @@ class StockStatusFilterPlugin
     /**
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param StockStatusFilter $stockStatusFilter
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         StockResolverInterface $stockResolver,
-        DefaultStockProviderInterface $defaultStockProvider,
         StockStatusFilter $stockStatusFilter
     ) {
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->stockStatusFilter = $stockStatusFilter;
     }
 
@@ -83,21 +75,11 @@ class StockStatusFilterPlugin
         $stock = $this->stockResolver->execute(SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
         $stockId = (int)$stock->getStockId();
 
-        if ($this->defaultStockProvider->getId() === $stockId) {
-            $select = $proceed(
-                $select,
-                $productTableAlias,
-                $stockStatusTableAlias,
-                $websiteId
-            );
-        } else {
-            $select = $this->stockStatusFilter->execute(
-                $select,
-                $productTableAlias,
-                $stockStatusTableAlias,
-                $stockId
-            );
-        }
-        return $select;
+        return $this->stockStatusFilter->execute(
+            $select,
+            $productTableAlias,
+            $stockStatusTableAlias,
+            $stockId
+        );
     }
 }

@@ -13,7 +13,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryCatalog\Model\ResourceModel\AddSortByStockQtyToCollection;
 use Magento\InventoryCatalog\Model\ResourceModel\StockStatusFilter;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
 use Magento\Store\Model\Store;
@@ -35,11 +34,6 @@ class StockPlugin
     private $stockResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @var AddSortByStockQtyToCollection
      */
     private $addSortByStockQtyToCollection;
@@ -47,18 +41,15 @@ class StockPlugin
     /**
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param AddSortByStockQtyToCollection $addSortByStockQtyToCollection
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         StockResolverInterface $stockResolver,
-        DefaultStockProviderInterface $defaultStockProvider,
         AddSortByStockQtyToCollection $addSortByStockQtyToCollection
     ) {
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->addSortByStockQtyToCollection = $addSortByStockQtyToCollection;
     }
 
@@ -82,10 +73,9 @@ class StockPlugin
             $websiteCode = $this->storeManager->getWebsite($websiteId)->getCode();
             $stock = $this->stockResolver->execute(SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
             $stockId = (int) $stock->getStockId();
-            if ($this->defaultStockProvider->getId() !== $stockId) {
-                $this->addSortByStockQtyToCollection->execute($collection, $dir, $stockId);
-                return $subject;
-            }
+            $this->addSortByStockQtyToCollection->execute($collection, $dir, $stockId);
+
+            return $subject;
         }
 
         return $proceed($collection, $dir);
