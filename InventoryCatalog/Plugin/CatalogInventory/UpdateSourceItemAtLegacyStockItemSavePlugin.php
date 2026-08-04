@@ -14,7 +14,6 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Model\AbstractModel;
 use Magento\InventoryCatalog\Model\GetDefaultSourceItemBySku;
-use Magento\InventoryCatalog\Model\UpdateDefaultStock;
 use Magento\InventoryCatalog\Model\UpdateSourceItemBasedOnLegacyStockItem;
 use Magento\InventoryCatalogApi\Model\CompositeProductStockStatusProcessorInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
@@ -23,7 +22,6 @@ use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
 use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
-use Magento\InventoryIndexer\Model\ProductSalabilityChangeProcessorInterface;
 
 /**
  * Persist a legacy stock item save into MSI instead of cataloginventory_stock_item.
@@ -47,8 +45,6 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
      * @param GetSkusByProductIdsInterface $getSkusByProductIds
      * @param GetDefaultSourceItemBySku $getDefaultSourceItemBySku
      * @param CacheStorage $stockItemCacheStorage
-     * @param UpdateDefaultStock $updateDefaultStock
-     * @param ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor
      * @param CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor
      * @param IsSingleSourceModeInterface $isSingleSourceMode
      * @param ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
@@ -62,8 +58,6 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
         private readonly GetSkusByProductIdsInterface $getSkusByProductIds,
         private readonly GetDefaultSourceItemBySku $getDefaultSourceItemBySku,
         private readonly CacheStorage $stockItemCacheStorage,
-        private readonly UpdateDefaultStock $updateDefaultStock,
-        private readonly ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor,
         private readonly CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor,
         private readonly IsSingleSourceModeInterface $isSingleSourceMode,
         private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
@@ -100,14 +94,6 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
                 && $this->shouldAlignDefaultSourceWithLegacy($legacyStockItem)
             ) {
                 $this->updateSourceItemBasedOnLegacyStockItem->execute($legacyStockItem);
-            }
-            $affectedSkus = $this->updateDefaultStock->execute([$sku]);
-            if ($affectedSkus) {
-                $subject->addCommitCallback(
-                    function () use ($affectedSkus) {
-                        $this->productSalabilityChangeProcessor->execute($affectedSkus);
-                    }
-                );
             }
             try {
                 // Prevent recursion.

@@ -9,12 +9,10 @@ namespace Magento\InventoryIndexer\Model\Queue\UpdateIndexSalabilityStatus;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\StateException;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Model\Queue\GetSalabilityDataForUpdate;
 use Magento\InventoryIndexer\Model\Queue\ReservationData;
 use Magento\InventoryIndexer\Model\ResourceModel\UpdateIsSalable;
-use Magento\InventoryIndexer\Model\ResourceModel\UpdateLegacyStockStatus;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\Alias;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexAlias;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexNameBuilder;
@@ -35,16 +33,12 @@ class IndexProcessor
      * @param IndexStructureInterface $indexStructure
      * @param UpdateIsSalable $updateIsSalable
      * @param GetSalabilityDataForUpdate $getSalabilityDataForUpdate
-     * @param DefaultStockProviderInterface $defaultStockProvider
-     * @param UpdateLegacyStockStatus $updateLegacyStockStatus
      */
     public function __construct(
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexStructureInterface $indexStructure,
         private readonly UpdateIsSalable $updateIsSalable,
         private readonly GetSalabilityDataForUpdate $getSalabilityDataForUpdate,
-        private readonly DefaultStockProviderInterface $defaultStockProvider,
-        private readonly UpdateLegacyStockStatus $updateLegacyStockStatus,
     ) {
     }
 
@@ -68,10 +62,6 @@ class IndexProcessor
             $this->indexStructure->create($mainIndexName, $this->connectionName);
         }
         $this->updateIsSalable->execute($mainIndexName, $dataForUpdate, $this->connectionName);
-
-        if ($this->defaultStockProvider->getId() === $stockId) {
-            $this->updateLegacyStockStatus->execute($dataForUpdate);
-        }
 
         return $dataForUpdate;
     }

@@ -7,48 +7,28 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Test\Integration;
 
-use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Test\Fixture\Product;
-use Magento\CatalogInventory\Api\StockStatusCriteriaInterface;
-use Magento\CatalogInventory\Api\StockStatusCriteriaInterfaceFactory;
-use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
 use Magento\CatalogInventory\Model\Stock;
-use Magento\CatalogInventory\Model\Stock\Status;
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\Indexer\IndexerRegistry;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
 use Magento\InventoryApi\Api\SourceItemRepositoryInterface;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
+use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Model\IsProductSalable;
+use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorage;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
-use PHPUnit\Framework\TestCase;
 use Magento\TestFramework\Helper\Bootstrap;
-use Magento\Framework\Indexer\IndexerRegistry;
-use Magento\CatalogInventory\Model\Indexer\Stock\Processor;
+use PHPUnit\Framework\TestCase;
 
 /**
- * Tests legacy stock information synchronized with MSI's.
- * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ * Saving a default source item must drive the salability of the Default Stock through the MSI index.
  */
-class SetDataToLegacyStockStatusAtSourceItemsSaveTest extends TestCase
+class DefaultSourceItemsSaveSalabilityTest extends TestCase
 {
-    /**
-     * @var ProductRepositoryInterface
-     */
-    private $productRepository;
-
-    /**
-     * @var StockStatusCriteriaInterfaceFactory
-     */
-    private $legacyStockStatusCriteriaFactory;
-
-    /**
-     * @var StockStatusRepositoryInterface
-     */
-    private $legacyStockStatusRepository;
-
     /**
      * @var SearchCriteriaBuilder
      */
@@ -70,14 +50,14 @@ class SetDataToLegacyStockStatusAtSourceItemsSaveTest extends TestCase
     private $defaultSourceProvider;
 
     /**
+     * @var GetStockItemDataInterface
+     */
+    private $getStockItemData;
+
+    /**
      * @var IndexerRegistry
      */
     private $indexerRegistry;
-
-    /**
-     * @var DataFixtureStorage
-     */
-    private $fixtures;
 
     /**
      * @var IsProductSalable
@@ -85,54 +65,35 @@ class SetDataToLegacyStockStatusAtSourceItemsSaveTest extends TestCase
     private $isProductSalable;
 
     /**
-     * @inheritdoc
+     * @var DataFixtureStorage
      */
+    private $fixtures;
+
     protected function setUp(): void
     {
-        $this->productRepository = Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class);
-
-        $this->legacyStockStatusCriteriaFactory = Bootstrap::getObjectManager()->get(
-            StockStatusCriteriaInterfaceFactory::class
-        );
-        $this->legacyStockStatusRepository = Bootstrap::getObjectManager()->get(StockStatusRepositoryInterface::class);
-
         $this->searchCriteriaBuilder = Bootstrap::getObjectManager()->get(SearchCriteriaBuilder::class);
         $this->sourceItemRepository = Bootstrap::getObjectManager()->get(SourceItemRepositoryInterface::class);
-
         $this->sourceItemsSave = Bootstrap::getObjectManager()->get(SourceItemsSaveInterface::class);
         $this->defaultSourceProvider = Bootstrap::getObjectManager()->get(DefaultSourceProviderInterface::class);
-
-        $this->indexerRegistry = Bootstrap::getObjectManager()
-            ->get(IndexerRegistry::class);
-        $this->fixtures = DataFixtureStorageManager::getStorage();
+        $this->getStockItemData = Bootstrap::getObjectManager()->get(GetStockItemDataInterface::class);
+        $this->indexerRegistry = Bootstrap::getObjectManager()->get(IndexerRegistry::class);
         $this->isProductSalable = Bootstrap::getObjectManager()->get(IsProductSalable::class);
+        $this->fixtures = DataFixtureStorageManager::getStorage();
     }
 
     /**
-     * Tests that legacy stock status data will updates with legacy source item data while the indexer is "On Update".
-     *
      * @return void
      * @magentoDataFixture Magento_InventoryApi::Test/_files/products.php
      * @magentoDataFixture Magento_InventoryCatalog::Test/_files/source_items_on_default_source.php
      * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
      */
-    public function testSetDataIndexedOnUpdate(): void
+    public function testIndexedOnUpdate(): void
     {
         $productSku = 'SKU-1';
-        $product = $this->productRepository->get($productSku);
-        $productId = $product->getId();
-        $websiteId = 0;
 
-        /** @var StockStatusCriteriaInterface $legacyStockStatusCriteria */
-        $legacyStockStatusCriteria = $this->legacyStockStatusCriteriaFactory->create();
-        $legacyStockStatusCriteria->setProductsFilter($productId);
-        $legacyStockStatusCriteria->setScopeFilter($websiteId);
-        $legacyStockStatuses = $this->legacyStockStatusRepository->getList($legacyStockStatusCriteria)->getItems();
-        self::assertCount(1, $legacyStockStatuses);
-
-        $legacyStockStatus = reset($legacyStockStatuses);
-        self::assertEquals(Status::STATUS_IN_STOCK, $legacyStockStatus->getStockStatus());
-        self::assertEquals(5.5, $legacyStockStatus->getQty());
+        $indexData = $this->getStockItemData->execute($productSku, Stock::DEFAULT_STOCK_ID);
+        self::assertEquals(1, $indexData[GetStockItemDataInterface::IS_SALABLE]);
+        self::assertEquals(5.5, $indexData[GetStockItemDataInterface::QUANTITY]);
 
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter(SourceItemInterface::SKU, $productSku)
@@ -146,32 +107,30 @@ class SetDataToLegacyStockStatusAtSourceItemsSaveTest extends TestCase
         $sourceItem->setStatus(SourceItemInterface::STATUS_OUT_OF_STOCK);
         $this->sourceItemsSave->execute($sourceItems);
 
-        $legacyStockStatuses = $this->legacyStockStatusRepository->getList($legacyStockStatusCriteria)->getItems();
-        self::assertCount(1, $legacyStockStatuses);
-
-        $legacyStockStatus = current($legacyStockStatuses);
-        self::assertEquals(Status::STATUS_OUT_OF_STOCK, $legacyStockStatus->getStockStatus());
-        self::assertEquals(20, $legacyStockStatus->getQty());
+        $indexData = $this->getStockItemData->execute($productSku, Stock::DEFAULT_STOCK_ID);
+        self::assertEquals(0, $indexData[GetStockItemDataInterface::IS_SALABLE]);
+        self::assertEquals(20, $indexData[GetStockItemDataInterface::QUANTITY]);
     }
 
     /**
-     * Tests that legacy stock status data will updates with legacy source item data with scheduled indexer.
-     * Should work like with indexing "on update".
+     * A scheduled indexer must not change the outcome, the index is updated by the source item save itself.
      *
      * @return void
      * @magentoDbIsolation disabled
      * @magentoDataFixture Magento_InventoryApi::Test/_files/products.php
      * @magentoDataFixture Magento_InventoryCatalog::Test/_files/source_items_on_default_source.php
      * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
-     **/
-    public function testSetDataWithoutIndexing(): void
+     */
+    public function testWithScheduledIndexer(): void
     {
-        $indexer = $this->indexerRegistry->get(Processor::INDEXER_ID);
+        $indexer = $this->indexerRegistry->get(InventoryIndexer::INDEXER_ID);
         $indexer->setScheduled(true);
 
-        $this->testSetDataIndexedOnUpdate();
-
-        $indexer->setScheduled(false);
+        try {
+            $this->testIndexedOnUpdate();
+        } finally {
+            $indexer->setScheduled(false);
+        }
     }
 
     #[

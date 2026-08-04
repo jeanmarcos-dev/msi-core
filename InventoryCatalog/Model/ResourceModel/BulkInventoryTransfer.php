@@ -10,7 +10,6 @@ namespace Magento\InventoryCatalog\Model\ResourceModel;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Inventory\Model\ResourceModel\SourceItem;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
 
@@ -38,43 +37,19 @@ class BulkInventoryTransfer
     private $isSourceItemManagementAllowedForProductType;
 
     /**
-     * @var DefaultSourceProviderInterface
-     */
-    private $defaultSourceProvider;
-
-    /**
-     * @var SetDataToLegacyStockItem
-     */
-    private $setDataToLegacyStockItem;
-
-    /**
-     * @var BulkZeroLegacyStockItem
-     */
-    private $bulkZeroLegacyStockItem;
-
-    /**
      * @param ResourceConnection $resourceConnection
      * @param GetProductTypesBySkusInterface $getProductTypesBySkus
      * @param IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
-     * @param SetDataToLegacyStockItem $setDataToLegacyStockItem
-     * @param BulkZeroLegacyStockItem $bulkZeroLegacyStockItem
      * @SuppressWarnings(PHPMD.LongVariable)
      */
     public function __construct(
         ResourceConnection $resourceConnection,
         GetProductTypesBySkusInterface $getProductTypesBySkus,
-        IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType,
-        DefaultSourceProviderInterface $defaultSourceProvider,
-        SetDataToLegacyStockItem $setDataToLegacyStockItem,
-        BulkZeroLegacyStockItem $bulkZeroLegacyStockItem
+        IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->getProductTypesBySkus = $getProductTypesBySkus;
         $this->isSourceItemManagementAllowedForProductType = $isSourceItemManagementAllowedForProductType;
-        $this->defaultSourceProvider = $defaultSourceProvider;
-        $this->setDataToLegacyStockItem = $setDataToLegacyStockItem;
-        $this->bulkZeroLegacyStockItem = $bulkZeroLegacyStockItem;
     }
 
     /**
@@ -149,11 +124,6 @@ class BulkInventoryTransfer
                 SourceItemInterface::SKU . '=?' => $sku,
             ]);
         }
-
-        // Align legacy stock
-        if ($destinationSource === $this->defaultSourceProvider->getCode()) {
-            $this->setDataToLegacyStockItem->execute($sku, $finalQuantity, $status);
-        }
     }
 
     /**
@@ -182,11 +152,6 @@ class BulkInventoryTransfer
                 SourceItemInterface::SOURCE_CODE . '=?' => $source,
                 SourceItemInterface::SKU . ' IN(?)' => $skus,
             ]);
-        }
-
-        // Align legacy stock
-        if ($source === $this->defaultSourceProvider->getCode()) {
-            $this->bulkZeroLegacyStockItem->execute($skus);
         }
     }
 

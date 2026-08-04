@@ -16,12 +16,11 @@ use Magento\InventoryIndexer\Indexer\CompositeProductsIndexer;
 use Throwable;
 
 /**
- * Reindexes non-default stocks for composite products that have no source items
- * (e.g. bundles) when the legacy stock item is saved.
+ * Reindexes composite products that have no source items (e.g. bundles) when the
+ * legacy stock item is saved.
  *
- * Without this plugin, admin-side toggles of bundle Stock Status only update
- * inventory_stock_1 (a VIEW over cataloginventory_stock_status) but leave
- * inventory_stock_N out of sync because no source-item indexer is triggered.
+ * Admin-side toggles of a bundle Stock Status write no source item, so nothing else
+ * triggers the source-item indexer and every stock index would stay out of sync.
  */
 class ReindexCompositeProductsOnLegacyStockItemSavePlugin
 {

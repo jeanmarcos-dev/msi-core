@@ -20,14 +20,10 @@
     <preference for="Magento\InventoryCatalogApi\Model\CompositeProductTypesProviderInterface" type="Magento\InventoryCatalog\Model\CompositeProductTypesProvider"/>
 
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
-        <plugin name="set_data_to_legacy_catalog_inventory_at_source_items_save"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\SetDataToLegacyCatalogInventoryAtSourceItemsSavePlugin"/>
         <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save"
                 type="Magento\InventoryCatalog\Plugin\InventoryApi\UpdateCompositeProductStockStatusOnSourceItemsSave"/>
     </type>
     <type name="Magento\Inventory\Model\SourceItem\Command\DecrementSourceItemQty">
-        <plugin name="synchronize_legacy_catalog_inventory_at_source_item_decrement_quantity"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\SynchronizeLegacyStockAfterDecrementStockPlugin" sortOrder="50"/>
         <plugin name="inventory_catalog_update_parent_stock_status_on_decrement_source_item_qty"
                 type="Magento\InventoryCatalog\Plugin\Inventory\UpdateCompositeProductStockStatusOnDecrementSourceItemQty" sortOrder="100"/>
     </type>
@@ -36,10 +32,6 @@
     </type>
     <type name="Magento\CatalogInventory\Model\Indexer\ProductPriceIndexFilter">
         <plugin name="change_select_for_price_modifier" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Model\Indexer\ModifySelectInProductPriceIndexFilter"/>
-    </type>
-    <type name="Magento\InventoryApi\Api\SourceItemsDeleteInterface">
-        <plugin name="set_to_zero_legacy_catalog_inventory_at_source_items_delete"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\SetToZeroLegacyCatalogInventoryAtSourceItemsDeletePlugin"/>
     </type>
     <type name="Magento\CatalogInventory\Model\ResourceModel\QtyCounterInterface">
         <plugin name="update_source_item_at_legacy_qty_counter" type="Magento\InventoryCatalog\Plugin\CatalogInventory\UpdateSourceItemAtLegacyQtyCounterPlugin"/>
@@ -85,7 +77,6 @@
         </arguments>
     </type>
     <type name="Magento\Inventory\Model\SourceItem\Command\SourceItemsSaveWithoutLegacySynchronization">
-        <plugin name="set_data_to_legacy_catalog_inventory_at_source_items_save" disabled="true"/>
         <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save" disabled="true"/>
     </type>
     <preference for="Magento\CatalogInventory\Model\Spi\StockRegistryProviderInterface"

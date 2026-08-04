@@ -8,7 +8,6 @@ namespace Magento\InventoryCatalog\Model\ResourceModel;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Inventory\Model\ResourceModel\SourceItem;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryCatalogApi\Api\Data\PartialInventoryTransferItemInterface;
 
 class TransferInventoryPartially
@@ -16,25 +15,13 @@ class TransferInventoryPartially
     /** @var ResourceConnection */
     private $resourceConnection;
 
-    /** @var DefaultSourceProviderInterface */
-    private $defaultSourceProvider;
-
-    /** @var SetDataToLegacyStockItem */
-    private $setDataToLegacyStockItemCommand;
-
     /**
      * @param ResourceConnection $resourceConnection
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
-     * @param SetDataToLegacyStockItem $setDataToLegacyCatalogInventoryCommand
      */
     public function __construct(
-        ResourceConnection             $resourceConnection,
-        DefaultSourceProviderInterface $defaultSourceProvider,
-        SetDataToLegacyStockItem       $setDataToLegacyCatalogInventoryCommand
+        ResourceConnection $resourceConnection
     ) {
         $this->resourceConnection = $resourceConnection;
-        $this->defaultSourceProvider = $defaultSourceProvider;
-        $this->setDataToLegacyStockItemCommand = $setDataToLegacyCatalogInventoryCommand;
     }
 
     /**
@@ -77,20 +64,6 @@ class TransferInventoryPartially
             SourceItemInterface::SOURCE_CODE . '=?' => $destinationSourceCode,
             SourceItemInterface::SKU . '=?' => $transfer->getSku(),
         ]);
-
-        if ($originSourceCode === $this->defaultSourceProvider->getCode()) {
-            $this->setDataToLegacyStockItemCommand->execute(
-                $transfer->getSku(),
-                $updatedQtyAtOrigin,
-                $originSourceItemData[SourceItemInterface::STATUS]
-            );
-        } elseif ($destinationSourceCode === $this->defaultSourceProvider->getCode()) {
-            $this->setDataToLegacyStockItemCommand->execute(
-                $transfer->getSku(),
-                $updatedQtyAtDest,
-                SourceItemInterface::STATUS_IN_STOCK
-            );
-        }
 
         $connection->commit();
     }
