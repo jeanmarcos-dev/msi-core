@@ -10,6 +10,7 @@ namespace Magento\InventoryCatalog\Plugin\CatalogInventory;
 use Exception;
 use Magento\CatalogInventory\Model\ResourceModel\Stock\Item as ItemResourceModel;
 use Magento\CatalogInventory\Model\Stock\Item;
+use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\InputException;
 use Magento\Framework\Model\AbstractModel;
@@ -48,6 +49,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
      * @param CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor
      * @param IsSingleSourceModeInterface $isSingleSourceMode
      * @param ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
+     * @param StockRegistryStorage $stockRegistryStorage
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -60,7 +62,8 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
         private readonly CacheStorage $stockItemCacheStorage,
         private readonly CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor,
         private readonly IsSingleSourceModeInterface $isSingleSourceMode,
-        private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
+        private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration,
+        private readonly StockRegistryStorage $stockRegistryStorage
     ) {
     }
 
@@ -105,6 +108,13 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             } finally {
                 $this->recursionLevel--;
             }
+
+            // The registry hands out the stock item it cached and the caller mutates that very object, so after
+            // a save the cached copy carries caller data over a snapshot of what MSI reported before it. Left in
+            // place, the next save of the same product would read those leftovers as a deliberate change and
+            // project them onto the default source item.
+            $this->stockRegistryStorage->removeStockItem($productId);
+            $this->stockRegistryStorage->removeStockStatus($productId);
 
             $connection->commit();
 
