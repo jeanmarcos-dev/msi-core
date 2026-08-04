@@ -28,6 +28,8 @@
             </argument>
         </arguments>
     </type>
+    <preference for="Magento\Bundle\Model\ResourceModel\Indexer\Price"
+                type="Magento\InventoryBundleProductIndexer\Model\ResourceModel\Indexer\Price"/>
     <type name="Magento\Bundle\Model\ResourceModel\Indexer\Stock">
         <plugin name="default_stock_indexer_plugin" type="Magento\InventoryBundleProductIndexer\Plugin\Bundle\Model\ResourceModel\Indexer\StockPlugin" />
     </type>
