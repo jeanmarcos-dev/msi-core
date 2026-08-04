@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magento\InventoryIndexer\Indexer\Stock;
 
 use Magento\Framework\App\ResourceConnection;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\SourceItem\CompositeProductProcessorInterface as ProductProcessor;
 use Magento\InventoryIndexer\Indexer\SourceItem\SkuListInStock;
@@ -25,7 +24,6 @@ class SkuListsProcessor
 
     /**
      * @param GetSalableStatuses $getSalableStatuses
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param IndexNameBuilder $indexNameBuilder
      * @param IndexStructureInterface $indexStructure
      * @param IndexDataFiller $indexDataFiller
@@ -33,7 +31,6 @@ class SkuListsProcessor
      */
     public function __construct(
         private readonly GetSalableStatuses $getSalableStatuses,
-        private readonly DefaultStockProviderInterface $defaultStockProvider,
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexStructureInterface $indexStructure,
         private readonly IndexDataFiller $indexDataFiller,
@@ -59,10 +56,6 @@ class SkuListsProcessor
 
         foreach ($skuListInStockList as $skuListInStock) {
             $stockId = $skuListInStock->getStockId();
-            if ($this->defaultStockProvider->getId() === $stockId) {
-                continue;
-            }
-
             $mainIndexName = $this->indexNameBuilder->setIndexId(InventoryIndexer::INDEXER_ID)
                 ->addDimension('stock_', (string) $stockId)
                 ->setAlias(IndexAlias::MAIN->value)

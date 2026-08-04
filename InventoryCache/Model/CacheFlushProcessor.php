@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCache\Model;
 
-use Magento\Framework\Indexer\IndexerRegistry;
-use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\SourceItem\CompositeProductProcessorInterface;
 use Magento\InventoryIndexer\Model\GetProductsIdsToProcess;
 use Magento\InventoryIndexer\Model\ResourceModel\GetCategoryIdsByProductIds;
@@ -43,16 +41,10 @@ class CacheFlushProcessor implements CompositeProductProcessorInterface
     private GetProductsIdsToProcess $getProductsIdsToProcess;
 
     /**
-     * @var IndexerRegistry
-     */
-    private IndexerRegistry $indexerRegistry;
-
-    /**
      * @param FlushCacheByProductIds $flushCacheByIds
      * @param GetCategoryIdsByProductIds $getCategoryIdsByProductIds
      * @param FlushCacheByCategoryIds $flushCategoryByCategoryIds
      * @param GetProductsIdsToProcess $getProductsIdsToProcess
-     * @param IndexerRegistry $indexerRegistry
      * @param int $sortOrder
      */
     public function __construct(
@@ -60,14 +52,12 @@ class CacheFlushProcessor implements CompositeProductProcessorInterface
         GetCategoryIdsByProductIds $getCategoryIdsByProductIds,
         FlushCacheByCategoryIds $flushCategoryByCategoryIds,
         GetProductsIdsToProcess $getProductsIdsToProcess,
-        IndexerRegistry $indexerRegistry,
         int $sortOrder = 30
     ) {
         $this->flushCacheByIds = $flushCacheByIds;
         $this->getCategoryIdsByProductIds = $getCategoryIdsByProductIds;
         $this->flushCategoryByCategoryIds = $flushCategoryByCategoryIds;
         $this->getProductsIdsToProcess = $getProductsIdsToProcess;
-        $this->indexerRegistry = $indexerRegistry;
         $this->sortOrder = $sortOrder;
     }
 
@@ -82,12 +72,9 @@ class CacheFlushProcessor implements CompositeProductProcessorInterface
         array $saleableStatusesBeforeSync,
         array $saleableStatusesAfterSync
     ): void {
-        $forceDefaultProcessing = !$this->indexerRegistry->get(InventoryIndexer::INDEXER_ID)->isScheduled();
-
         $productsIdsToFlush = $this->getProductsIdsToProcess->execute(
             $saleableStatusesBeforeSync,
-            $saleableStatusesAfterSync,
-            $forceDefaultProcessing
+            $saleableStatusesAfterSync
         );
 
         if (!empty($productsIdsToFlush)) {

@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace Magento\InventoryStockVisualizer\Model\Cache;
 
-use Magento\Framework\Indexer\IndexerRegistry;
-use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\SourceItem\CompositeProductProcessorInterface;
 use Magento\InventoryIndexer\Model\GetProductsIdsToProcess;
 use Magento\InventoryStockVisualizer\Model\Config;
@@ -27,7 +25,6 @@ class SalabilityChangeProcessor implements CompositeProductProcessorInterface
     /**
      * @param Config $config
      * @param GetProductsIdsToProcess $getProductsIdsToProcess
-     * @param IndexerRegistry $indexerRegistry
      * @param FlushStockVisualizerCache $flushStockVisualizerCache
      * @param LoggerInterface $logger
      * @param int $sortOrder
@@ -35,7 +32,6 @@ class SalabilityChangeProcessor implements CompositeProductProcessorInterface
     public function __construct(
         private readonly Config $config,
         private readonly GetProductsIdsToProcess $getProductsIdsToProcess,
-        private readonly IndexerRegistry $indexerRegistry,
         private readonly FlushStockVisualizerCache $flushStockVisualizerCache,
         private readonly LoggerInterface $logger,
         private readonly int $sortOrder = 40
@@ -45,8 +41,8 @@ class SalabilityChangeProcessor implements CompositeProductProcessorInterface
     /**
      * @inheritdoc
      *
-     * @param array<int, array<string, mixed>> $saleableStatusesBeforeSync
-     * @param array<int, array<string, mixed>> $saleableStatusesAfterSync
+     * @param array<int,array<string,mixed>> $saleableStatusesBeforeSync
+     * @param array<int,array<string,mixed>> $saleableStatusesAfterSync
      */
     public function process(array $saleableStatusesBeforeSync, array $saleableStatusesAfterSync): void
     {
@@ -54,11 +50,9 @@ class SalabilityChangeProcessor implements CompositeProductProcessorInterface
             return;
         }
         try {
-            $forceDefaultProcessing = !$this->indexerRegistry->get(InventoryIndexer::INDEXER_ID)->isScheduled();
             $productIds = $this->getProductsIdsToProcess->execute(
                 $saleableStatusesBeforeSync,
-                $saleableStatusesAfterSync,
-                $forceDefaultProcessing
+                $saleableStatusesAfterSync
             );
             if ($productIds) {
                 $this->flushStockVisualizerCache->execute(array_map('intval', $productIds));

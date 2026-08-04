@@ -60,16 +60,16 @@ class IndexProcessor
         $dataForUpdate = $this->getSalabilityDataForUpdate->execute($reservationData);
 
         $stockId = $reservationData->getStock();
-        if ($this->defaultStockProvider->getId() !== $stockId) {
-            $mainIndexName = $this->indexNameBuilder->setIndexId(InventoryIndexer::INDEXER_ID)
-                ->addDimension('stock_', (string) $stockId)
-                ->setAlias(IndexAlias::MAIN->value)
-                ->build();
-            if (!$this->indexStructure->isExist($mainIndexName, $this->connectionName)) {
-                $this->indexStructure->create($mainIndexName, $this->connectionName);
-            }
-            $this->updateIsSalable->execute($mainIndexName, $dataForUpdate, $this->connectionName);
-        } else {
+        $mainIndexName = $this->indexNameBuilder->setIndexId(InventoryIndexer::INDEXER_ID)
+            ->addDimension('stock_', (string) $stockId)
+            ->setAlias(IndexAlias::MAIN->value)
+            ->build();
+        if (!$this->indexStructure->isExist($mainIndexName, $this->connectionName)) {
+            $this->indexStructure->create($mainIndexName, $this->connectionName);
+        }
+        $this->updateIsSalable->execute($mainIndexName, $dataForUpdate, $this->connectionName);
+
+        if ($this->defaultStockProvider->getId() === $stockId) {
             $this->updateLegacyStockStatus->execute($dataForUpdate);
         }
 

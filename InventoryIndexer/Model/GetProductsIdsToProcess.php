@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magento\InventoryIndexer\Model;
 
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 
 /**
@@ -22,20 +21,12 @@ class GetProductsIdsToProcess
     private $getProductIdsBySkus;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
-     * @param DefaultStockProviderInterface $defaultStockProvider
      */
     public function __construct(
-        GetProductIdsBySkusInterface $getProductIdsBySkus,
-        DefaultStockProviderInterface $defaultStockProvider
+        GetProductIdsBySkusInterface $getProductIdsBySkus
     ) {
         $this->getProductIdsBySkus = $getProductIdsBySkus;
-        $this->defaultStockProvider = $defaultStockProvider;
     }
 
     /**
@@ -43,11 +34,10 @@ class GetProductsIdsToProcess
      *
      * @param array $before
      * @param array $after
-     * @param bool $forceDefaultStockProcessing
      * @return array
      * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
-    public function execute(array $before, array $after, bool $forceDefaultStockProcessing = false) : array
+    public function execute(array $before, array $after) : array
     {
         $productSkus = array_merge(
             array_diff(array_keys($before), array_keys($after)),
@@ -66,8 +56,7 @@ class GetProductsIdsToProcess
             }
             foreach ($salableData as $stockId => $isSalable) {
                 if (!isset($after[$sku][$stockId])
-                    || $before[$sku][$stockId] !== $after[$sku][$stockId]
-                    || ($stockId === $this->defaultStockProvider->getId() && $forceDefaultStockProcessing)) {
+                    || $before[$sku][$stockId] !== $after[$sku][$stockId]) {
                     $productSkus[] = $sku;
                 }
             }

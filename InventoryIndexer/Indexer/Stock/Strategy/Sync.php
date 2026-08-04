@@ -8,7 +8,6 @@ namespace Magento\InventoryIndexer\Indexer\Stock\Strategy;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Indexer\Model\ProcessManager;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\SourceItem\SkuListInStockFactory;
 use Magento\InventoryIndexer\Indexer\Stock\GetAllStockIds;
@@ -33,7 +32,6 @@ class Sync
      * @param IndexStructureInterface $indexStructure
      * @param IndexNameBuilder $indexNameBuilder
      * @param IndexTableSwitcherInterface $indexTableSwitcher
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param SkuListInStockFactory $skuListInStockFactory
      * @param IndexDataFiller $indexDataFiller
      * @param ProcessManager $processManager
@@ -43,7 +41,6 @@ class Sync
         private readonly IndexStructureInterface $indexStructure,
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexTableSwitcherInterface $indexTableSwitcher,
-        private readonly DefaultStockProviderInterface $defaultStockProvider,
         private readonly SkuListInStockFactory $skuListInStockFactory,
         private readonly IndexDataFiller $indexDataFiller,
         private readonly ProcessManager $processManager,
@@ -80,12 +77,7 @@ class Sync
      */
     public function executeList(array $stockIds): void
     {
-        $stocksToReindex = [];
-        foreach ($stockIds as $stockId) {
-            if ($this->defaultStockProvider->getId() !== (int)$stockId) {
-                $stocksToReindex[] = (int)$stockId;
-            }
-        }
+        $stocksToReindex = array_map('intval', $stockIds);
 
         if (count($stocksToReindex) > 1) {
             $userFunctions = [];
