@@ -3,16 +3,29 @@
 A redistributable fork of Magento **Multi-Source Inventory (MSI)** that ships
 curated community fixes ahead of the upstream release cadence.
 
+> **This branch (`next-release`) is not a drop-in replacement.** It removes the
+> special Default Stock and stops MSI from writing the `cataloginventory_*`
+> tables, which changes the schema and the data contract. Read
+> [`UPGRADE.md`](UPGRADE.md) before installing it anywhere. Everything below
+> describes the shared distribution mechanics; the `Installation` and
+> `Versioning` sections apply to the `dist-2.4.x` branches, not to this one.
+
 > This is a modified derivative of [`magento/inventory`](https://github.com/magento/inventory)
 > (Copyright Adobe), redistributed under **AFL-3.0**. Not affiliated with or
 > endorsed by Adobe. See [`NOTICE`](NOTICE) for full attribution.
 
 ## What this is
 
-This branch (`dist-2.4.9`) targets **Magento Open Source 2.4.9** (PHP 8.3 - 8.5).
+The `dist-2.4.9` branch targets **Magento Open Source 2.4.9** (PHP 8.3 - 8.5).
 The PHP code keeps its original `Magento_Inventory*` module names and
 `Magento\Inventory*` namespaces, so it is a **drop-in replacement**. Only the
 Composer package identity changes.
+
+`next-release` is based on `dist-2.4.9` and keeps the module names and
+namespaces, but adds a table, migrates data into it and stops writing two core
+tables, so it is a schema upgrade rather than a swap. Its package name and
+distribution channel are still undecided; until they are, install it from the
+branch and pin the commit.
 
 ## How it works
 
@@ -52,6 +65,13 @@ This mirrors the target Magento version and does not collide with Adobe's own
 
 - Curated fixes applied on top of the Magento 2.4.9 MSI baseline (cherry-picked
   commits are tagged `[picked #NNNN]`).
+- **No special Default Stock** (`next-release` only): stock id 1 is indexed,
+  configured, edited and deleted like any stock you create yourself, the
+  composite indexers cover it, and the `cataloginventory_*` tables are neither
+  read nor written by MSI. This removes the ~50 `if (default stock)` branches
+  that gave the same catalog two behaviours, and with them a class of defects
+  that could only be fixed twice. Breaking change — see [`UPGRADE.md`](UPGRADE.md)
+  for what it costs, what it breaks and how to migrate.
 - **Source-level reservations** (opt-in, default off): the global config
   `cataloginventory/source_reservations/enabled` (Stores > Configuration >
   Catalog > Inventory > Source-Level Reservations) splits each sales

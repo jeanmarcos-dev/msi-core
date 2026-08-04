@@ -6,6 +6,13 @@ Welcome to the Magento Inventory community project!
 
 The Multi-Source Inventory (MSI) project is designed to enable stock management in multiple locations so that merchants can properly reflect their physical inventory in Adobe Commerce and Magento Open Source without having to use extensions or customization.
 
+> **This is the `next-release` branch of the `jeanmarcos/inventory` fork.** It removes the
+> special treatment of the Default Stock: stock id 1 behaves like any other stock, and the
+> `cataloginventory_*` tables are no longer read or written by MSI. They are kept but stay
+> frozen and empty, and code reading them with raw SQL will see stale data.
+> Read [`UPGRADE.md`](UPGRADE.md) before installing or upgrading, and
+> [`DISTRIBUTION.md`](DISTRIBUTION.md) for what else this fork changes.
+
 ## Documentation
 
 - Complete user documentation located on the project [Adobe Commerce DevDocs](https://developer.adobe.com/commerce/webapi/rest/inventory/) pages.
