@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCache\Test\Unit\Model;
 
-use Magento\Framework\Indexer\IndexerInterface;
-use Magento\Framework\Indexer\IndexerRegistry;
 use Magento\InventoryCache\Model\CacheFlushProcessor;
 use Magento\InventoryCache\Model\FlushCacheByCategoryIds;
 use Magento\InventoryCache\Model\FlushCacheByProductIds;
@@ -45,31 +43,18 @@ class CacheFlushProcessorTest extends TestCase
      */
     private $getProductsIdsToProcess;
 
-    /**
-     * @var IndexerRegistry|MockObject
-     */
-    private $indexerRegistry;
-
-    /**
-     * @var IndexerInterface|MockObject
-     */
-    private $indexer;
-
     protected function setUp(): void
     {
         $this->flushCacheByIds = $this->createMock(FlushCacheByProductIds::class);
         $this->getCategoryIdsByProductIds = $this->createMock(GetCategoryIdsByProductIds::class);
         $this->flushCategoryByCategoryIds = $this->createMock(FlushCacheByCategoryIds::class);
         $this->getProductsIdsToProcess = $this->createMock(GetProductsIdsToProcess::class);
-        $this->indexer = $this->createMock(IndexerInterface::class);
-        $this->indexerRegistry = $this->createMock(IndexerRegistry::class);
 
         $this->cacheFlushProcessor = new CacheFlushProcessor(
             $this->flushCacheByIds,
             $this->getCategoryIdsByProductIds,
             $this->flushCategoryByCategoryIds,
-            $this->getProductsIdsToProcess,
-            $this->indexerRegistry
+            $this->getProductsIdsToProcess
         );
     }
 
@@ -87,12 +72,6 @@ class CacheFlushProcessorTest extends TestCase
         array $changedProductIds,
         int $numberOfCacheCleans
     ): void {
-        $this->indexerRegistry->expects($this->once())
-            ->method('get')
-            ->willReturn($this->indexer);
-        $this->indexer->expects($this->once())
-            ->method('isScheduled')
-            ->willReturn(true);
         $this->getProductsIdsToProcess->expects($this->once())
             ->method('execute')
             ->with($beforeSalableList, $afterSalableList)

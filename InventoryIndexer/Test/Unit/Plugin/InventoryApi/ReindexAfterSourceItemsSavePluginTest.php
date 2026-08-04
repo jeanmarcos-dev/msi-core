@@ -9,7 +9,6 @@ namespace Magento\InventoryIndexer\Test\Unit\Plugin\InventoryApi;
 
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryIndexer\Indexer\SourceItem\GetSourceItemIds;
 use Magento\InventoryIndexer\Indexer\SourceItem\SourceItemIndexer;
 use Magento\InventoryIndexer\Plugin\InventoryApi\ReindexAfterSourceItemsSavePlugin;
@@ -27,11 +26,6 @@ class ReindexAfterSourceItemsSavePluginTest extends TestCase
      * @var SourceItemIndexer|MockObject
      */
     private $sourceItemIndexer;
-
-    /**
-     * @var DefaultSourceProviderInterface|MockObject
-     */
-    private $defaultSourceProvider;
 
     /**
      * @var SourceItemInterface|MockObject
@@ -56,31 +50,23 @@ class ReindexAfterSourceItemsSavePluginTest extends TestCase
         parent::setUp();
         $this->getSourceItemIds = $this->createMock(GetSourceItemIds::class);
         $this->sourceItemIndexer = $this->createMock(SourceItemIndexer::class);
-        $this->defaultSourceProvider = $this->createMock(DefaultSourceProviderInterface::class);
         $this->sourceItem = $this->createMock(SourceItemInterface::class);
         $this->subject = $this->createMock(SourceItemsSaveInterface::class);
         $this->plugin = new ReindexAfterSourceItemsSavePlugin(
             $this->getSourceItemIds,
-            $this->sourceItemIndexer,
-            $this->defaultSourceProvider
+            $this->sourceItemIndexer
         );
     }
 
     public function testAfterExecuteWithDefaultSource() : void
     {
-        $defaultCode = 'default';
-        $this->defaultSourceProvider->expects($this->once())
-            ->method('getCode')
-            ->willReturn($defaultCode);
-        $this->sourceItem->expects($this->once())
-            ->method('getSourceCode')
-            ->willReturn($defaultCode);
         $this->getSourceItemIds->expects($this->once())
             ->method('execute')
-            ->with([])
-            ->willReturn([]);
-        $this->sourceItemIndexer->expects($this->never())
-            ->method('executeList');
+            ->with([$this->sourceItem])
+            ->willReturn([7]);
+        $this->sourceItemIndexer->expects($this->once())
+            ->method('executeList')
+            ->with([7]);
         $this->plugin->afterExecute($this->subject, null, [$this->sourceItem]);
     }
 }

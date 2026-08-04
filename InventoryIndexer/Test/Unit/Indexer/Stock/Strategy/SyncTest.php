@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magento\InventoryIndexer\Test\Unit\Indexer\Stock\Strategy;
 
 use Magento\Indexer\Model\ProcessManager;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\SourceItem\SkuListInStock;
 use Magento\InventoryIndexer\Indexer\SourceItem\SkuListInStockFactory;
 use Magento\InventoryIndexer\Indexer\Stock\GetAllStockIds;
@@ -59,9 +58,6 @@ class SyncTest extends TestCase
         }
         $indexNameBuilder->method('build')->willReturn($this->createMock(IndexName::class));
 
-        $defaultStockProvider = $this->createMock(DefaultStockProviderInterface::class);
-        $defaultStockProvider->method('getId')->willReturn(1);
-
         $skuListInStockFactory = $this->createMock(SkuListInStockFactory::class);
         $skuListInStockFactory->method('create')->willReturn($this->createMock(SkuListInStock::class));
 
@@ -70,7 +66,6 @@ class SyncTest extends TestCase
             $this->indexStructure,
             $indexNameBuilder,
             $this->indexTableSwitcher,
-            $defaultStockProvider,
             $skuListInStockFactory,
             $this->createMock(IndexDataFiller::class),
             $this->processManager
@@ -91,7 +86,7 @@ class SyncTest extends TestCase
 
         $this->strategy->executeList([1, 2, 3]);
 
-        self::assertSame(2, $executedFunctions);
+        self::assertSame(3, $executedFunctions);
     }
 
     public function testReindexesSingleStockWithoutProcessManager(): void
@@ -99,13 +94,13 @@ class SyncTest extends TestCase
         $this->processManager->expects(self::never())->method('execute');
         $this->indexTableSwitcher->expects(self::once())->method('switch');
 
-        $this->strategy->executeList([1, 2]);
+        $this->strategy->executeList([2]);
     }
 
-    public function testSkipsDefaultStock(): void
+    public function testReindexesTheDefaultStockLikeAnyOther(): void
     {
         $this->processManager->expects(self::never())->method('execute');
-        $this->indexTableSwitcher->expects(self::never())->method('switch');
+        $this->indexTableSwitcher->expects(self::once())->method('switch');
 
         $this->strategy->executeList([1]);
     }

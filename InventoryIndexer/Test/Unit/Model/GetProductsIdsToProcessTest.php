@@ -9,7 +9,6 @@ namespace Magento\InventoryIndexer\Test\Unit\Model;
 
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
 use Magento\InventoryIndexer\Model\GetProductsIdsToProcess;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
@@ -36,22 +35,19 @@ class GetProductsIdsToProcessTest extends TestCase
 
                 return $result;
             });
-        $defaultStockProvider = $this->createMock(DefaultStockProviderInterface::class);
-        $defaultStockProvider->expects($this->any())->method('getId')->willReturn(1);
-        $this->model = new GetProductsIdsToProcess($getProductIdsBySkus, $defaultStockProvider);
+        $this->model = new GetProductsIdsToProcess($getProductIdsBySkus);
     }
 
     /**
      * @param array $before
      * @param array $after
-     * @param bool $force
      * @param array $expectedResult
      * @return void
      */
     #[DataProvider('dataProvider')]
-    public function testExecute(array $before, array $after, bool $force, array $expectedResult): void
+    public function testExecute(array $before, array $after, array $expectedResult): void
     {
-        $actualResult = $this->model->execute($before, $after, $force);
+        $actualResult = $this->model->execute($before, $after);
 
         $this->assertSame($expectedResult, $actualResult);
     }
@@ -82,7 +78,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         5 => false
                     ]
                 ],
-                'force' => false,
                 'expectedResult' => []
             ],
 
@@ -98,7 +93,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         5 => true
                     ],
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
@@ -115,7 +109,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         3 => true,
                     ],
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
@@ -131,7 +124,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         3 => false,
                     ],
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
@@ -147,7 +139,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         3 => true,
                     ],
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
@@ -160,7 +151,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         3 => true,
                     ],
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
@@ -173,12 +163,11 @@ class GetProductsIdsToProcessTest extends TestCase
                 ],
                 'after' => [
                 ],
-                'force' => false,
                 'expectedResult' => [
                     'sku1' => 1
                 ]
             ],
-            'test default stock force' => [
+            'test default stock is treated like any other stock' => [
                 'before' => [
                     'sku1' => [
                         1 => true,
@@ -189,23 +178,6 @@ class GetProductsIdsToProcessTest extends TestCase
                         1 => true,
                     ],
                 ],
-                'force' => true,
-                'expectedResult' => [
-                    'sku1' => 1
-                ]
-            ],
-            'test default stock no force' => [
-                'before' => [
-                    'sku1' => [
-                        1 => true,
-                    ],
-                ],
-                'after' => [
-                    'sku1' => [
-                        1 => true,
-                    ],
-                ],
-                'force' => false,
                 'expectedResult' => []
             ]
         ];
