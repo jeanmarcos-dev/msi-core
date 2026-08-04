@@ -58,4 +58,15 @@
     <type name="Magento\CatalogInventory\Api\StockRegistryInterface">
         <plugin name="inventory_catalog_admin_ui_add_qty_to_legacy_stock" type="Magento\InventoryCatalogAdminUi\Plugin\CatalogInventory\Api\StockRegistry\SetQtyToLegacyStock"/>
     </type>
+    <type name="Magento\Catalog\Ui\DataProvider\Product\ProductDataProvider">
+        <arguments>
+            <argument name="addFieldStrategies" xsi:type="array">
+                <item name="qty" xsi:type="object">Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product\AddQuantityFieldToCollection</item>
+                <item name="quantity_and_stock_status" xsi:type="object">Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product\AddQuantityAndStockStatusFieldToCollection</item>
+            </argument>
+            <argument name="addFilterStrategies" xsi:type="array">
+                <item name="qty" xsi:type="object">Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product\AddQuantityFilterToCollection</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

@@ -9,6 +9,8 @@
     <module name="Magento_InventoryCatalogAdminUi" >
         <sequence>
             <module name="Magento_InventoryCatalog"/>
+            <!-- The product grid field strategies of Magento_CatalogInventory are overridden, not extended. -->
+            <module name="Magento_CatalogInventory"/>
         </sequence>
     </module>
 </config>
