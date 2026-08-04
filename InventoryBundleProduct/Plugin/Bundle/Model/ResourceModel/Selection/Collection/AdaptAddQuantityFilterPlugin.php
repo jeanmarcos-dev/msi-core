@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magento\InventoryBundleProduct\Plugin\Bundle\Model\ResourceModel\Selection\Collection;
 
 use Magento\Bundle\Model\ResourceModel\Selection\Collection;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventorySalesApi\Api\AreProductsSalableInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -34,34 +33,30 @@ class AdaptAddQuantityFilterPlugin
     private $stockByWebsiteIdResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @param AreProductsSalableInterface $areProductsSalable
      * @param StoreManagerInterface $storeManager
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      */
     public function __construct(
         AreProductsSalableInterface $areProductsSalable,
         StoreManagerInterface $storeManager,
-        StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
-        DefaultStockProviderInterface $defaultStockProvider
+        StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
     ) {
         $this->areProductsSalable = $areProductsSalable;
         $this->storeManager = $storeManager;
         $this->stockByWebsiteIdResolver = $stockByWebsiteIdResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
     }
 
     /**
-     * Adapt quantity filter for multi stock environment.
+     * Keep only the selections salable in the stock of the current website.
+     *
+     * The original filter inner joins cataloginventory_stock_item, so a selection product with no row there
+     * - every product created after MSI took over the write path - drops out of the bundle altogether.
      *
      * @param Collection $subject
      * @param \Closure $proceed
      * @return Collection
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function aroundAddQuantityFilter(
         Collection $subject,
@@ -69,9 +64,6 @@ class AdaptAddQuantityFilterPlugin
     ): Collection {
         $website = $this->storeManager->getWebsite();
         $stock = $this->stockByWebsiteIdResolver->execute((int)$website->getId());
-        if ($this->defaultStockProvider->getId() === $stock->getStockId()) {
-            return $proceed();
-        }
         $skus = [];
         $skusToExclude = [];
         foreach ($subject->getData() as $item) {
@@ -84,7 +76,8 @@ class AdaptAddQuantityFilterPlugin
             }
         }
         if ($skusToExclude) {
-            $subject->getSelect()->where('e.sku NOT IN(?)', implode(',', $skusToExclude));
+            // The array has to reach where() unflattened, or it is quoted as one string and matches nothing.
+            $subject->getSelect()->where('e.sku NOT IN(?)', $skusToExclude);
         }
         $subject->resetData();
 
