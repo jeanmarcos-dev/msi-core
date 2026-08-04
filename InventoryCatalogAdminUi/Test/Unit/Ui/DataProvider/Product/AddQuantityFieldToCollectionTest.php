@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventoryCatalogAdminUi\Test\Unit\Ui\DataProvider\Product;
 
 use Magento\Catalog\Model\ResourceModel\Product\Collection as ProductCollection;
-use Magento\InventoryCatalogAdminUi\Model\GetStockIndexTableByStoreId;
+use Magento\InventoryCatalog\Model\GetStockIndexTableByStoreId;
 use Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product\AddQuantityAndStockStatusFieldToCollection;
 use Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product\AddQuantityFieldToCollection;
 use PHPUnit\Framework\TestCase;

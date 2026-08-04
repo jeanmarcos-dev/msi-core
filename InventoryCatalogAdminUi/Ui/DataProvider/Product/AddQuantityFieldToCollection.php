@@ -9,7 +9,7 @@ namespace Magento\InventoryCatalogAdminUi\Ui\DataProvider\Product;
 
 use Magento\Catalog\Model\ResourceModel\Product\Collection as ProductCollection;
 use Magento\Framework\Data\Collection;
-use Magento\InventoryCatalogAdminUi\Model\GetStockIndexTableByStoreId;
+use Magento\InventoryCatalog\Model\GetStockIndexTableByStoreId;
 use Magento\InventoryIndexer\Indexer\IndexStructure;
 use Magento\Ui\DataProvider\AddFieldToCollectionInterface;
 

@@ -18,9 +18,8 @@
         "magento/module-inventory-catalog-api": "1.3.*",
         "magento/module-inventory-configuration-api": "1.2.*",
         "magento/module-inventory-indexer": "2.2.*",
-        "magento/module-inventory-sales-api": "1.2.*",
-        "magento/module-store": "101.1.*",
-        "magento/module-asynchronous-operations": "100.4.*"
+        "magento/module-asynchronous-operations": "100.4.*",
+        "magento/module-inventory-catalog": "1.3.*"
     },
     "suggest": {
         "magento/module-inventory-admin-ui": "1.2.*"
@@ -34,4 +33,3 @@
         }
     }
 }
-

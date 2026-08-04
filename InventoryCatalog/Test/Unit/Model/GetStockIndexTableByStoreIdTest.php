@@ -5,10 +5,10 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventoryCatalogAdminUi\Test\Unit\Model;
+namespace Magento\InventoryCatalog\Test\Unit\Model;
 
 use Magento\InventoryApi\Api\Data\StockInterface;
-use Magento\InventoryCatalogAdminUi\Model\GetStockIndexTableByStoreId;
+use Magento\InventoryCatalog\Model\GetStockIndexTableByStoreId;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\Store\Api\Data\StoreInterface;

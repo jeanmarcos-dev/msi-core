@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventoryCatalogAdminUi\Model;
+namespace Magento\InventoryCatalog\Model;
 
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
