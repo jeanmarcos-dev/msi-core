@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Model;
 
+use Magento\CatalogInventory\Api\Data\StockItemInterface;
 use Magento\CatalogInventory\Model\Stock\Item;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
 use Magento\InventoryApi\Api\Data\SourceItemInterfaceFactory;
@@ -64,7 +65,13 @@ class UpdateSourceItemBasedOnLegacyStockItem
     }
 
     /**
-     * Updates default source item based on legacy stock item by syncing quantity, status, and source code details.
+     * Project a legacy stock item save onto the default source item.
+     *
+     * Only the fields the caller actually changed are projected. The legacy stock item is hydrated from the
+     * MSI index, whose quantity is the sum over every source of the stock, so writing it back unconditionally
+     * would copy that aggregate into the default source and inflate the stock on any save that never meant to
+     * touch quantities. A stock item with no original data was built by the caller (import, product create),
+     * and is taken at face value.
      *
      * @param Item $legacyStockItem
      * @return void
@@ -78,16 +85,48 @@ class UpdateSourceItemBasedOnLegacyStockItem
             ->execute([$legacyStockItem->getProductId()])[$legacyStockItem->getProductId()];
 
         $sourceItem = $this->getDefaultSourceItemBySku->execute($productSku);
-        if ($sourceItem === null) {
+        $isNewSourceItem = $sourceItem === null;
+        $applyQty = $isNewSourceItem || $this->isChangedByCaller($legacyStockItem, StockItemInterface::QTY);
+        $applyStatus = $isNewSourceItem
+            || $this->isChangedByCaller($legacyStockItem, StockItemInterface::IS_IN_STOCK);
+
+        if (!$applyQty && !$applyStatus) {
+            return;
+        }
+
+        if ($isNewSourceItem) {
             /** @var SourceItemInterface $sourceItem */
             $sourceItem = $this->sourceItemFactory->create();
             $sourceItem->setSourceCode($this->defaultSourceProvider->getCode());
             $sourceItem->setSku($productSku);
         }
 
-        $sourceItem->setQuantity((float)$legacyStockItem->getQty());
-        $sourceItem->setStatus((int)$legacyStockItem->getIsInStock());
+        if ($applyQty) {
+            $sourceItem->setQuantity((float)$legacyStockItem->getQty());
+        }
+        if ($applyStatus) {
+            $sourceItem->setStatus((int)$legacyStockItem->getIsInStock());
+        }
 
         $this->sourceItemsSave->execute([$sourceItem]);
+    }
+
+    /**
+     * Whether the caller set a field to something other than what the stock item was hydrated with.
+     *
+     * @param Item $legacyStockItem
+     * @param string $field
+     * @return bool
+     */
+    private function isChangedByCaller(Item $legacyStockItem, string $field): bool
+    {
+        if (!$legacyStockItem->hasData($field)) {
+            return false;
+        }
+
+        $originalValue = $legacyStockItem->getOrigData($field);
+
+        return $originalValue === null
+            || (float)$originalValue !== (float)$legacyStockItem->getData($field);
     }
 }

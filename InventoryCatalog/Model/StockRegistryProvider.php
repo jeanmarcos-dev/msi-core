@@ -161,6 +161,10 @@ class StockRegistryProvider implements StockRegistryProviderInterface
             $stockItem->setQty((float)$indexData[GetStockItemDataInterface::QUANTITY]);
             $stockItem->setIsInStock((bool)(int)$indexData[GetStockItemDataInterface::IS_SALABLE]);
         }
+        // Snapshot what MSI reported, so the write bridge can tell a field the caller actually set from one it
+        // merely read back. Without it, saving an unrelated field would push the index quantity - an aggregate
+        // over every source of the stock - into the default source item.
+        $stockItem->setOrigData();
 
         return $stockItem;
     }
