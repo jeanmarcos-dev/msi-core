@@ -9,7 +9,6 @@ namespace Magento\InventoryCatalog\Model;
 
 use Magento\Framework\Indexer\Config\Converter\SortingAdjustmentInterface;
 use Magento\Catalog\Model\Indexer\Product\Price\Processor as PriceIndexer;
-use Magento\CatalogInventory\Model\Indexer\Stock\Processor as StockIndexer;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 
 class SortingAdjustment implements SortingAdjustmentInterface
@@ -20,18 +19,6 @@ class SortingAdjustment implements SortingAdjustmentInterface
     public function adjust(array $indexersList) : array
     {
         $indexersListAdjusted = $indexersList;
-
-        $order = array_keys($indexersListAdjusted);
-        $inventoryPos = array_search(InventoryIndexer::INDEXER_ID, $order);
-        $stockPos = array_search(StockIndexer::INDEXER_ID, $order);
-        if ($stockPos !== false && $inventoryPos !== false) {
-            foreach ($indexersListAdjusted as $id => $data) {
-                if ($id === StockIndexer::INDEXER_ID) {
-                    $indexersListAdjusted = [$id => $data] + $indexersListAdjusted;
-                    break;
-                }
-            }
-        }
 
         $order = array_keys($indexersListAdjusted);
         $pricePos = array_search(PriceIndexer::INDEXER_ID, $order);

@@ -8,15 +8,15 @@ declare(strict_types=1);
 namespace Magento\InventoryCatalog\Observer;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Catalog\Model\Product\Attribute\Source\Status;
+use Magento\Catalog\Model\Product;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
-use Magento\CatalogInventory\Model\Indexer\Stock\Processor as StockIndexProcessor;
 use Magento\CatalogInventory\Model\StockItemValidator;
 use Magento\Framework\Event\Observer as EventObserver;
 use Magento\InventoryCatalog\Model\Cache\ProductIdsBySkusStorage;
 use Magento\InventoryCatalog\Model\Cache\ProductSkusByIdsStorage;
 use Magento\InventoryCatalog\Model\Cache\ProductTypesBySkusStorage;
+use Magento\InventoryIndexer\Indexer\SourceItem\ReindexSourceItemsBySkus;
 
 /**
  * This class extends the original SaveInventoryDataObserver to invalidate caches and ignore processing of parent stocks
@@ -27,7 +27,7 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
      * @param ProductIdsBySkusStorage $productIdsBySkusStorage
      * @param ProductSkusByIdsStorage $productSkusByIdsStorage
      * @param ProductTypesBySkusStorage $productTypesBySkusStorage
-     * @param StockIndexProcessor $stockIndexProcessor
+     * @param ReindexSourceItemsBySkus $reindexSourceItemsBySkus
      * @param StockConfigurationInterface $stockConfiguration
      * @param StockRegistryInterface $stockRegistry
      * @param StockItemValidator $stockItemValidator
@@ -36,7 +36,7 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
         private readonly ProductIdsBySkusStorage $productIdsBySkusStorage,
         private readonly ProductSkusByIdsStorage $productSkusByIdsStorage,
         private readonly ProductTypesBySkusStorage $productTypesBySkusStorage,
-        private readonly StockIndexProcessor $stockIndexProcessor,
+        private readonly ReindexSourceItemsBySkus $reindexSourceItemsBySkus,
         StockConfigurationInterface $stockConfiguration,
         StockRegistryInterface $stockRegistry,
         StockItemValidator $stockItemValidator
@@ -52,9 +52,7 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
      */
     public function execute(EventObserver $observer)
     {
-        /**
-         * @var \Magento\Catalog\Model\Product $product
-         */
+        /** @var Product $product */
         $product = $observer->getEvent()->getProduct();
         $productId = (int) $product->getId();
         $sku = (string) $product->getSku();
@@ -64,13 +62,24 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
         $this->productIdsBySkusStorage->delete($sku);
         $this->productSkusByIdsStorage->delete($productId);
 
-        // Reindex the product if it was disabled and now enabled because disabled products are not indexed
-        if (!$product->isObjectNew()
-            && (int) $product->getStatus() === Status::STATUS_ENABLED
-            && (int) $product->getOrigData(ProductInterface::STATUS) === Status::STATUS_DISABLED
-        ) {
-            $this->stockIndexProcessor->reindexRow($productId, true);
+        // Composite salability counts enabled children only, so a status flip has to reindex every stock
+        // holding the product. Saving the product alone only refreshes the stock behind the default source.
+        if (!$product->isObjectNew() && $this->isStatusChanged($product)) {
+            $this->reindexSourceItemsBySkus->execute([$sku]);
         }
         parent::execute($observer);
+    }
+
+    /**
+     * Whether the product status differs from the one it was loaded with
+     *
+     * @param Product $product
+     * @return bool
+     */
+    private function isStatusChanged(Product $product): bool
+    {
+        $originalStatus = $product->getOrigData(ProductInterface::STATUS);
+
+        return $originalStatus !== null && (int) $product->getStatus() !== (int) $originalStatus;
     }
 }
