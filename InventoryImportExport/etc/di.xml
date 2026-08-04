@@ -48,6 +48,13 @@
     </type>
 
     <!-- Export -->
+    <type name="Magento\CatalogImportExport\Model\Export\RowCustomizer\Composite">
+        <arguments>
+            <argument name="customizers" xsi:type="array">
+                <item name="stockItemColumns" xsi:type="string">Magento\InventoryImportExport\Model\Export\RowCustomizer\StockItemColumns</item>
+            </argument>
+        </arguments>
+    </type>
     <preference for="Magento\InventoryImportExport\Model\Export\SourceItemCollectionFactoryInterface" type="Magento\InventoryImportExport\Model\Export\SourceItemCollectionFactory"/>
     <preference for="Magento\InventoryImportExport\Model\Export\ColumnProviderInterface" type="Magento\InventoryImportExport\Model\Export\ColumnProvider"/>
     <type name="Magento\InventoryImportExport\Model\Export\FilterProcessorAggregator">
