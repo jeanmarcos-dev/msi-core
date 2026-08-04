@@ -19,10 +19,6 @@
     <preference for="Magento\CatalogInventory\Observer\SaveInventoryDataObserver" type="Magento\InventoryCatalog\Observer\SaveInventoryDataObserver"/>
     <preference for="Magento\InventoryCatalogApi\Model\CompositeProductTypesProviderInterface" type="Magento\InventoryCatalog\Model\CompositeProductTypesProvider"/>
 
-    <type name="Magento\InventoryApi\Api\StockRepositoryInterface">
-        <plugin name="prevent_default_stock_deleting"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\StockRepository\PreventDeleting\DefaultStockPlugin"/>
-    </type>
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
         <plugin name="set_data_to_legacy_catalog_inventory_at_source_items_save"
                 type="Magento\InventoryCatalog\Plugin\InventoryApi\SetDataToLegacyCatalogInventoryAtSourceItemsSavePlugin"/>
@@ -74,21 +70,9 @@
             </argument>
         </arguments>
     </type>
-    <type name="Magento\InventoryApi\Model\StockSourceLinkValidatorChain">
-        <arguments>
-            <argument name="validators" xsi:type="array">
-                <item name="default_stock_default_source" xsi:type="object">
-                    Magento\InventoryCatalog\Model\StockSourceLink\Validator\AssignToDefaultStockDefaultSourceValidator
-                </item>
-            </argument>
-        </arguments>
-    </type>
     <type name="Magento\InventorySalesApi\Api\GetStockBySalesChannelInterface">
         <plugin name="adapt_stock_resolver_to_admin_website"
                 type="Magento\InventoryCatalog\Plugin\InventorySalesApi\StockResolver\AdaptStockResolverToAdminWebsitePlugin"/>
-    </type>
-    <type name="Magento\InventoryApi\Api\StockSourceLinksDeleteInterface">
-        <plugin name="prevent_delete_default_stock_links" type="Magento\InventoryCatalog\Plugin\InventoryApi\StockSourceLinksDelete\PreventDeleteDefaultStockLinksPlugin"/>
     </type>
     <type name="Magento\InventoryCatalog\Setup\Operation\UpdateInventorySourceItem">
         <arguments>

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Plugin\InventorySalesApi\StockResolver;
 
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
@@ -48,6 +49,7 @@ class AdaptStockResolverToAdminWebsitePlugin
      * @param callable $proceed
      * @param SalesChannelInterface $salesChannel
      * @return StockInterface
+     * @throws NoSuchEntityException
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function aroundExecute(
@@ -57,7 +59,19 @@ class AdaptStockResolverToAdminWebsitePlugin
     ): StockInterface {
         if (SalesChannelInterface::TYPE_WEBSITE === $salesChannel->getType()
             && WebsiteInterface::ADMIN_CODE === $salesChannel->getCode()) {
-            return $this->stockRepository->get($this->defaultStockProviderInterface->getId());
+            $stockId = $this->defaultStockProviderInterface->getId();
+            try {
+                return $this->stockRepository->get($stockId);
+            } catch (NoSuchEntityException $e) {
+                throw new NoSuchEntityException(
+                    __(
+                        'The admin website resolves to stock %1, which no longer exists. '
+                        . 'Assign the admin website to an existing stock.',
+                        $stockId
+                    ),
+                    $e
+                );
+            }
         }
         return $proceed($salesChannel);
     }
