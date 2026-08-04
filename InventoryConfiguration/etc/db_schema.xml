@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2025 jeanmarcos-dev
+ * All Rights Reserved.
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="inventory_stock_item_configuration" resource="default" engine="innodb"
+           comment="Inventory Stock Item Configuration">
+        <column xsi:type="varchar" name="sku" nullable="false" length="64" comment="Sku"/>
+        <column xsi:type="decimal" name="min_qty" scale="4" precision="12" unsigned="false" nullable="false"
+                default="0" comment="Min Qty"/>
+        <column xsi:type="smallint" name="use_config_min_qty" unsigned="true" nullable="false" identity="false"
+                default="1" comment="Use Config Min Qty"/>
+        <column xsi:type="smallint" name="is_qty_decimal" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Is Qty Decimal"/>
+        <column xsi:type="smallint" name="backorders" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Backorders"/>
+        <column xsi:type="smallint" name="use_config_backorders" unsigned="true" nullable="false" identity="false"
+                default="1" comment="Use Config Backorders"/>
+        <column xsi:type="decimal" name="min_sale_qty" scale="4" precision="12" unsigned="false" nullable="false"
+                default="1" comment="Min Sale Qty"/>
+        <column xsi:type="smallint" name="use_config_min_sale_qty" unsigned="true" nullable="false" identity="false"
+                default="1" comment="Use Config Min Sale Qty"/>
+        <column xsi:type="decimal" name="max_sale_qty" scale="4" precision="12" unsigned="false" nullable="false"
+                default="0" comment="Max Sale Qty"/>
+        <column xsi:type="smallint" name="use_config_max_sale_qty" unsigned="true" nullable="false" identity="false"
+                default="1" comment="Use Config Max Sale Qty"/>
+        <column xsi:type="smallint" name="is_in_stock" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Is In Stock"/>
+        <column xsi:type="timestamp" name="low_stock_date" nullable="true" comment="Low Stock Date"/>
+        <column xsi:type="decimal" name="notify_stock_qty" scale="4" precision="12" unsigned="false" nullable="true"
+                comment="Notify Stock Qty"/>
+        <column xsi:type="smallint" name="use_config_notify_stock_qty" unsigned="true" nullable="false"
+                identity="false" default="1" comment="Use Config Notify Stock Qty"/>
+        <column xsi:type="smallint" name="manage_stock" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Manage Stock"/>
+        <column xsi:type="smallint" name="use_config_manage_stock" unsigned="true" nullable="false" identity="false"
+                default="1" comment="Use Config Manage Stock"/>
+        <column xsi:type="smallint" name="stock_status_changed_auto" unsigned="true" nullable="false"
+                identity="false" default="0" comment="Stock Status Changed Automatically"/>
+        <column xsi:type="smallint" name="use_config_qty_increments" unsigned="true" nullable="false"
+                identity="false" default="1" comment="Use Config Qty Increments"/>
+        <column xsi:type="decimal" name="qty_increments" scale="4" precision="12" unsigned="false" nullable="false"
+                default="0" comment="Qty Increments"/>
+        <column xsi:type="smallint" name="use_config_enable_qty_inc" unsigned="true" nullable="false"
+                identity="false" default="1" comment="Use Config Enable Qty Increments"/>
+        <column xsi:type="smallint" name="enable_qty_increments" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Enable Qty Increments"/>
+        <column xsi:type="smallint" name="is_decimal_divided" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Is Divided into Multiple Boxes for Shipping"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="sku"/>
+        </constraint>
+    </table>
+</schema>

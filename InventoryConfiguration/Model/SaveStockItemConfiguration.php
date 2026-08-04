@@ -13,6 +13,8 @@ use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\SaveStockItemConfigurationInterface;
+use Magento\InventoryConfiguration\Model\ResourceModel\StockItemConfiguration as StockItemConfigurationResource;
+use Magento\InventoryConfiguration\Model\StockItemConfiguration\CacheStorage;
 
 /**
  * @inheritdoc
@@ -35,18 +37,34 @@ class SaveStockItemConfiguration implements SaveStockItemConfigurationInterface
     private $defaultStockProvider;
 
     /**
+     * @var StockItemConfigurationResource
+     */
+    private $stockItemConfigurationResource;
+
+    /**
+     * @var CacheStorage
+     */
+    private $cacheStorage;
+
+    /**
      * @param ResourceConnection $resourceConnection
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
      * @param DefaultStockProviderInterface $defaultStockProvider
+     * @param StockItemConfigurationResource $stockItemConfigurationResource
+     * @param CacheStorage $cacheStorage
      */
     public function __construct(
         ResourceConnection $resourceConnection,
         GetProductIdsBySkusInterface $getProductIdsBySkus,
-        DefaultStockProviderInterface $defaultStockProvider
+        DefaultStockProviderInterface $defaultStockProvider,
+        StockItemConfigurationResource $stockItemConfigurationResource,
+        CacheStorage $cacheStorage
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->getProductIdsBySkus = $getProductIdsBySkus;
         $this->defaultStockProvider = $defaultStockProvider;
+        $this->stockItemConfigurationResource = $stockItemConfigurationResource;
+        $this->cacheStorage = $cacheStorage;
     }
 
     /**
@@ -61,10 +79,18 @@ class SaveStockItemConfiguration implements SaveStockItemConfigurationInterface
         // TODO We ignore $stockId and use $legacyStockId until we have proper multi-stock item configuration
         $legacyStockId = $this->defaultStockProvider->getId();
 
+        $binds = $this->getBinds($stockItemConfiguration);
+
+        $this->stockItemConfigurationResource->save(
+            [array_merge([StockItemConfigurationResource::SKU => $sku], $binds)]
+        );
+        $this->cacheStorage->delete($sku);
+
+        // The legacy table stays in sync until the legacy contracts are served from MSI.
         $connection = $this->resourceConnection->getConnection();
         $connection->update(
             $this->resourceConnection->getTableName('cataloginventory_stock_item'),
-            $this->getBinds($stockItemConfiguration),
+            $binds,
             [
                 StockItemInterface::PRODUCT_ID . ' = ?' => $productId,
                 StockItemInterface::STOCK_ID . ' = ?' => $legacyStockId,

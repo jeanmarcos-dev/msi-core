@@ -20,9 +20,9 @@ use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForSkuI
 class GetStockItemConfiguration implements GetStockItemConfigurationInterface
 {
     /**
-     * @var GetLegacyStockItem
+     * @var GetStockItemConfigurationBySku
      */
-    private $getLegacyStockItem;
+    private $getStockItemConfigurationBySku;
 
     /**
      * @var StockItemConfigurationFactory
@@ -45,20 +45,20 @@ class GetStockItemConfiguration implements GetStockItemConfigurationInterface
     private $isSourceItemManagementAllowedForSku;
 
     /**
-     * @param GetLegacyStockItem $getLegacyStockItem
+     * @param GetStockItemConfigurationBySku $getStockItemConfigurationBySku
      * @param StockItemConfigurationFactory $stockItemConfigurationFactory
      * @param IsProductAssignedToStockInterface $isProductAssignedToStock
      * @param DefaultStockProviderInterface $defaultStockProvider
      * @param IsSourceItemManagementAllowedForSkuInterface $isSourceItemManagementAllowedForSku
      */
     public function __construct(
-        GetLegacyStockItem $getLegacyStockItem,
+        GetStockItemConfigurationBySku $getStockItemConfigurationBySku,
         StockItemConfigurationFactory $stockItemConfigurationFactory,
         IsProductAssignedToStockInterface $isProductAssignedToStock,
         DefaultStockProviderInterface $defaultStockProvider,
         IsSourceItemManagementAllowedForSkuInterface $isSourceItemManagementAllowedForSku
     ) {
-        $this->getLegacyStockItem = $getLegacyStockItem;
+        $this->getStockItemConfigurationBySku = $getStockItemConfigurationBySku;
         $this->stockItemConfigurationFactory = $stockItemConfigurationFactory;
         $this->isProductAssignedToStock = $isProductAssignedToStock;
         $this->defaultStockProvider = $defaultStockProvider;
@@ -80,7 +80,7 @@ class GetStockItemConfiguration implements GetStockItemConfigurationInterface
 
         return $this->stockItemConfigurationFactory->create(
             [
-                'stockItem' => $this->getLegacyStockItem->execute($sku)
+                'stockItem' => $this->getStockItemConfigurationBySku->execute($sku)
             ]
         );
     }

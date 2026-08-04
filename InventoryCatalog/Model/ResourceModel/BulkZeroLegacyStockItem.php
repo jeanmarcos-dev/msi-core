@@ -10,6 +10,7 @@ namespace Magento\InventoryCatalog\Model\ResourceModel;
 use Magento\CatalogInventory\Api\Data\StockItemInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
+use Magento\InventoryConfiguration\Model\UpdateStockItemConfiguration;
 
 /**
  * Set quantity=0 to legacy cataloginventory_stock_item table for a set of skus via plain MySql query
@@ -27,15 +28,23 @@ class BulkZeroLegacyStockItem
     private $getProductIdsBySkus;
 
     /**
+     * @var UpdateStockItemConfiguration
+     */
+    private $updateStockItemConfiguration;
+
+    /**
      * @param ResourceConnection $resourceConnection
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
+     * @param UpdateStockItemConfiguration $updateStockItemConfiguration
      */
     public function __construct(
         ResourceConnection $resourceConnection,
-        GetProductIdsBySkusInterface $getProductIdsBySkus
+        GetProductIdsBySkusInterface $getProductIdsBySkus,
+        UpdateStockItemConfiguration $updateStockItemConfiguration
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->getProductIdsBySkus = $getProductIdsBySkus;
+        $this->updateStockItemConfiguration = $updateStockItemConfiguration;
     }
 
     /**
@@ -61,5 +70,6 @@ class BulkZeroLegacyStockItem
                 'website_id = ?' => 0,
             ]
         );
+        $this->updateStockItemConfiguration->execute($skus, [StockItemInterface::IS_IN_STOCK => 0]);
     }
 }

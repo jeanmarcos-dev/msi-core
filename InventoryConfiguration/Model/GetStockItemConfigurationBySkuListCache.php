@@ -13,9 +13,11 @@ use Magento\InventoryConfigurationApi\Model\GetStockItemConfigurationBySkuListCa
 class GetStockItemConfigurationBySkuListCache implements GetStockItemConfigurationBySkuListCacheInterface
 {
     /**
+     * @param GetStockItemsConfigurationCache $getStockItemsConfigurationCache
      * @param GetLegacyStockItemsCache $getLegacyStockItemsCache
      */
     public function __construct(
+        private readonly GetStockItemsConfigurationCache $getStockItemsConfigurationCache,
         private readonly GetLegacyStockItemsCache $getLegacyStockItemsCache,
     ) {
     }
@@ -25,6 +27,7 @@ class GetStockItemConfigurationBySkuListCache implements GetStockItemConfigurati
      */
     public function warmup(array $skus, int $stockId): void
     {
+        $this->getStockItemsConfigurationCache->warmup($skus, $stockId);
         $this->getLegacyStockItemsCache->warmup($skus, $stockId);
     }
 
@@ -33,6 +36,7 @@ class GetStockItemConfigurationBySkuListCache implements GetStockItemConfigurati
      */
     public function clean(array $skus, ?int $stockId): void
     {
+        $this->getStockItemsConfigurationCache->clean($skus, $stockId);
         $this->getLegacyStockItemsCache->clean($skus, $stockId);
     }
 }

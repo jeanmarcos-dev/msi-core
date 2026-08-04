@@ -1,0 +1,31 @@
+{
+    "inventory_stock_item_configuration": {
+        "column": {
+            "sku": true,
+            "min_qty": true,
+            "use_config_min_qty": true,
+            "is_qty_decimal": true,
+            "backorders": true,
+            "use_config_backorders": true,
+            "min_sale_qty": true,
+            "use_config_min_sale_qty": true,
+            "max_sale_qty": true,
+            "use_config_max_sale_qty": true,
+            "is_in_stock": true,
+            "low_stock_date": true,
+            "notify_stock_qty": true,
+            "use_config_notify_stock_qty": true,
+            "manage_stock": true,
+            "use_config_manage_stock": true,
+            "stock_status_changed_auto": true,
+            "use_config_qty_increments": true,
+            "qty_increments": true,
+            "use_config_enable_qty_inc": true,
+            "enable_qty_increments": true,
+            "is_decimal_divided": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

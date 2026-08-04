@@ -10,14 +10,17 @@ namespace Magento\InventoryImportExport\Plugin\Import;
 
 use Magento\CatalogImportExport\Model\StockItemProcessorInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
+use Magento\InventoryConfiguration\Model\StockItemConfiguration\CacheStorage as ConfigurationCacheStorage;
 
 class PurgeLegacyStockItemCacheStorage
 {
     /**
      * @param CacheStorage $stockItemCacheStorage
+     * @param ConfigurationCacheStorage $configurationCacheStorage
      */
     public function __construct(
         private readonly CacheStorage $stockItemCacheStorage,
+        private readonly ConfigurationCacheStorage $configurationCacheStorage,
     ) {
     }
 
@@ -39,6 +42,7 @@ class PurgeLegacyStockItemCacheStorage
     ): void {
         foreach (array_keys($stockData) as $sku) {
             $this->stockItemCacheStorage->delete((string)$sku);
+            $this->configurationCacheStorage->delete((string)$sku);
         }
     }
 }

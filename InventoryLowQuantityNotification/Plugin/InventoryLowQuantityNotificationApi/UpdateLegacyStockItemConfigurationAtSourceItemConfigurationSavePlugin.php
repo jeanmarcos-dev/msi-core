@@ -15,6 +15,7 @@ use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
 use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
+use Magento\InventoryConfiguration\Model\UpdateStockItemConfiguration;
 
 class UpdateLegacyStockItemConfigurationAtSourceItemConfigurationSavePlugin
 {
@@ -44,24 +45,32 @@ class UpdateLegacyStockItemConfigurationAtSourceItemConfigurationSavePlugin
     private $getProductIdsBySkus;
 
     /**
+     * @var UpdateStockItemConfiguration
+     */
+    private $updateStockItemConfiguration;
+
+    /**
      * @param IsSingleSourceModeInterface $isSingleSourceMode
      * @param ResourceConnection $resourceConnection
      * @param DefaultSourceProviderInterface $defaultSourceProvider
      * @param DefaultStockProviderInterface $defaultStockProvider
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
+     * @param UpdateStockItemConfiguration $updateStockItemConfiguration
      */
     public function __construct(
         IsSingleSourceModeInterface $isSingleSourceMode,
         ResourceConnection $resourceConnection,
         DefaultSourceProviderInterface $defaultSourceProvider,
         DefaultStockProviderInterface $defaultStockProvider,
-        GetProductIdsBySkusInterface $getProductIdsBySkus
+        GetProductIdsBySkusInterface $getProductIdsBySkus,
+        UpdateStockItemConfiguration $updateStockItemConfiguration
     ) {
         $this->isSingleSourceMode = $isSingleSourceMode;
         $this->resourceConnection = $resourceConnection;
         $this->defaultSourceProvider = $defaultSourceProvider;
         $this->defaultStockProvider = $defaultStockProvider;
         $this->getProductIdsBySkus = $getProductIdsBySkus;
+        $this->updateStockItemConfiguration = $updateStockItemConfiguration;
     }
 
     /**
@@ -139,6 +148,15 @@ class UpdateLegacyStockItemConfigurationAtSourceItemConfigurationSavePlugin
             $onDuplicateSql
         );
         $connection->query($insertSql, $bind);
+
+        foreach ($sourceItemsConfigurationToUpdate as $sku => $sourceItemConfiguration) {
+            $this->updateStockItemConfiguration->execute([(string)$sku], [
+                StockItemInterface::NOTIFY_STOCK_QTY =>
+                    $sourceItemConfiguration[StockItemInterface::NOTIFY_STOCK_QTY],
+                StockItemInterface::USE_CONFIG_NOTIFY_STOCK_QTY =>
+                    $sourceItemConfiguration[StockItemInterface::USE_CONFIG_NOTIFY_STOCK_QTY],
+            ]);
+        }
     }
 
     /**

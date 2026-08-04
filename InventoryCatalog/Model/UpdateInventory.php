@@ -19,6 +19,7 @@ use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryApi\Model\GetSourceCodesBySkusInterface;
 use Magento\InventoryCatalog\Model\ResourceModel\UpdateLegacyStockItems;
+use Magento\InventoryConfiguration\Model\UpdateStockItemConfiguration;
 use Magento\InventoryCatalog\Model\UpdateInventory\InventoryData;
 use Magento\InventoryCatalogApi\Model\CompositeProductStockStatusProcessorInterface;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
@@ -106,6 +107,11 @@ class UpdateInventory
     private $productSalabilityChangeProcessor;
 
     /**
+     * @var UpdateStockItemConfiguration
+     */
+    private $updateStockItemConfiguration;
+
+    /**
      * @param Processor $stockIndexerProcessor
      * @param UpdateLegacyStockItems $updateLegacyStockItems
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
@@ -120,6 +126,7 @@ class UpdateInventory
      * @param IsSingleSourceModeInterface|null $isSingleSourceMode
      * @param CompositeProductStockStatusProcessorInterface|null $compositeProductStockStatusProcessor
      * @param ProductSalabilityChangeProcessorInterface|null $productSalabilityChangeProcessor
+     * @param UpdateStockItemConfiguration|null $updateStockItemConfiguration
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -136,7 +143,8 @@ class UpdateInventory
         ?UpdateDefaultStock $updateDefaultStock = null,
         ?IsSingleSourceModeInterface $isSingleSourceMode = null,
         ?CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor = null,
-        ?ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor = null
+        ?ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor = null,
+        ?UpdateStockItemConfiguration $updateStockItemConfiguration = null
     ) {
         $this->stockIndexerProcessor = $stockIndexerProcessor;
         $this->updateLegacyStockItems = $updateLegacyStockItems;
@@ -156,6 +164,8 @@ class UpdateInventory
             ?? ObjectManager::getInstance()->get(CompositeProductStockStatusProcessorInterface::class);
         $this->productSalabilityChangeProcessor = $productSalabilityChangeProcessor
             ?? ObjectManager::getInstance()->get(ProductSalabilityChangeProcessorInterface::class);
+        $this->updateStockItemConfiguration = $updateStockItemConfiguration
+            ?? ObjectManager::getInstance()->get(UpdateStockItemConfiguration::class);
     }
 
     /**
@@ -174,6 +184,7 @@ class UpdateInventory
         }
         $inventoryData = $this->serializer->unserialize($data->getData());
         $this->updateLegacyStockItems->execute($productIds, $inventoryData);
+        $this->updateStockItemConfiguration->execute($skus, $inventoryData);
         if ($this->isSingleSourceMode->execute()) {
             $this->compositeProductStockStatusProcessor->execute($skus);
         }

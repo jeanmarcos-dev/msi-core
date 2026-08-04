@@ -21,6 +21,7 @@ use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
+use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
 use Magento\InventoryIndexer\Model\ProductSalabilityChangeProcessorInterface;
 
@@ -48,6 +49,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
      * @param ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor
      * @param CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor
      * @param IsSingleSourceModeInterface $isSingleSourceMode
+     * @param ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -61,7 +63,8 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
         private readonly UpdateDefaultStock $updateDefaultStock,
         private readonly ProductSalabilityChangeProcessorInterface $productSalabilityChangeProcessor,
         private readonly CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor,
-        private readonly IsSingleSourceModeInterface $isSingleSourceMode
+        private readonly IsSingleSourceModeInterface $isSingleSourceMode,
+        private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
     ) {
     }
 
@@ -97,6 +100,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             $typeId = $this->getProductTypeBySku->execute([$sku])[$sku];
 
             $this->stockItemCacheStorage->delete($sku);
+            $this->projectLegacyStockItemToConfiguration->execute($sku, $legacyStockItem);
 
             if ($this->isSourceItemManagementAllowed->execute($typeId)
                 && $this->shouldAlignDefaultSourceWithLegacy($legacyStockItem)

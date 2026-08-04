@@ -12,6 +12,7 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
+use Magento\InventoryConfiguration\Model\UpdateStockItemConfiguration;
 
 /**
  * Synchronization between legacy stock items and given source items after decrement quantity
@@ -34,18 +35,26 @@ class DecrementQtyForLegacyStock
     private $resourceConnection;
 
     /**
+     * @var UpdateStockItemConfiguration
+     */
+    private $updateStockItemConfiguration;
+
+    /**
      * @param DefaultSourceProviderInterface $defaultSourceProvider
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
      * @param ResourceConnection $resourceConnection
+     * @param UpdateStockItemConfiguration $updateStockItemConfiguration
      */
     public function __construct(
         DefaultSourceProviderInterface $defaultSourceProvider,
         GetProductIdsBySkusInterface $getProductIdsBySkus,
-        ResourceConnection $resourceConnection
+        ResourceConnection $resourceConnection,
+        UpdateStockItemConfiguration $updateStockItemConfiguration
     ) {
         $this->defaultSourceProvider = $defaultSourceProvider;
         $this->getProductIdsBySkus = $getProductIdsBySkus;
         $this->resourceConnection = $resourceConnection;
+        $this->updateStockItemConfiguration = $updateStockItemConfiguration;
     }
 
     /**
@@ -88,6 +97,7 @@ class DecrementQtyForLegacyStock
                 ],
                 $where
             );
+            $this->updateStockItemConfiguration->execute([$sku], ['is_in_stock' => $status]);
         }
     }
 }

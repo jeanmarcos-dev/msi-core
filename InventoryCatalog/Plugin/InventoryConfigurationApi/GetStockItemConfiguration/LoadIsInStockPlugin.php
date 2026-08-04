@@ -7,30 +7,30 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Plugin\InventoryConfigurationApi\GetStockItemConfiguration;
 
-use Magento\InventoryConfiguration\Model\GetLegacyStockItem;
+use Magento\InventoryConfiguration\Model\GetStockItemConfigurationBySku;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 
 /**
- * Load Legacy Stock Item IsInStock for StockItemConfiguration
+ * Load the stored IsInStock flag for StockItemConfiguration
  */
 class LoadIsInStockPlugin
 {
     /**
-     * @var GetLegacyStockItem
+     * @var GetStockItemConfigurationBySku
      */
-    private $getLegacyStockItem;
+    private $getStockItemConfigurationBySku;
 
     /**
-     * @param GetLegacyStockItem $getLegacyStockItem
+     * @param GetStockItemConfigurationBySku $getStockItemConfigurationBySku
      */
-    public function __construct(GetLegacyStockItem $getLegacyStockItem)
+    public function __construct(GetStockItemConfigurationBySku $getStockItemConfigurationBySku)
     {
-        $this->getLegacyStockItem = $getLegacyStockItem;
+        $this->getStockItemConfigurationBySku = $getStockItemConfigurationBySku;
     }
 
     /**
-     * Updates the stock item's "is in stock" status using legacy stock data and sets it in the extension attributes.
+     * Updates the stock item's "is in stock" status and sets it in the extension attributes.
      *
      * @param GetStockItemConfigurationInterface $subject
      * @param StockItemConfigurationInterface $result
@@ -45,9 +45,9 @@ class LoadIsInStockPlugin
         string $sku,
         int $stockId
     ): StockItemConfigurationInterface {
-        $legacyStockItem = $this->getLegacyStockItem->execute($sku);
+        $stockItem = $this->getStockItemConfigurationBySku->execute($sku);
         $extensionAttributes = $result->getExtensionAttributes();
-        $extensionAttributes->setIsInStock((bool)(int)$legacyStockItem->getIsInStock());
+        $extensionAttributes->setIsInStock((bool)(int)$stockItem->getIsInStock());
         $result->setExtensionAttributes($extensionAttributes);
 
         return $result;

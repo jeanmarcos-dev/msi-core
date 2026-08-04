@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryExportStock\Model;
 
-use Magento\InventoryConfiguration\Model\GetLegacyStockItem;
+use Magento\InventoryConfiguration\Model\GetStockItemConfigurationBySku;
 use Magento\InventoryConfiguration\Model\StockItemConfigurationFactory;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 
@@ -17,9 +17,9 @@ use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 class GetStockItemConfiguration
 {
     /**
-     * @var GetLegacyStockItem
+     * @var GetStockItemConfigurationBySku
      */
-    private $getLegacyStockItem;
+    private $getStockItemConfigurationBySku;
 
     /**
      * @var StockItemConfigurationFactory
@@ -27,14 +27,14 @@ class GetStockItemConfiguration
     private $stockItemConfigurationFactory;
 
     /**
-     * @param GetLegacyStockItem $getLegacyStockItem
+     * @param GetStockItemConfigurationBySku $getStockItemConfigurationBySku
      * @param StockItemConfigurationFactory $stockItemConfigurationFactory
      */
     public function __construct(
-        GetLegacyStockItem $getLegacyStockItem,
+        GetStockItemConfigurationBySku $getStockItemConfigurationBySku,
         StockItemConfigurationFactory $stockItemConfigurationFactory
     ) {
-        $this->getLegacyStockItem = $getLegacyStockItem;
+        $this->getStockItemConfigurationBySku = $getStockItemConfigurationBySku;
         $this->stockItemConfigurationFactory = $stockItemConfigurationFactory;
     }
 
@@ -45,7 +45,7 @@ class GetStockItemConfiguration
     {
         return $this->stockItemConfigurationFactory->create(
             [
-                'stockItem' => $this->getLegacyStockItem->execute($sku)
+                'stockItem' => $this->getStockItemConfigurationBySku->execute($sku)
             ]
         );
     }
