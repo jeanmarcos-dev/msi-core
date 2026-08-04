@@ -88,6 +88,8 @@
         <plugin name="set_data_to_legacy_catalog_inventory_at_source_items_save" disabled="true"/>
         <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save" disabled="true"/>
     </type>
+    <preference for="Magento\CatalogInventory\Model\Spi\StockRegistryProviderInterface"
+                type="Magento\InventoryCatalog\Model\StockRegistryProvider"/>
     <type name="Magento\CatalogInventory\Api\StockRegistryInterface">
         <plugin name="adapt_get_stock_status" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockRegistry\AdaptGetStockStatusPlugin"/>
         <plugin name="adapt_get_stock_status_by_sku" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockRegistry\AdaptGetStockStatusBySkuPlugin"/>

@@ -26,8 +26,10 @@ use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProd
 use Magento\InventoryIndexer\Model\ProductSalabilityChangeProcessorInterface;
 
 /**
- * Class provides around Plugin on \Magento\CatalogInventory\Model\ResourceModel\Stock\Item::save
- * to update data in Inventory source item based on legacy Stock Item data
+ * Persist a legacy stock item save into MSI instead of cataloginventory_stock_item.
+ *
+ * The original resource save is deliberately not invoked: MSI owns both the configuration and the
+ * quantity, so letting core write its own table would only produce a second copy that nothing reads.
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class UpdateSourceItemAtLegacyStockItemSavePlugin
@@ -87,14 +89,6 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             /**
              * @var Item $legacyStockItem
              */
-            $subject->setProcessIndexEvents(false);
-            try {
-                // need to save configuration
-                $proceed($legacyStockItem);
-            } finally {
-                $subject->setProcessIndexEvents(true);
-            }
-
             $productId = $legacyStockItem->getProductId();
             $sku = $this->getSkusByProductIds->execute([$productId])[$productId];
             $typeId = $this->getProductTypeBySku->execute([$sku])[$sku];
