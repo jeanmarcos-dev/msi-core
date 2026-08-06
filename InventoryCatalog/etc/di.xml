@@ -159,6 +159,7 @@
     <type name="Magento\Catalog\Model\ResourceModel\Product">
         <plugin name="delete_source_items" type="Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product\DeleteSourceItemsPlugin"/>
         <plugin name="process_source_items_after_product_save" type="Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product\ProcessSourceItemsPlugin"/>
+        <plugin name="reindex_composite_product_after_product_save" type="Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product\ReindexCompositeProductOnSavePlugin"/>
     </type>
     <type name="Magento\Catalog\Controller\Adminhtml\Product\Action\Attribute\Save">
         <plugin name="inventoryUpdate" type="Magento\InventoryCatalog\Plugin\Catalog\Controller\Adminhtml\Product\Action\Attribute\Save\ProcessInventoryPlugin"/>
