@@ -52,19 +52,18 @@ class AreMultipleProductsSalable implements AreProductsSalableInterface
                     $exception->getMessage()
                 )
             );
-            // Set all SKUs as not salable if an exception occurs
-            foreach ($skus as $sku) {
-                $isSalableResults[$sku] = false;
-            }
         }
 
+        // Driven by the requested SKUs rather than by the rows the index returned: a SKU with no
+        // index row is not salable, and dropping it would hand callers a result set shorter than
+        // the list they asked about. Callers index into it positionally.
         $results = [];
-        foreach ($isSalableResults as $sku => $isSalable) {
+        foreach ($skus as $sku) {
             $results[] = $this->isProductSalableResultFactory->create(
                 [
                     'sku' => $sku,
                     'stockId' => $stockId,
-                    'isSalable' => $isSalable,
+                    'isSalable' => $isSalableResults[$sku] ?? false,
                 ]
             );
         }
