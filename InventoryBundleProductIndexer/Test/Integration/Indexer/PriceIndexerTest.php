@@ -303,12 +303,9 @@ class PriceIndexerTest extends TestCase
                     'min_price' => 15,
                     'max_price' => 25
                 ],
-                // This should be [15, 25] as well, but due to a known issue with inventory indexing,
-                // disabled products are not excluded from bundle stock status calculation leading
-                // to incorrect price range calculation.
                 'website2' => [
-                    'min_price' => 10,
-                    'max_price' => 20
+                    'min_price' => 15,
+                    'max_price' => 25
                 ],
             ],
         ]);
