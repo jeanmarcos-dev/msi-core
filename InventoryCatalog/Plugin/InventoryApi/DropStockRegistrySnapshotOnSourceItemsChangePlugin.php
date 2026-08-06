@@ -32,6 +32,8 @@ class DropStockRegistrySnapshotOnSourceItemsChangePlugin
     }
 
     /**
+     * Drop the cached legacy stock registry entries of every sku the write touched.
+     *
      * @param object $subject
      * @param void $result
      * @param SourceItemInterface[] $sourceItems
