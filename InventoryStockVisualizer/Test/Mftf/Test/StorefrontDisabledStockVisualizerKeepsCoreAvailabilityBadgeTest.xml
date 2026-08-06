@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontDisabledStockVisualizerKeepsCoreAvailabilityBadgeTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="Turning the panel off gives the product page its core availability badge back"/>
+            <description value="Removing the core badge is only defensible while the panel is there to replace it. The module ships disabled, so on a fresh install the removal happens with nothing rendered in its place and the product page states no availability at all. Whatever the mechanism, the contract is this one: with the setting off the page has to look like the module were not installed."/>
+            <severity value="CRITICAL"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="StockVisualizerHighProduct" stepKey="product"/>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="disableVisualizer"/>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <dontSeeElement selector="{{StorefrontStockVisualizerSection.panel}}" stepKey="dontSeePanel"/>
+        <seeElement selector="{{StorefrontProductInfoMainSection.productStockStatus}}" stepKey="seeCoreBadge"/>
+        <see selector="{{StorefrontProductInfoMainSection.productStockStatus}}" userInput="IN STOCK" stepKey="seeCoreBadgeSaysInStock"/>
+    </test>
+</tests>

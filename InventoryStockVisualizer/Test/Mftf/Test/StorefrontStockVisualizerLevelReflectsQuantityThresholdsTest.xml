@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerLevelReflectsQuantityThresholdsTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="The level display maps the salable quantity onto the configured thresholds"/>
+            <description value="In level display the panel never states a number: it classifies the salable quantity against the high and low thresholds and shows a word. Three products straddling the configured marks have to land on three different levels, which is what proves the storefront reads the MSI quantity and not merely the salable flag."/>
+            <severity value="MAJOR"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="StockVisualizerLowProduct" stepKey="lowProduct"/>
+            <createData entity="StockVisualizerMediumProduct" stepKey="mediumProduct"/>
+            <createData entity="StockVisualizerHighProduct" stepKey="highProduct"/>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="mode" value="instant"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="lowProduct" stepKey="deleteLowProduct"/>
+            <deleteData createDataKey="mediumProduct" stepKey="deleteMediumProduct"/>
+            <deleteData createDataKey="highProduct" stepKey="deleteHighProduct"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$lowProduct.custom_attributes[url_key]$$)}}" stepKey="openLowProduct"/>
+        <waitForPageLoad time="30" stepKey="waitForLowProduct"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="Low stock" stepKey="seeLowStock"/>
+        <seeElement selector="{{StorefrontStockVisualizerSection.statusByLevel('low')}}" stepKey="seeLowLevel"/>
+
+        <amOnPage url="{{StorefrontProductPage.url($$mediumProduct.custom_attributes[url_key]$$)}}" stepKey="openMediumProduct"/>
+        <waitForPageLoad time="30" stepKey="waitForMediumProduct"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="Limited availability" stepKey="seeLimitedAvailability"/>
+        <seeElement selector="{{StorefrontStockVisualizerSection.statusByLevel('medium')}}" stepKey="seeMediumLevel"/>
+
+        <amOnPage url="{{StorefrontProductPage.url($$highProduct.custom_attributes[url_key]$$)}}" stepKey="openHighProduct"/>
+        <waitForPageLoad time="30" stepKey="waitForHighProduct"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="In stock" stepKey="seeInStock"/>
+        <seeElement selector="{{StorefrontStockVisualizerSection.statusByLevel('high')}}" stepKey="seeHighLevel"/>
+    </test>
+</tests>

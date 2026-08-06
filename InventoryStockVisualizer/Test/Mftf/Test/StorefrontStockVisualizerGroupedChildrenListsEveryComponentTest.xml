@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerGroupedChildrenListsEveryComponentTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="A grouped product lists the availability of each component and how many sets it makes"/>
+            <description value="For a grouped product an aggregate figure means nothing, so the panel breaks availability down per component. With the sets calculator on it also answers the question the breakdown leaves open: how many complete sets the scarcest component allows. The recipe here is one unit of the first component and two of the second, so the second is what caps the sets."/>
+            <severity value="MAJOR"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="ApiCategory" stepKey="category"/>
+            <createData entity="ApiGroupedProduct" stepKey="grouped">
+                <requiredEntity createDataKey="category"/>
+            </createData>
+            <createData entity="StockVisualizerHighProduct" stepKey="firstComponent"/>
+            <createData entity="StockVisualizerMediumProduct" stepKey="secondComponent"/>
+            <createData entity="StockVisualizerFirstGroupedLink" stepKey="linkFirstComponent">
+                <requiredEntity createDataKey="grouped"/>
+                <requiredEntity createDataKey="firstComponent"/>
+            </createData>
+            <!-- Two creates rather than the create-then-update pair upstream tests
+                 use: the POST behind createData merges into the existing links,
+                 while the PUT behind updateData replaces the whole set. -->
+            <createData entity="StockVisualizerSecondGroupedLink" stepKey="linkSecondComponent">
+                <requiredEntity createDataKey="grouped"/>
+                <requiredEntity createDataKey="secondComponent"/>
+            </createData>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="displayType" value="quantity"/>
+                <argument name="mode" value="instant"/>
+                <argument name="groupedMode" value="children"/>
+                <argument name="groupedSetsCalculator" value="1"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="grouped" stepKey="deleteGrouped"/>
+            <deleteData createDataKey="firstComponent" stepKey="deleteFirstComponent"/>
+            <deleteData createDataKey="secondComponent" stepKey="deleteSecondComponent"/>
+            <deleteData createDataKey="category" stepKey="deleteCategory"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$grouped.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <waitForElementVisible selector="{{StorefrontStockVisualizerSection.childRow}}" time="30" stepKey="waitForChildRows"/>
+        <see selector="{{StorefrontStockVisualizerSection.childRowByLabel($$firstComponent.name$$)}}" userInput="{{StockVisualizerHighQty.qty}}" stepKey="seeFirstComponentQuantity"/>
+        <see selector="{{StorefrontStockVisualizerSection.childRowByLabel($$secondComponent.name$$)}}" userInput="{{StockVisualizerMediumQty.qty}}" stepKey="seeSecondComponentQuantity"/>
+
+        <!-- Two, not five: the second component takes two units per set. -->
+        <waitForText selector="{{StorefrontStockVisualizerSection.sets}}" userInput="You can assemble up to 2 complete set(s)." time="30" stepKey="waitForCompleteSets"/>
+        <see selector="{{StorefrontStockVisualizerSection.sets}}" userInput="You can assemble up to 2 complete set(s)." stepKey="seeCompleteSets"/>
+    </test>
+</tests>

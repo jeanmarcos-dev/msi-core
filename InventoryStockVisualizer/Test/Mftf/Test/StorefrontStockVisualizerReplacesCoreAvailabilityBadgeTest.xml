@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerReplacesCoreAvailabilityBadgeTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="The availability panel replaces the core stock badge instead of sitting next to it"/>
+            <description value="The module removes the core availability badge for every product type so the page never shows two stock statements that can disagree. That trade is the reason Magento's own storefront availability tests fail wherever this module is installed, so it has to be asserted rather than assumed: the panel is on the page and the core badge is gone."/>
+            <severity value="CRITICAL"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="StockVisualizerHighProduct" stepKey="product"/>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="mode" value="instant"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <seeElement selector="{{StorefrontStockVisualizerSection.panel}}" stepKey="seePanel"/>
+        <see selector="{{StorefrontStockVisualizerSection.title}}" userInput="Availability" stepKey="seePanelTitle"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="In stock" stepKey="seeInStock"/>
+        <seeElement selector="{{StorefrontStockVisualizerSection.statusByLevel('high')}}" stepKey="seeHighLevel"/>
+        <dontSeeElement selector="{{StorefrontProductInfoMainSection.productStockStatus}}" stepKey="dontSeeCoreBadge"/>
+    </test>
+</tests>

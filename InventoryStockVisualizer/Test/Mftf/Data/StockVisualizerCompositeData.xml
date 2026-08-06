@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<entities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:DataGenerator/etc/dataProfileSchema.xsd">
+    <!-- Children of a composite, each with its own quantity so the panel cannot
+         pass by reporting the same figure for both. They mirror ApiSimpleOne:
+         the custom_attribute placeholder is what the configurable option value
+         is bound to when the test passes the attribute and option in. -->
+    <entity name="StockVisualizerChildQtyFifty" type="stock_item">
+        <data key="qty">50</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerChildStockItemFifty" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerChildQtyFifty</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerChildQtySeven" type="stock_item">
+        <data key="qty">7</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerChildStockItemSeven" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerChildQtySeven</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerChildFifty" type="product2">
+        <data key="name" unique="suffix">Stock Visualizer Child Fifty </data>
+        <data key="sku" unique="suffix">StockVisualizerChildFifty</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-child-fifty-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="visibility">4</data>
+        <data key="price">10.00</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerChildStockItemFifty</requiredEntity>
+        <requiredEntity type="custom_attribute">CustomAttributeProductAttribute</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerChildSeven" type="product2">
+        <data key="name" unique="suffix">Stock Visualizer Child Seven </data>
+        <data key="sku" unique="suffix">StockVisualizerChildSeven</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-child-seven-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="visibility">4</data>
+        <data key="price">10.00</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerChildStockItemSeven</requiredEntity>
+        <requiredEntity type="custom_attribute">CustomAttributeProductAttribute</requiredEntity>
+    </entity>
+
+    <!-- Grouped links with a recipe of one and two units per set. The shipped
+         ProductLinkSimple entities ask for 1000 units apiece, which makes every
+         realistic quantity yield zero complete sets and the assertion vacuous. -->
+    <entity name="StockVisualizerOnePerSet" type="product_link_extension_attribute">
+        <data key="qty">1</data>
+    </entity>
+    <entity name="StockVisualizerTwoPerSet" type="product_link_extension_attribute">
+        <data key="qty">2</data>
+    </entity>
+
+    <entity name="StockVisualizerGroupedLinkOnePerSet" type="product_link">
+        <var key="sku" entityKey="sku" entityType="product3"/>
+        <var key="linked_product_sku" entityKey="sku" entityType="product"/>
+        <data key="link_type">associated</data>
+        <data key="linked_product_type">simple</data>
+        <data key="position">1</data>
+        <requiredEntity type="product_link_extension_attribute">StockVisualizerOnePerSet</requiredEntity>
+    </entity>
+    <entity name="StockVisualizerGroupedLinkTwoPerSet" type="product_link">
+        <var key="sku" entityKey="sku" entityType="product3"/>
+        <var key="linked_product_sku" entityKey="sku" entityType="product"/>
+        <data key="link_type">associated</data>
+        <data key="linked_product_type">simple</data>
+        <data key="position">2</data>
+        <requiredEntity type="product_link_extension_attribute">StockVisualizerTwoPerSet</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerFirstGroupedLink" type="product_links">
+        <requiredEntity type="product_link">StockVisualizerGroupedLinkOnePerSet</requiredEntity>
+    </entity>
+    <entity name="StockVisualizerSecondGroupedLink" type="product_links">
+        <requiredEntity type="product_link">StockVisualizerGroupedLinkTwoPerSet</requiredEntity>
+    </entity>
+
+    <!-- Two units per bundle and a quantity the shopper cannot change, so the
+         sellable bundle count is half the selection's stock rather than all of
+         it, and an off-by-one reading of the recipe cannot pass. -->
+    <entity name="StockVisualizerBundleLink" type="bundle_link">
+        <var key="option_id" entityKey="return" entityType="bundle_option"/>
+        <var key="sku" entityKey="sku" entityType="product"/>
+        <data key="qty">2</data>
+        <data key="is_default">1</data>
+        <data key="price">1.11</data>
+        <data key="price_type">1</data>
+        <data key="can_change_quantity">0</data>
+    </entity>
+</entities>

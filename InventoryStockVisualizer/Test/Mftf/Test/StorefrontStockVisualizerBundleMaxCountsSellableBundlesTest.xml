@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerBundleMaxCountsSellableBundlesTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="A bundle in max mode reports how many bundles the selection allows, not how many parts exist"/>
+            <description value="For a bundle the useful number is how many of it a shopper can buy, which is the stock of the scarcest selection divided by how many units that selection contributes. The panel reads the live selection from the native price-bundle configuration in the browser, so only a browser can check it. The selection here carries a hundred units and each bundle takes two."/>
+            <severity value="MAJOR"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="ApiBundleProductShipmentTypeSeparately" stepKey="bundle"/>
+            <createData entity="StockVisualizerHighProduct" stepKey="selection"/>
+            <createData entity="DropDownBundleOption" stepKey="bundleOption">
+                <requiredEntity createDataKey="bundle"/>
+            </createData>
+            <createData entity="StockVisualizerBundleLink" stepKey="bundleLink">
+                <requiredEntity createDataKey="bundle"/>
+                <requiredEntity createDataKey="bundleOption"/>
+                <requiredEntity createDataKey="selection"/>
+            </createData>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="displayType" value="quantity"/>
+                <argument name="mode" value="instant"/>
+                <argument name="bundleMode" value="max"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="bundle" stepKey="deleteBundle"/>
+            <deleteData createDataKey="selection" stepKey="deleteSelection"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$bundle.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <!-- No interaction needed: a required option with a single selection is
+             pre-selected by Magento, so the panel has a live selection to read. -->
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="up to 50" time="30" stepKey="waitForSellableBundles"/>
+        <see selector="{{StorefrontStockVisualizerSection.count}}" userInput="up to 50" stepKey="seeSellableBundles"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="In stock" stepKey="seeBundleInStock"/>
+    </test>
+</tests>

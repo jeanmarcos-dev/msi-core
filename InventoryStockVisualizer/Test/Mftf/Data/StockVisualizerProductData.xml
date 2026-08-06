@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<entities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:DataGenerator/etc/dataProfileSchema.xsd">
+    <!-- Quantities chosen against the module's own default thresholds (low 3,
+         high 10): one below the low mark, one between the two, one above the
+         high mark. The `quantity` key on a product entity is decorative, so the
+         value that has to reach the source item travels through its own
+         stock_item entity. -->
+    <entity name="StockVisualizerLowQty" type="stock_item">
+        <data key="qty">2</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerLowStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerLowQty</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerMediumQty" type="stock_item">
+        <data key="qty">5</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerMediumStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerMediumQty</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerHighQty" type="stock_item">
+        <data key="qty">100</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerHighStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerHighQty</requiredEntity>
+    </entity>
+
+    <!-- An unlikely number, so reading it back off the page cannot be a
+         coincidence of another figure in the panel. -->
+    <entity name="StockVisualizerExactQty" type="stock_item">
+        <data key="qty">4321</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="StockVisualizerExactStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">StockVisualizerExactQty</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerLowProduct" type="product">
+        <data key="name" unique="suffix">Stock Visualizer Low </data>
+        <data key="sku" unique="suffix">StockVisualizerLow</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-low-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">10.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerLowStockItem</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerMediumProduct" type="product">
+        <data key="name" unique="suffix">Stock Visualizer Medium </data>
+        <data key="sku" unique="suffix">StockVisualizerMedium</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-medium-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">10.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerMediumStockItem</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerHighProduct" type="product">
+        <data key="name" unique="suffix">Stock Visualizer High </data>
+        <data key="sku" unique="suffix">StockVisualizerHigh</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-high-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">10.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerHighStockItem</requiredEntity>
+    </entity>
+
+    <entity name="StockVisualizerExactQtyProduct" type="product">
+        <data key="name" unique="suffix">Stock Visualizer Exact </data>
+        <data key="sku" unique="suffix">StockVisualizerExact</data>
+        <data key="urlKey" unique="suffix">stock-visualizer-exact-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">10.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">StockVisualizerExactStockItem</requiredEntity>
+    </entity>
+</entities>

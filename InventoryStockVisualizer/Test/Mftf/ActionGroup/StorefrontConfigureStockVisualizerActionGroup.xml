@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="StorefrontConfigureStockVisualizerActionGroup">
+        <annotations>
+            <description>Set every stock visualizer setting the storefront panel reads, so a test never inherits the display configuration left behind by another one. The defaults are the module's own, which makes the same action group usable to restore them in an after hook.</description>
+        </annotations>
+        <arguments>
+            <argument name="enabled" type="string" defaultValue="0"/>
+            <argument name="displayType" type="string" defaultValue="level"/>
+            <argument name="scope" type="string" defaultValue="aggregate"/>
+            <argument name="mode" type="string" defaultValue="on_demand"/>
+            <argument name="levelHigh" type="string" defaultValue="10"/>
+            <argument name="levelLow" type="string" defaultValue="3"/>
+            <argument name="configurableMode" type="string" defaultValue="variant"/>
+            <argument name="bundleMode" type="string" defaultValue="max"/>
+            <argument name="groupedMode" type="string" defaultValue="children"/>
+            <argument name="groupedSetsCalculator" type="string" defaultValue="0"/>
+        </arguments>
+
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/enabled {{enabled}}" stepKey="setEnabled"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/display_type {{displayType}}" stepKey="setDisplayType"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/scope {{scope}}" stepKey="setScope"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/mode {{mode}}" stepKey="setMode"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/level_high {{levelHigh}}" stepKey="setLevelHigh"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/level_low {{levelLow}}" stepKey="setLevelLow"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/composite_configurable_mode {{configurableMode}}" stepKey="setConfigurableMode"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/composite_bundle_mode {{bundleMode}}" stepKey="setBundleMode"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/composite_grouped_mode {{groupedMode}}" stepKey="setGroupedMode"/>
+        <magentoCLI command="config:set" arguments="cataloginventory/stock_visualizer/composite_grouped_sets_calculator {{groupedSetsCalculator}}" stepKey="setGroupedSetsCalculator"/>
+        <magentoCLI command="cache:flush" arguments="config full_page" stepKey="flushCache"/>
+    </actionGroup>
+</actionGroups>

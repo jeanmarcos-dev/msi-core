@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerVariantModeFollowsTheSelectedChildTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="A configurable in variant mode reports the availability of the picked variant"/>
+            <description value="Variant mode is the default for configurables and the only one that answers the question a shopper actually has. Nothing about it is reachable from PHP: the panel resolves the chosen child from the native configurable widget in the browser and fetches that child's quantity. Two children with different quantities have to produce two different figures, and neither before a choice is made."/>
+            <severity value="CRITICAL"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="ApiCategory" stepKey="category"/>
+            <createData entity="ApiConfigurableProduct" stepKey="configurable">
+                <requiredEntity createDataKey="category"/>
+            </createData>
+            <createData entity="productAttributeWithTwoOptions" stepKey="attribute"/>
+            <createData entity="productAttributeOption1" stepKey="firstOption">
+                <requiredEntity createDataKey="attribute"/>
+            </createData>
+            <createData entity="productAttributeOption2" stepKey="secondOption">
+                <requiredEntity createDataKey="attribute"/>
+            </createData>
+            <createData entity="AddToDefaultSet" stepKey="addAttributeToSet">
+                <requiredEntity createDataKey="attribute"/>
+            </createData>
+            <getData entity="ProductAttributeOptionGetter" index="1" stepKey="getFirstOption">
+                <requiredEntity createDataKey="attribute"/>
+            </getData>
+            <getData entity="ProductAttributeOptionGetter" index="2" stepKey="getSecondOption">
+                <requiredEntity createDataKey="attribute"/>
+            </getData>
+            <createData entity="StockVisualizerChildFifty" stepKey="firstChild">
+                <requiredEntity createDataKey="attribute"/>
+                <requiredEntity createDataKey="getFirstOption"/>
+            </createData>
+            <createData entity="StockVisualizerChildSeven" stepKey="secondChild">
+                <requiredEntity createDataKey="attribute"/>
+                <requiredEntity createDataKey="getSecondOption"/>
+            </createData>
+            <createData entity="ConfigurableProductTwoOptions" stepKey="configurableOption">
+                <requiredEntity createDataKey="configurable"/>
+                <requiredEntity createDataKey="attribute"/>
+                <requiredEntity createDataKey="getFirstOption"/>
+                <requiredEntity createDataKey="getSecondOption"/>
+            </createData>
+            <createData entity="ConfigurableProductAddChild" stepKey="addFirstChild">
+                <requiredEntity createDataKey="configurable"/>
+                <requiredEntity createDataKey="firstChild"/>
+            </createData>
+            <createData entity="ConfigurableProductAddChild" stepKey="addSecondChild">
+                <requiredEntity createDataKey="configurable"/>
+                <requiredEntity createDataKey="secondChild"/>
+            </createData>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="displayType" value="quantity"/>
+                <argument name="mode" value="instant"/>
+                <argument name="configurableMode" value="variant"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="configurable" stepKey="deleteConfigurable"/>
+            <deleteData createDataKey="firstChild" stepKey="deleteFirstChild"/>
+            <deleteData createDataKey="secondChild" stepKey="deleteSecondChild"/>
+            <deleteData createDataKey="attribute" stepKey="deleteAttribute"/>
+            <deleteData createDataKey="category" stepKey="deleteCategory"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$configurable.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <see selector="{{StorefrontStockVisualizerSection.prompt}}" userInput="Select options to see the exact availability." stepKey="seePromptBeforeChoosing"/>
+        <dontSee selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerChildQtyFifty.qty}}" stepKey="dontSeeFirstQuantityYet"/>
+
+        <selectOption selector="{{StorefrontProductInfoMainSection.productAttributeOptionsSelectButton}}" userInput="$$firstOption.option[store_labels][0][label]$$" stepKey="chooseFirstVariant"/>
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerChildQtyFifty.qty}}" time="30" stepKey="waitForFirstQuantity"/>
+        <see selector="{{StorefrontStockVisualizerSection.statusWord}}" userInput="In stock" stepKey="seeFirstVariantInStock"/>
+
+        <selectOption selector="{{StorefrontProductInfoMainSection.productAttributeOptionsSelectButton}}" userInput="$$secondOption.option[store_labels][0][label]$$" stepKey="chooseSecondVariant"/>
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerChildQtySeven.qty}}" time="30" stepKey="waitForSecondQuantity"/>
+    </test>
+</tests>

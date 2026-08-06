@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<sections xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:Page/etc/SectionObject.xsd">
+    <section name="StorefrontStockVisualizerSection">
+        <element name="panel" type="block" selector=".product-info-main .stock-visualizer"/>
+        <element name="title" type="text" selector=".product-info-main .stock-visualizer .sva-title"/>
+        <element name="statusWord" type="text" selector=".product-info-main .stock-visualizer .sv-word"/>
+        <element name="statusByLevel" type="block" selector=".product-info-main .stock-visualizer .sv-status.level-{{level}}" parameterized="true"/>
+        <element name="count" type="text" selector=".product-info-main .stock-visualizer .sv-count"/>
+        <element name="callToAction" type="button" selector=".product-info-main .stock-visualizer .stock-visualizer-cta"/>
+        <element name="sourceRow" type="block" selector=".product-info-main .stock-visualizer .sv-sources .sv-src"/>
+        <element name="prompt" type="text" selector=".product-info-main .stock-visualizer .sv-hint"/>
+        <element name="childRow" type="block" selector=".product-info-main .stock-visualizer .sv-children .sv-src"/>
+        <element name="childRowByLabel" type="block" selector="//div[contains(@class,'stock-visualizer')]//li[contains(@class,'sv-src')][.//span[contains(@class,'sv-name')][normalize-space()='{{label}}']]" parameterized="true"/>
+        <element name="sets" type="text" selector=".product-info-main .stock-visualizer .sv-sets"/>
+    </section>
+</sections>

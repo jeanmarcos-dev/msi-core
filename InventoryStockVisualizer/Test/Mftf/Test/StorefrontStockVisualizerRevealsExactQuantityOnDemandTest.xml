@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerRevealsExactQuantityOnDemandTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="On demand, the exact quantity is withheld until the shopper asks for it"/>
+            <description value="On-demand delivery exists so the volatile number never reaches the full page cache: the page ships a status word and a button, and the quantity arrives from the fragment controller on the click. Both halves matter, so the number has to be absent before the click and correct after it."/>
+            <severity value="CRITICAL"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+        </annotations>
+
+        <before>
+            <createData entity="StockVisualizerExactQtyProduct" stepKey="product"/>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="displayType" value="quantity"/>
+                <argument name="mode" value="on_demand"/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+
+        <waitForElementVisible selector="{{StorefrontStockVisualizerSection.callToAction}}" time="30" stepKey="waitForCallToAction"/>
+        <dontSee selector="{{StorefrontStockVisualizerSection.panel}}" userInput="{{StockVisualizerExactQty.qty}}" stepKey="dontSeeQuantityBeforeClick"/>
+
+        <click selector="{{StorefrontStockVisualizerSection.callToAction}}" stepKey="clickCallToAction"/>
+        <!-- Waiting for the element to be visible is not enough: it is shown as
+             soon as the fetch starts, holding a loading skeleton. -->
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerExactQty.qty}}" time="30" stepKey="waitForQuantity"/>
+        <see selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerExactQty.qty}}" stepKey="seeExactQuantity"/>
+    </test>
+</tests>
