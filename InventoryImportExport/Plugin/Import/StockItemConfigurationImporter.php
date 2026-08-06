@@ -1,7 +1,7 @@
 <?php
 /**
- * Copyright 2025 jeanmarcos-dev
- * All Rights Reserved.
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
  */
 
 declare(strict_types=1);
