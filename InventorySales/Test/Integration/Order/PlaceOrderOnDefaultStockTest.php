@@ -36,9 +36,29 @@ use PHPUnit\Framework\TestCase;
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @SuppressWarnings(PHPMD.TooManyFields)
  * @see https://app.hiptest.com/projects/69435/test-plan/folders/419534/scenarios/2587535
+ *
+ * The Default Stock is an ordinary MSI stock now, so reindexing it builds and swaps a real index
+ * table. That is DDL, and DDL cannot run inside the transaction the framework wraps a test in.
+ *
+ * @magentoDbIsolation disabled
  */
 class PlaceOrderOnDefaultStockTest extends TestCase
 {
+    /**
+     * The sku the rename test starts from, and the only one the products fixture rollback knows about.
+     */
+    private const RENAMED_SKU_ORIGIN = 'SKU-1';
+
+    /**
+     * Sku a test renamed away from RENAMED_SKU_ORIGIN, pending restore.
+     *
+     * Subclasses run these tests with database isolation disabled, so a product left under a sku the
+     * fixture rollback does not delete survives into the next test and collides on its url key.
+     *
+     * @var string|null
+     */
+    private $renamedSku;
+
     /**
      * @var ObjectManagerInterface
      */
@@ -161,6 +181,11 @@ class PlaceOrderOnDefaultStockTest extends TestCase
         if ($this->orderIdToDelete) {
             $this->deleteOrderById((int)$this->orderIdToDelete);
         }
+
+        if ($this->renamedSku !== null) {
+            $this->updateProductSku($this->renamedSku, self::RENAMED_SKU_ORIGIN);
+            $this->renamedSku = null;
+        }
     }
 
     /**
@@ -215,11 +240,12 @@ class PlaceOrderOnDefaultStockTest extends TestCase
     {
         $consumerName = 'inventory.reservations.update';
         $this->objectManager->get(ClearQueueProcessor::class)->execute($consumerName);
-        $oldSku = 'SKU-1';
+        $oldSku = self::RENAMED_SKU_ORIGIN;
         $newSku = 'new-sku';
 
         $this->orderIdToDelete = $this->placeOrder($oldSku, 4);
         $this->updateProductSku($oldSku, $newSku);
+        $this->renamedSku = $newSku;
 
         $this->processMessages($consumerName);
         $this->assertEmpty($this->getReservationBySku($oldSku));

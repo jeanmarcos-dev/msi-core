@@ -18,6 +18,7 @@ use Magento\InventoryCatalog\Model\UpdateInventory;
 use Magento\InventoryCatalog\Model\UpdateInventory\InventoryDataFactory;
 use Magento\InventoryIndexer\Model\IsProductSalable;
 use Magento\TestFramework\Fixture\DataFixture;
+use Magento\TestFramework\Fixture\DbIsolation;
 use Magento\TestFramework\Fixture\DataFixtureStorage;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -67,7 +68,12 @@ class UpdateInventoryTest extends TestCase
         $this->fixtures = DataFixtureStorageManager::getStorage();
     }
 
+    /**
+     * The Default Stock is an ordinary MSI stock now, so the fixtures have to reach a real index table.
+     * Building and swapping one is DDL, which cannot run inside the transaction isolation would open.
+     */
     #[
+        DbIsolation(false),
         DataFixture(Product::class, as: 'sp', count: 4),
         DataFixture(AttributeFixture::class, as: 'attr'),
         DataFixture(
