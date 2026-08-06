@@ -32,12 +32,23 @@ class InertStockIndexerTest extends TestCase
     }
 
     /**
+     * The di.xml preference names a concrete class, and consumers such as BulkSourceUnassign type-hint
+     * that class rather than the two interfaces, so standing in for it means being of its type.
+     */
+    public function testItIsOfTheTypeItReplaces(): void
+    {
+        self::assertInstanceOf(LegacyStockIndexer::class, $this->model);
+    }
+
+    /**
      * A collaborator would mean the indexer still reaches the legacy tables, which is what this class exists
-     * to prevent, so the absence of constructor arguments is part of the contract.
+     * to prevent, so taking no constructor arguments is part of the contract — the more so now that the
+     * parent declares three legacy actions this class must not build.
      */
     public function testItHasNoCollaborators(): void
     {
-        self::assertNull((new \ReflectionClass(InertStockIndexer::class))->getConstructor());
+        $constructor = (new \ReflectionClass(InertStockIndexer::class))->getConstructor();
+        self::assertSame(0, $constructor->getNumberOfParameters());
     }
 
     public function testEveryEntryPointOfTheLegacyIndexerIsCovered(): void
