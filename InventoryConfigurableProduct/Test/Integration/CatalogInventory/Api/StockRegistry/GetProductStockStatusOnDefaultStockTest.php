@@ -43,6 +43,8 @@ class GetProductStockStatusOnDefaultStockTest extends TestCase
 
     /**
      * @magentoDataFixture Magento_InventoryConfigurableProduct::Test/_files/default_stock_configurable_products.php
+     * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
+     * @magentoDbIsolation disabled
      *
      * @param string $sku
      * @param int $status
@@ -59,6 +61,8 @@ class GetProductStockStatusOnDefaultStockTest extends TestCase
 
     /**
      * @magentoDataFixture Magento_InventoryConfigurableProduct::Test/_files/default_stock_configurable_products.php
+     * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
+     * @magentoDbIsolation disabled
      *
      * @param string $sku
      * @param int $status
