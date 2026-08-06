@@ -8,12 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventoryCatalog\Test\Integration;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
-use Magento\CatalogInventory\Api\StockItemCriteriaInterface;
-use Magento\CatalogInventory\Api\StockItemCriteriaInterfaceFactory;
-use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
-use Magento\CatalogInventory\Api\StockStatusCriteriaInterface;
-use Magento\CatalogInventory\Api\StockStatusCriteriaInterfaceFactory;
-use Magento\CatalogInventory\Api\StockStatusRepositoryInterface;
+use Magento\CatalogInventory\Api\StockRegistryInterface;
 use Magento\CatalogInventory\Model\Stock\Status;
 use Magento\Framework\Api\SearchCriteriaBuilder;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
@@ -24,6 +19,10 @@ use PHPUnit\Framework\TestCase;
 use Magento\TestFramework\Helper\Bootstrap;
 
 /**
+ * Deleting the source items of a product must leave the legacy CatalogInventory contract telling the
+ * truth. Nothing writes cataloginventory_stock_item or cataloginventory_stock_status any more, so what
+ * is asserted here is the registry that stands in front of them, which MSI answers.
+ *
  * The Default Stock is an ordinary MSI stock now, so reindexing it builds and swaps a real
  * index table. That is DDL, and DDL cannot run inside the transaction the framework wraps a
  * test in — the sibling tests for a non-default stock have always disabled isolation for the
@@ -39,14 +38,9 @@ class LegacyStockAfterSourceItemsDeleteTest extends TestCase
     private $productRepository;
 
     /**
-     * @var StockStatusCriteriaInterfaceFactory
+     * @var StockRegistryInterface
      */
-    private $legacyStockStatusCriteriaFactory;
-
-    /**
-     * @var StockStatusRepositoryInterface
-     */
-    private $legacyStockStatusRepository;
+    private $stockRegistry;
 
     /**
      * @var SearchCriteriaBuilder
@@ -68,35 +62,14 @@ class LegacyStockAfterSourceItemsDeleteTest extends TestCase
      */
     private $defaultSourceProvider;
 
-    /**
-     * @var StockItemCriteriaInterfaceFactory
-     */
-    private $legacyStockItemCriteriaFactory;
-
-    /**
-     * @var StockItemRepositoryInterface
-     */
-    private $legacyStockItemRepository;
-
     protected function setUp(): void
     {
         $this->productRepository = Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class);
-
-        $this->legacyStockStatusCriteriaFactory = Bootstrap::getObjectManager()->get(
-            StockStatusCriteriaInterfaceFactory::class
-        );
-        $this->legacyStockStatusRepository = Bootstrap::getObjectManager()->get(StockStatusRepositoryInterface::class);
-
+        $this->stockRegistry = Bootstrap::getObjectManager()->get(StockRegistryInterface::class);
         $this->searchCriteriaBuilder = Bootstrap::getObjectManager()->get(SearchCriteriaBuilder::class);
         $this->sourceItemRepository = Bootstrap::getObjectManager()->get(SourceItemRepositoryInterface::class);
-
         $this->sourceItemsDelete = Bootstrap::getObjectManager()->get(SourceItemsDeleteInterface::class);
         $this->defaultSourceProvider = Bootstrap::getObjectManager()->get(DefaultSourceProviderInterface::class);
-
-        $this->legacyStockItemCriteriaFactory = Bootstrap::getObjectManager()->get(
-            StockItemCriteriaInterfaceFactory::class
-        );
-        $this->legacyStockItemRepository = Bootstrap::getObjectManager()->get(StockItemRepositoryInterface::class);
     }
 
     /**
@@ -107,36 +80,13 @@ class LegacyStockAfterSourceItemsDeleteTest extends TestCase
     public function testSetOutOfStock()
     {
         $productSku = 'SKU-1';
-        $product = $this->productRepository->get($productSku);
-        $productId = $product->getId();
-        $websiteId = 0;
+        $productId = (int) $this->productRepository->get($productSku)->getId();
 
-        /** @var StockItemCriteriaInterface $legacyStockItemCriteria */
-        $legacyStockItemCriteria = $this->legacyStockItemCriteriaFactory->create();
-        $legacyStockItemCriteria->setProductsFilter($productId);
-        $legacyStockItemCriteria->setScopeFilter($websiteId);
-        $legacyStockItems = $this->legacyStockItemRepository->getList($legacyStockItemCriteria)->getItems();
-        self::assertCount(1, $legacyStockItems);
-
-        $legacyStockItem = reset($legacyStockItems);
-        self::assertTrue($legacyStockItem->getIsInStock());
+        $legacyStockItem = $this->stockRegistry->getStockItem($productId);
+        self::assertTrue((bool) $legacyStockItem->getIsInStock());
         self::assertEquals(5.5, $legacyStockItem->getQty());
 
-        $searchCriteria = $this->searchCriteriaBuilder
-            ->addFilter(SourceItemInterface::SKU, $productSku)
-            ->addFilter(SourceItemInterface::SOURCE_CODE, $this->defaultSourceProvider->getCode())
-            ->create();
-        $sourceItems = $this->sourceItemRepository->getList($searchCriteria)->getItems();
-        self::assertCount(1, $sourceItems);
-
-        /** @var StockStatusCriteriaInterface $legacyStockStatusCriteria */
-        $legacyStockStatusCriteria = $this->legacyStockStatusCriteriaFactory->create();
-        $legacyStockStatusCriteria->setProductsFilter($productId);
-        $legacyStockStatusCriteria->setScopeFilter($websiteId);
-        $legacyStockStatuses = $this->legacyStockStatusRepository->getList($legacyStockStatusCriteria)->getItems();
-        self::assertCount(1, $legacyStockStatuses);
-
-        $legacyStockStatus = reset($legacyStockStatuses);
+        $legacyStockStatus = $this->stockRegistry->getStockStatus($productId);
         self::assertEquals(Status::STATUS_IN_STOCK, $legacyStockStatus->getStockStatus());
         self::assertEquals(5.5, $legacyStockStatus->getQty());
 
@@ -149,17 +99,11 @@ class LegacyStockAfterSourceItemsDeleteTest extends TestCase
 
         $this->sourceItemsDelete->execute($sourceItems);
 
-        $legacyStockItems = $this->legacyStockItemRepository->getList($legacyStockItemCriteria)->getItems();
-        self::assertCount(1, $legacyStockItems);
-
-        $legacyStockItem = reset($legacyStockItems);
-        self::assertFalse($legacyStockItem->getIsInStock());
+        $legacyStockItem = $this->stockRegistry->getStockItem($productId);
+        self::assertFalse((bool) $legacyStockItem->getIsInStock());
         self::assertEquals(0, $legacyStockItem->getQty());
 
-        $legacyStockStatuses = $this->legacyStockStatusRepository->getList($legacyStockStatusCriteria)->getItems();
-        self::assertCount(1, $legacyStockStatuses);
-
-        $legacyStockStatus = reset($legacyStockStatuses);
+        $legacyStockStatus = $this->stockRegistry->getStockStatus($productId);
         self::assertEquals(Status::STATUS_OUT_OF_STOCK, $legacyStockStatus->getStockStatus());
         self::assertEquals(0, $legacyStockStatus->getQty());
     }
