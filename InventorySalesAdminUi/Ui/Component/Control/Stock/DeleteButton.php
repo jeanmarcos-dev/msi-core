@@ -15,7 +15,7 @@ use Magento\InventorySalesApi\Model\GetAssignedSalesChannelsForStockInterface;
 
 /**
  * Represents delete button with pre-configured options
- * Provide an ability to show delete button only when stock id is not default or doesn't have assigned sales channels
+ * Provide an ability to show delete button only when the stock has no assigned sales channels
  */
 class DeleteButton implements ButtonProviderInterface
 {

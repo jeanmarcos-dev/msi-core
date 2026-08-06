@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Adobe
+ * All Rights Reserved.
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminDefaultStockAcceptsSourceAssignmentTest">
+        <annotations>
+            <stories value="Assign new sources to the default stock"/>
+            <title value="The Default Stock accepts source assignment like any other stock"/>
+            <description value="The Default Stock is an ordinary stock: its Assign Sources control is enabled, it carries no notice explaining why it would not be, and a source assigned to it saves and stays."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="multi_mode"/>
+        </annotations>
+
+        <before>
+            <createData entity="FullSource1" stepKey="source"/>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <!-- Unassigned by hand rather than with UnassignSourceFromStockActionGroup:
+                 it feeds the stock name into a parameterised selector, and "Default
+                 Stock" carries a space that the selector parser does not survive.
+                 The source itself stays behind, MSI has no API to delete one. -->
+            <actionGroup ref="AdminManageStockGridClearFiltersActionGroup" stepKey="backToStockGrid"/>
+            <click selector="{{AdminGridRow.editByValue(_defaultStock.name)}}" stepKey="editDefaultStockAgain"/>
+            <waitForPageLoad time="30" stepKey="waitForDefaultStockFormAgain"/>
+            <click selector="{{AdminEditStockSourcesSection.rowSourceDelete('1')}}" stepKey="unassignSource"/>
+            <waitForPageLoad time="30" stepKey="waitForSourceUnassigned"/>
+            <actionGroup ref="AdminSaveAndContinueEditStockPageActionGroup" stepKey="saveAfterUnassign"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <!-- Filters survive in the admin user's grid bookmark, so a run that died
+             leaving the grid filtered would hide the row from the next one. -->
+        <actionGroup ref="AdminManageStockGridClearFiltersActionGroup" stepKey="amOnStockListPage"/>
+        <click selector="{{AdminGridRow.editByValue(_defaultStock.name)}}" stepKey="clickEditDefaultStock"/>
+        <waitForPageLoad time="30" stepKey="waitForDefaultStockEditPageLoad"/>
+
+        <grabAttributeFrom selector="{{AdminEditStockSourcesSection.assignSources}}" userInput="disabled" stepKey="grabDisabledAttribute"/>
+        <assertNull stepKey="assertAssignSourcesIsEnabled">
+            <actualResult type="variable">grabDisabledAttribute</actualResult>
+        </assertNull>
+        <dontSeeElement selector="{{AdminEditStockGeneralSection.disabledAddingSourcesNotice}}" stepKey="dontSeeDisabledNotice"/>
+
+        <actionGroup ref="AdminAssignSourceToStockActionGroup" stepKey="assignSourceToDefaultStock">
+            <argument name="sourceName" value="$source.source[name]$"/>
+        </actionGroup>
+        <actionGroup ref="AdminSaveAndContinueEditStockPageActionGroup" stepKey="saveDefaultStock"/>
+
+        <see selector="{{AdminEditStockSourcesSection.tableRow}}" userInput="$source.source[name]$" stepKey="seeSourceAssignedToDefaultStock"/>
+    </test>
+</tests>

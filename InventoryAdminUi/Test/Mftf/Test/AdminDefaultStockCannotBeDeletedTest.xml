@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Delete Stock"/>
             <title value="Cannot Delete Default Stock from the Stock Grid"/>
-            <description value="You should not be able to delete the Default Stock from the Stock Grid."/>
+            <description value="The Default Stock is refused deletion because it serves a sales channel, which is the rule for every stock. Being stock 1 is no longer a reason of its own: unassign the channel and it deletes like any other."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/910527/scenarios/1410629"/>
             <severity value="CRITICAL"/>
             <group value="msi"/>
@@ -39,7 +39,7 @@
         <click selector="{{AdminProductGridConfirmActionSection.ok}}" stepKey="clickOnOk1"/>
 
         <seeElement selector="{{AdminProductMessagesSection.errorMessage}}" stepKey="seeErrorMessage1"/>
-        <see selector="{{AdminProductMessagesSection.errorMessage}}" userInput="[ID: 1] Default Stock could not be deleted." stepKey="seeInErrorMessage1"/>
+        <see selector="{{AdminProductMessagesSection.errorMessage}}" userInput="[ID: 1] Stock has at least one sale channel and could not be deleted." stepKey="seeInErrorMessage1"/>
 
         <see selector="{{AdminGridRow.rowOne}}" userInput="Default Stock" stepKey="seeCodeInRow1"/>
     </test>
