@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Adobe
+ * All Rights Reserved.
+ */
+-->
+
+<entities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:DataGenerator/etc/dataProfileSchema.xsd">
+    <!-- An unlikely quantity, so finding it in the exported file cannot be a
+         coincidence of another column. The chain has to be spelled out rather
+         than extended from SimpleProduct: its `quantity` key is decorative, the
+         value that reaches the API travels through the stock_item entity. -->
+    <entity name="MsiExportStockQty" type="stock_item">
+        <data key="qty">4321</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+
+    <entity name="MsiExportStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">MsiExportStockQty</requiredEntity>
+    </entity>
+
+    <entity name="MsiExportStockProduct" type="product">
+        <data key="name" unique="suffix">MSI Export Stock Product </data>
+        <data key="sku" unique="suffix">MsiExportStockProduct</data>
+        <data key="urlKey" unique="suffix">msi-export-stock-product-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">123.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="quantity">4321</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">MsiExportStockItem</requiredEntity>
+    </entity>
+</entities>

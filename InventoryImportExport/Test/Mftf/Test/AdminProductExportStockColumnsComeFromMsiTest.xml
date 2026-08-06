@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Adobe
+ * All Rights Reserved.
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminProductExportStockColumnsComeFromMsiTest">
+        <annotations>
+            <stories value="Export Products"/>
+            <title value="The product export stock columns are filled from MSI"/>
+            <description value="The exporter used to read the stock columns from cataloginventory_stock_item, a table nothing writes any more, which left them stale and dropped the headers entirely when no product in the batch had a legacy row. They are now built from the MSI index and the MSI stock item configuration, so the exported file has to carry the quantity a product only ever had as a source item."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="multi_mode"/>
+        </annotations>
+
+        <before>
+            <createData entity="MsiExportStockProduct" stepKey="product"/>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logout"/>
+        </after>
+
+        <actionGroup ref="AdminNavigateToExportPageActionGroup" stepKey="goToExportIndexPage"/>
+        <actionGroup ref="ExportProductsFilterByAttributeActionGroup" stepKey="exportBySku">
+            <argument name="attribute" value="sku"/>
+            <argument name="attributeData" value="$$product.sku$$"/>
+        </actionGroup>
+        <actionGroup ref="CliConsumerStartActionGroup" stepKey="startMessageQueue">
+            <argument name="consumerName" value="{{AdminExportMessageConsumerData.consumerName}}"/>
+            <argument name="maxMessages" value="{{AdminExportMessageConsumerData.messageLimit}}"/>
+        </actionGroup>
+        <actionGroup ref="ReloadPageActionGroup" stepKey="refreshPage"/>
+        <waitForElementVisible selector="{{AdminExportAttributeSection.exportFileNameByPosition('0')}}" stepKey="waitForFilename"/>
+        <actionGroup ref="AdminGetExportFilenameOnServerActionGroup" stepKey="grabNameFile">
+            <argument name="rowIndex" value="0"/>
+        </actionGroup>
+
+        <helper class="Magento\Catalog\Test\Mftf\Helper\LocalFileAssertions" method="assertFileExists" stepKey="assertExportFileExists">
+            <argument name="filePath">var/export/{$grabNameFile}</argument>
+        </helper>
+        <helper class="Magento\Catalog\Test\Mftf\Helper\LocalFileAssertions" method="assertFileContainsString" stepKey="assertExportFileContainsProduct">
+            <argument name="filePath">var/export/{$grabNameFile}</argument>
+            <argument name="text">$$product.sku$$</argument>
+        </helper>
+        <helper class="Magento\Catalog\Test\Mftf\Helper\LocalFileAssertions" method="assertFileContainsString" stepKey="assertExportFileContainsQtyHeader">
+            <argument name="filePath">var/export/{$grabNameFile}</argument>
+            <argument name="text">qty</argument>
+        </helper>
+        <helper class="Magento\Catalog\Test\Mftf\Helper\LocalFileAssertions" method="assertFileContainsString" stepKey="assertExportFileContainsMsiQuantity">
+            <argument name="filePath">var/export/{$grabNameFile}</argument>
+            <argument name="text">{{MsiExportStockProduct.quantity}}</argument>
+        </helper>
+
+        <!-- Cleaned up here and not in the after hook: the grabbed filename is a
+             variable of this scope and the hook cannot see it. -->
+        <helper class="Magento\Catalog\Test\Mftf\Helper\LocalFileAssertions" method="deleteFileIfExists" stepKey="deleteExportFile">
+            <argument name="filePath">var/export/{$grabNameFile}</argument>
+        </helper>
+    </test>
+</tests>

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Adobe
+ * All Rights Reserved.
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminProductGridQuantityComesFromTheMsiIndexTest">
+        <annotations>
+            <stories value="Product grid stock columns"/>
+            <title value="The product grid Quantity column is served from the MSI index"/>
+            <description value="The grid used to join cataloginventory_stock_item on stock_id = 1, a table nothing writes any more. It now reads the MSI index, so the column has to show the quantity of a product that never had a legacy row, and follow that quantity when the source item changes. Single source mode only: with several sources MSI replaces this column with Quantity per Source, which is fed from the source items and not from the index."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="single_mode"/>
+        </annotations>
+
+        <before>
+            <createData entity="_defaultCategory" stepKey="category"/>
+            <createData entity="SimpleProduct" stepKey="product">
+                <requiredEntity createDataKey="category"/>
+            </createData>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <deleteData createDataKey="category" stepKey="deleteCategory"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="openProductGrid"/>
+        <waitForPageLoad stepKey="waitForProductGrid"/>
+        <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="filterBySkuBefore">
+            <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
+            <argument name="value" value="$product.sku$"/>
+        </actionGroup>
+        <see selector="{{AdminProductGridSection.quantity('1')}}" userInput="{{SimpleProduct.quantity}}" stepKey="seeQuantityFromIndex"/>
+
+        <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToEdit">
+            <argument name="productId" value="$product.id$"/>
+        </actionGroup>
+        <fillField selector="{{AdminProductSourcesGrid.rowQtyBySourceCode(_defaultSource.source_code)}}" userInput="55" stepKey="setDefaultSourceQuantity"/>
+        <actionGroup ref="AdminProductFormSaveActionGroup" stepKey="saveProduct"/>
+        <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexInventory">
+            <argument name="indices" value="inventory"/>
+        </actionGroup>
+
+        <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="openProductGridAgain"/>
+        <waitForPageLoad stepKey="waitForProductGridAgain"/>
+        <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="filterBySkuAfter">
+            <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
+            <argument name="value" value="$product.sku$"/>
+        </actionGroup>
+        <see selector="{{AdminProductGridSection.quantity('1')}}" userInput="55" stepKey="seeUpdatedQuantityFromIndex"/>
+    </test>
+</tests>
