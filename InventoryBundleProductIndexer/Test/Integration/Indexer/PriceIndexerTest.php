@@ -227,13 +227,7 @@ class PriceIndexerTest extends TestCase
             // bundle5 is out of stock on website2, thus no price data is expected
             'bundle5' => [
                 'website1' => null,
-                // This should be NULL as well, but due to a known issue with inventory indexing,
-                // disabled products are not excluded from bundle stock status calculation leading
-                // to incorrect price range calculation.
-                'website2' => [
-                    'min_price' => 10,
-                    'max_price' => 20
-                ],
+                'website2' => null,
             ],
         ]);
     }
