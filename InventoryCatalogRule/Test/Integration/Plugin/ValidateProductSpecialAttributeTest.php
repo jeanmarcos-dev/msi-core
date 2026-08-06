@@ -90,7 +90,9 @@ class ValidateProductSpecialAttributeTest extends TestCase
         $productIds = $r1->getMatchingProductIds();
         $this->assertArrayHasKey(1, $productIds[$p1->getId()]);
         $this->assertTrue($productIds[$p1->getId()][1]);
-        $this->assertFalse($productIds[$p2->getId()][1]);
-        $this->assertCount(2, $productIds);
+        // The condition asks for products that are in stock, and the index answers it exactly, so an out
+        // of stock product never reaches the per-product validation that used to reject it.
+        $this->assertArrayNotHasKey($p2->getId(), $productIds);
+        $this->assertCount(1, $productIds);
     }
 }
