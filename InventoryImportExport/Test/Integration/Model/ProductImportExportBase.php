@@ -19,6 +19,7 @@ use Magento\Framework\ObjectManagerInterface;
 use Magento\ImportExport\Model\Export\Adapter\Csv as ExportCsv;
 use Magento\ImportExport\Model\Import;
 use Magento\ImportExport\Model\Import\Source\Csv as ImportCsv;
+use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
 use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 
@@ -43,6 +44,11 @@ abstract class ProductImportExportBase extends TestCase
      * @var Filesystem
      */
     private $filesystem;
+
+    /**
+     * @var array<string,array<string,array{quantity:float,status:int}>>
+     */
+    private $sourceItemsBeforeDelete = [];
 
     /**
      * @inheritDoc
@@ -122,14 +128,7 @@ abstract class ProductImportExportBase extends TestCase
                 if ($importedProduct->getSku() === $existedProduct->getSku()) {
                     $this->assertEquals($existedProduct->getName(), $importedProduct->getName());
                     $this->assertEquals($existedProduct->getPrice(), $importedProduct->getPrice());
-                    $this->assertEquals(
-                        $existedProduct->getExtensionAttributes()->getTestStockItem()->getQty(),
-                        $importedProduct->getExtensionAttributes()->getTestStockItem()->getQty()
-                    );
-                    $this->assertEquals(
-                        $existedProduct->getExtensionAttributes()->getTestStockItem()->getStatus(),
-                        $importedProduct->getExtensionAttributes()->getTestStockItem()->getStatus()
-                    );
+                    $this->assertSourceItemsSurvivedTheRoundTrip($existedProduct->getSku());
                 }
             }
         }
@@ -146,10 +145,52 @@ abstract class ProductImportExportBase extends TestCase
         $searchCriteria = $this->objectManager->create(SearchCriteriaBuilder::class)->create();
         $productToDelete = $productRepository->getList($searchCriteria)->getItems();
         foreach ($productToDelete as $product) {
+            $this->sourceItemsBeforeDelete[$product->getSku()] = $this->loadSourceItems($product->getSku());
+        }
+        foreach ($productToDelete as $product) {
             $productRepository->deleteById($product->getSku());
         }
 
         return $productToDelete;
+    }
+
+    /**
+     * The import may add a source item a product did not carry before — a configurable parent gets one
+     * from its own CSV row — and gaining stock data is not losing any, so only the source items that
+     * existed before the export are compared.
+     *
+     * @param string $sku
+     * @return void
+     */
+    private function assertSourceItemsSurvivedTheRoundTrip(string $sku): void
+    {
+        $before = $this->sourceItemsBeforeDelete[$sku];
+        $after = $this->loadSourceItems($sku);
+
+        foreach ($before as $sourceCode => $stockData) {
+            $this->assertArrayHasKey($sourceCode, $after);
+            $this->assertEquals($stockData, $after[$sourceCode]);
+        }
+    }
+
+    /**
+     * Quantity and stock status live per source in MSI now, so the round trip is verified against the
+     * source items rather than against the legacy stock item the export used to mirror.
+     *
+     * @param string $sku
+     * @return array<string,array{quantity:float,status:int}>
+     */
+    private function loadSourceItems(string $sku): array
+    {
+        $sourceItems = [];
+        foreach ($this->objectManager->get(GetSourceItemsBySkuInterface::class)->execute($sku) as $sourceItem) {
+            $sourceItems[$sourceItem->getSourceCode()] = [
+                'quantity' => (float) $sourceItem->getQuantity(),
+                'status' => (int) $sourceItem->getStatus(),
+            ];
+        }
+
+        return $sourceItems;
     }
 
     /**
