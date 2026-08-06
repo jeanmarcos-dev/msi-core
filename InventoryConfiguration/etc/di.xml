@@ -22,4 +22,8 @@
                 type="Magento\InventoryConfiguration\Plugin\CatalogInventory\Model\System\Config\Backend\Minqty\AllowNegativeMinQtyInConfigPlugin"/>
     </type>
     <preference for="Magento\InventoryConfigurationApi\Model\GetStockItemConfigurationBySkuListCacheInterface" type="Magento\InventoryConfiguration\Model\GetStockItemConfigurationBySkuListCache"/>
+    <type name="Magento\Catalog\Model\ResourceModel\Product">
+        <plugin name="delete_stock_item_configuration"
+                type="Magento\InventoryConfiguration\Plugin\Catalog\Model\ResourceModel\Product\DeleteStockItemConfigurationPlugin"/>
+    </type>
 </config>

@@ -117,6 +117,25 @@ class StockItemConfiguration
     }
 
     /**
+     * Remove the configuration rows of the given skus.
+     *
+     * @param string[] $skus
+     * @return void
+     */
+    public function deleteBySkus(array $skus): void
+    {
+        if (empty($skus)) {
+            return;
+        }
+
+        $connection = $this->resourceConnection->getConnection();
+        $connection->delete(
+            $this->resourceConnection->getTableName(self::TABLE_NAME),
+            [self::SKU . ' IN (?)' => $skus]
+        );
+    }
+
+    /**
      * Update the given fields for every listed sku.
      *
      * @param string[] $skus
