@@ -164,10 +164,11 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         $stockItem->setStockId($stockId);
         $stockItem->setWebsiteId($scopeId);
 
-        if (null !== $indexData) {
-            $stockItem->setQty((float)$indexData[GetStockItemDataInterface::QUANTITY]);
-            $stockItem->setIsInStock((bool)(int)$indexData[GetStockItemDataInterface::IS_SALABLE]);
-        }
+        // A sku the index does not carry is not stocked anywhere in this stock, so it reads as out of stock
+        // rather than as whatever the configuration's own flag was left saying — the same answer
+        // getStockStatus() gives, and the two must not disagree about the same product.
+        $stockItem->setQty((float)($indexData[GetStockItemDataInterface::QUANTITY] ?? 0));
+        $stockItem->setIsInStock((bool)(int)($indexData[GetStockItemDataInterface::IS_SALABLE] ?? 0));
         // Snapshot what MSI reported, so the write bridge can tell a field the caller actually set from one it
         // merely read back. Without it, saving an unrelated field would push the index quantity - an aggregate
         // over every source of the stock - into the default source item.
