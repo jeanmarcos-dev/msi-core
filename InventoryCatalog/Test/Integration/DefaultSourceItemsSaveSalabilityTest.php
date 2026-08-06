@@ -83,6 +83,7 @@ class DefaultSourceItemsSaveSalabilityTest extends TestCase
 
     /**
      * @return void
+     * @magentoDbIsolation disabled
      * @magentoDataFixture Magento_InventoryApi::Test/_files/products.php
      * @magentoDataFixture Magento_InventoryCatalog::Test/_files/source_items_on_default_source.php
      * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
@@ -104,12 +105,20 @@ class DefaultSourceItemsSaveSalabilityTest extends TestCase
 
         $sourceItem = reset($sourceItems);
         $sourceItem->setQuantity(20);
-        $sourceItem->setStatus(SourceItemInterface::STATUS_OUT_OF_STOCK);
         $this->sourceItemsSave->execute($sourceItems);
 
         $indexData = $this->getStockItemData->execute($productSku, Stock::DEFAULT_STOCK_ID);
-        self::assertEquals(0, $indexData[GetStockItemDataInterface::IS_SALABLE]);
+        self::assertEquals(1, $indexData[GetStockItemDataInterface::IS_SALABLE]);
         self::assertEquals(20, $indexData[GetStockItemDataInterface::QUANTITY]);
+
+        $sourceItem->setStatus(SourceItemInterface::STATUS_OUT_OF_STOCK);
+        $this->sourceItemsSave->execute($sourceItems);
+
+        // An out of stock source contributes nothing to the stock, so the indexed quantity drops to zero
+        // even though the source item still carries 20.
+        $indexData = $this->getStockItemData->execute($productSku, Stock::DEFAULT_STOCK_ID);
+        self::assertEquals(0, $indexData[GetStockItemDataInterface::IS_SALABLE]);
+        self::assertEquals(0, $indexData[GetStockItemDataInterface::QUANTITY]);
     }
 
     /**
