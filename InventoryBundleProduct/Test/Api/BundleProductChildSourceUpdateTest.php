@@ -14,8 +14,7 @@ use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Framework\Api\SearchCriteria;
 use Magento\Framework\Webapi\Rest\Request;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
-use Magento\InventoryConfiguration\Model\GetLegacyStockItem;
-use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
+use Magento\InventorySalesApi\Api\AreProductsSalableInterface;
 use Magento\TestFramework\Assert\AssertArrayContains;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
@@ -27,6 +26,8 @@ use Magento\TestFramework\TestCase\WebapiAbstract;
  */
 class BundleProductChildSourceUpdateTest extends WebapiAbstract
 {
+    private const DEFAULT_STOCK_ID = 1;
+
     private const SERVICE_NAME = 'bundleProductLinkManagementV1';
     private const SERVICE_VERSION = 'V1';
     private const RESOURCE_PATH = '/V1/bundle-products';
@@ -59,14 +60,9 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
     ];
 
     /**
-     * @var GetLegacyStockItem
+     * @var AreProductsSalableInterface
      */
-    private $getLegacyStockItem;
-
-    /**
-     * @var CacheStorage
-     */
-    private $getLegacyStockItemCache;
+    private $areProductsSalable;
 
     /**
      * @var \Magento\TestFramework\Fixture\DataFixtureStorage
@@ -79,8 +75,7 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
     protected function setUp(): void
     {
         $this->productRepository = Bootstrap::getObjectManager()->get(ProductRepositoryInterface::class);
-        $this->getLegacyStockItem = Bootstrap::getObjectManager()->get(GetLegacyStockItem::class);
-        $this->getLegacyStockItemCache = Bootstrap::getObjectManager()->get(CacheStorage::class);
+        $this->areProductsSalable = Bootstrap::getObjectManager()->get(AreProductsSalableInterface::class);
         $this->fixtures = DataFixtureStorageManager::getStorage();
     }
 
@@ -178,7 +173,7 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
     {
         $bundleProductSku = $this->fixtures->get('bundle1')->getSku();
         $simpleProductSku = $this->fixtures->get('p1')->getSku();
-        $this->assertTrue($this->getLegacyStockItem->execute($bundleProductSku)->getIsInStock());
+        $this->assertTrue($this->isSalable($bundleProductSku));
         $sources = [
             [
                 SourceItemInterface::SOURCE_CODE => 'default',
@@ -189,8 +184,7 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
         ];
         $this->sourceItems = array_merge($this->sourceItems, $sources);
         $this->addSourceItems($sources);
-        $this->getLegacyStockItemCache->delete($bundleProductSku);
-        $this->assertFalse($this->getLegacyStockItem->execute($bundleProductSku)->getIsInStock());
+        $this->assertFalse($this->isSalable($bundleProductSku));
         $sources = [
             [
                 SourceItemInterface::SOURCE_CODE => 'default',
@@ -200,8 +194,7 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
             ]
         ];
         $this->addSourceItems($sources);
-        $this->getLegacyStockItemCache->delete($bundleProductSku);
-        $this->assertTrue($this->getLegacyStockItem->execute($bundleProductSku)->getIsInStock());
+        $this->assertTrue($this->isSalable($bundleProductSku));
     }
 
     /**
@@ -319,5 +312,16 @@ class BundleProductChildSourceUpdateTest extends WebapiAbstract
         return (TESTS_WEB_API_ADAPTER === self::ADAPTER_REST)
             ? $this->_webApiCall($serviceInfo)
             : $this->_webApiCall($serviceInfo, $requestData);
+    }
+
+    /**
+     * Read the salability of a composite the way the storefront does, from the MSI index.
+     *
+     * @param string $sku
+     * @return bool
+     */
+    private function isSalable(string $sku): bool
+    {
+        return current($this->areProductsSalable->execute([$sku], self::DEFAULT_STOCK_ID))->isSalable();
     }
 }

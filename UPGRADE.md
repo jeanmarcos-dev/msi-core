@@ -31,6 +31,11 @@ Collapsing it removes the divergence at the source.
 | `cataloginventory_stock` indexer | rebuilds the legacy index | registered but inert |
 | Stock id 1 | undeletable, sources not assignable | ordinary stock |
 
+The new configuration table is keyed by **sku alone**, exactly like the legacy one it replaces.
+Giving each stock its own `manage_stock`, `backorders` or `min_qty` would be the natural next step
+in MSI, but it changes the data model rather than the storage, so it is deliberately left out: a
+configuration read for stock 5 answers the same as one read for stock 1.
+
 The legacy read contracts are unchanged and keep working: `StockRegistryInterface`,
 `StockStateInterface`, `StockItemRepositoryInterface`, `StockStatusRepositoryInterface`
 and `StockManagementInterface` are all served from MSI. Code that goes through them needs

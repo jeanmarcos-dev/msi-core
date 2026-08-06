@@ -11,8 +11,7 @@ use Magento\Catalog\Test\Fixture\Product as ProductFixture;
 use Magento\Framework\Webapi\Rest\Request;
 use Magento\GroupedProduct\Test\Fixture\Product as GroupedProductFixture;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
-use Magento\InventoryConfiguration\Model\GetLegacyStockItem;
-use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
+use Magento\InventorySalesApi\Api\AreProductsSalableInterface;
 use Magento\TestFramework\Fixture\DataFixture;
 use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -23,6 +22,8 @@ use Magento\TestFramework\TestCase\WebapiAbstract;
  */
 class GroupedProductChildSourceUpdateTest extends WebapiAbstract
 {
+    private const DEFAULT_STOCK_ID = 1;
+
     private const SOURCE_ITEM_RESOURCE_PATH = '/V1/inventory/source-items';
     private const SOURCE_ITEM_SERVICE_NAME_SAVE = 'inventoryApiSourceItemsSaveV1';
     private const SOURCE_ITEM_SERVICE_NAME_DELETE = 'inventoryApiSourceItemsDeleteV1';
@@ -46,14 +47,9 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
     ];
 
     /**
-     * @var GetLegacyStockItem
+     * @var AreProductsSalableInterface
      */
-    private $getLegacyStockItem;
-
-    /**
-     * @var CacheStorage
-     */
-    private $getLegacyStockItemCache;
+    private $areProductsSalable;
 
     /**
      * @var \Magento\TestFramework\Fixture\DataFixtureStorage
@@ -65,8 +61,7 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
      */
     protected function setUp(): void
     {
-        $this->getLegacyStockItem = Bootstrap::getObjectManager()->get(GetLegacyStockItem::class);
-        $this->getLegacyStockItemCache = Bootstrap::getObjectManager()->get(CacheStorage::class);
+        $this->areProductsSalable = Bootstrap::getObjectManager()->get(AreProductsSalableInterface::class);
         $this->fixtures = DataFixtureStorageManager::getStorage();
     }
 
@@ -91,7 +86,7 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
     {
         $groupedProductSku = $this->fixtures->get('gr1')->getSku();
         $simpleProductSku = $this->fixtures->get('p1')->getSku();
-        $this->assertTrue($this->getLegacyStockItem->execute($groupedProductSku)->getIsInStock());
+        $this->assertTrue($this->isSalable($groupedProductSku));
         $sources = [
             [
                 SourceItemInterface::SOURCE_CODE => 'default',
@@ -102,8 +97,7 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
         ];
         $this->sourceItems = array_merge($this->sourceItems, $sources);
         $this->addSourceItems($sources);
-        $this->getLegacyStockItemCache->delete($groupedProductSku);
-        $this->assertFalse($this->getLegacyStockItem->execute($groupedProductSku)->getIsInStock());
+        $this->assertFalse($this->isSalable($groupedProductSku));
         $sources = [
             [
                 SourceItemInterface::SOURCE_CODE => 'default',
@@ -113,8 +107,7 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
             ]
         ];
         $this->addSourceItems($sources);
-        $this->getLegacyStockItemCache->delete($groupedProductSku);
-        $this->assertTrue($this->getLegacyStockItem->execute($groupedProductSku)->getIsInStock());
+        $this->assertTrue($this->isSalable($groupedProductSku));
     }
 
     /**
@@ -151,5 +144,16 @@ class GroupedProductChildSourceUpdateTest extends WebapiAbstract
             ],
         ];
         $this->_webApiCall($serviceInfo, ['sourceItems' => $sourceItems]);
+    }
+
+    /**
+     * Read the salability of a composite the way the storefront does, from the MSI index.
+     *
+     * @param string $sku
+     * @return bool
+     */
+    private function isSalable(string $sku): bool
+    {
+        return current($this->areProductsSalable->execute([$sku], self::DEFAULT_STOCK_ID))->isSalable();
     }
 }

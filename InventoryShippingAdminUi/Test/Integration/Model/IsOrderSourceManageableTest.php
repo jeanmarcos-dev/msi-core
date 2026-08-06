@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Magento\InventoryShippingAdminUi\Test\Integration\Model;
 
-use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
 use Magento\InventoryCatalog\Model\DeleteSourceItemsBySkus;
-use Magento\InventoryConfiguration\Model\GetLegacyStockItem;
+use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
+use Magento\InventoryConfigurationApi\Api\SaveStockItemConfigurationInterface;
 use Magento\InventoryShippingAdminUi\Model\IsOrderSourceManageable;
 use Magento\Sales\Model\OrderFactory;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -20,6 +20,8 @@ use PHPUnit\Framework\TestCase;
  */
 class IsOrderSourceManageableTest extends TestCase
 {
+    private const DEFAULT_STOCK_ID = 1;
+
     /**
      * Test subject.
      *
@@ -68,11 +70,12 @@ class IsOrderSourceManageableTest extends TestCase
      */
     private function disableManageStock(): void
     {
-        $getLegacyStockItem = Bootstrap::getObjectManager()->get(GetLegacyStockItem::class);
-        $stockItemRepository = Bootstrap::getObjectManager()->get(StockItemRepositoryInterface::class);
-        $stockItem = $getLegacyStockItem->execute('simple');
-        $stockItem->setManageStock(false);
-        $stockItem->setUseConfigManageStock(false);
-        $stockItemRepository->save($stockItem);
+        $objectManager = Bootstrap::getObjectManager();
+        $configuration = $objectManager->get(GetStockItemConfigurationInterface::class)
+            ->execute('simple', self::DEFAULT_STOCK_ID);
+        $configuration->setManageStock(false);
+        $configuration->setUseConfigManageStock(false);
+        $objectManager->get(SaveStockItemConfigurationInterface::class)
+            ->execute('simple', self::DEFAULT_STOCK_ID, $configuration);
     }
 }

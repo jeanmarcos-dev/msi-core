@@ -48,7 +48,9 @@ class GetChildrenSkusOfParentSkus implements GetChildrenSkusOfParentSkusInterfac
         $parentIds = $this->getProductIdsBySkus->execute($skus);
         $childIdsOfParentIds = $this->getRelationsByParent(array_values($parentIds));
         $flatChildIds = array_merge([], ...$childIdsOfParentIds);
-        $childSkus = $flatChildIds ? $this->getSkusByProductIds->execute(array_unique($flatChildIds)) : [];
+        $childSkus = $flatChildIds
+            ? $this->getSkusByProductIds->execute(array_values(array_unique($flatChildIds)))
+            : [];
 
         $childSkusOfParentSkus = [];
         foreach ($skus as $sku) {

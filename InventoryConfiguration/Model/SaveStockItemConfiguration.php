@@ -47,7 +47,8 @@ class SaveStockItemConfiguration implements SaveStockItemConfigurationInterface
      */
     public function execute(string $sku, int $stockId, StockItemConfigurationInterface $stockItemConfiguration): void
     {
-        // TODO We ignore $stockId until the configuration becomes per-stock
+        // The configuration is keyed by sku alone, so $stockId carries no information here. Giving each
+        // stock its own overrides is a data model change and is deliberately out of scope, see UPGRADE.md.
         $this->stockItemConfigurationResource->save(
             [array_merge(
                 [StockItemConfigurationResource::SKU => $sku],

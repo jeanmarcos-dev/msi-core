@@ -11,6 +11,7 @@ use Magento\Catalog\Model\ResourceModel\Product\Collection;
 use Magento\InventoryCatalog\Model\GetStockIndexTableByStoreId;
 use Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product\Collection\RedirectLegacyStockItemJoinPlugin;
 use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class RedirectLegacyStockItemJoinPluginTest extends TestCase
@@ -50,11 +51,7 @@ class RedirectLegacyStockItemJoinPluginTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider redirectedFieldsDataProvider
-     * @param string $legacyField
-     * @param string $indexField
-     */
+    #[DataProvider('redirectedFieldsDataProvider')]
     public function testItRedirectsTheJoinToTheIndexTable(string $legacyField, string $indexField): void
     {
         $arguments = $this->plugin->beforeJoinField(
