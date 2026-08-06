@@ -119,6 +119,22 @@ class StockRegistryProviderTest extends TestCase
         self::assertFalse($stockItem->getIsInStock());
     }
 
+    /**
+     * The legacy save path treats a modified stock item as the caller's intent and lets it win over the
+     * data the caller passed, so an item that was merely read out of MSI must not look modified.
+     */
+    public function testTheStockItemDoesNotLookModified(): void
+    {
+        $this->getStockItemData->method('execute')->willReturn([
+            GetStockItemDataInterface::QUANTITY => 5.5,
+            GetStockItemDataInterface::IS_SALABLE => 1,
+        ]);
+
+        $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
+
+        self::assertFalse($stockItem->hasDataChanges());
+    }
+
     public function testTheStockItemAndTheStockStatusAgreeAboutAnUnindexedSku(): void
     {
         $this->getStockItemData->method('execute')->willReturn(null);

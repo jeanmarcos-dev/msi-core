@@ -18,6 +18,7 @@ use Magento\CatalogInventory\Api\StockRepositoryInterface;
 use Magento\CatalogInventory\Model\Spi\StockRegistryProviderInterface;
 use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
@@ -173,6 +174,11 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         // merely read back. Without it, saving an unrelated field would push the index quantity - an aggregate
         // over every source of the stock - into the default source item.
         $stockItem->setOrigData();
+        if ($stockItem instanceof AbstractModel) {
+            // Hydrating through setters leaves the item looking modified, and the legacy save path reads that
+            // as "the caller changed the stock item", overwriting the values it was actually given with these.
+            $stockItem->setDataChanges(false);
+        }
 
         return $stockItem;
     }
