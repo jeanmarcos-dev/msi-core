@@ -23,6 +23,12 @@
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
         <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save"
                 type="Magento\InventoryCatalog\Plugin\InventoryApi\UpdateCompositeProductStockStatusOnSourceItemsSave"/>
+        <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_save"
+                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
+    </type>
+    <type name="Magento\InventoryApi\Api\SourceItemsDeleteInterface">
+        <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_delete"
+                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
     </type>
     <type name="Magento\Inventory\Model\SourceItem\Command\DecrementSourceItemQty">
         <plugin name="inventory_catalog_update_parent_stock_status_on_decrement_source_item_qty"
