@@ -71,7 +71,7 @@ class OutStockBottomSortingPlugin
 
         $select = $collection->getSelect();
         if (!array_key_exists('inventory_stock', $select->getPart(Select::FROM))) {
-            $stockTable = $this->stockIndexTableNameResolver->execute((int)$stock->getStockId());
+            $stockTable = $this->stockIndexTableNameResolver->execute($stockId);
             $select->joinLeft(
                 ['inventory_stock' => $stockTable],
                 'inventory_stock.sku = e.sku',

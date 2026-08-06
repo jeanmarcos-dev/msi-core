@@ -35,6 +35,7 @@ use Magento\Store\Model\Indexer\WebsiteDimensionProvider;
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @SuppressWarnings(PHPMD.ExcessiveClassLength)
+ * @SuppressWarnings(PHPMD.TooManyFields)
  */
 class Price implements DimensionalIndexerInterface
 {
