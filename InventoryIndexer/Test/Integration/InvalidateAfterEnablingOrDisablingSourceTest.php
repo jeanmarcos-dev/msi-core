@@ -84,6 +84,8 @@ class InvalidateAfterEnablingOrDisablingSourceTest extends TestCase
      * @param string $sourceCode
      * @param bool $enable
      * @param bool $expectedValid
+     *
+     * @magentoDbIsolation disabled
      */
     #[DataProvider('sourceDoesNotHaveAllRelationsDataProvider')]
     public function testIndexerInvalidationIfSourceDoesNotHaveAnyRelations(
@@ -107,6 +109,8 @@ class InvalidateAfterEnablingOrDisablingSourceTest extends TestCase
      * @param string $sourceCode
      * @param bool $enable
      * @param bool $expectedValid
+     *
+     * @magentoDbIsolation disabled
      */
     #[DataProvider('sourceDoesNotHaveAllRelationsDataProvider')]
     public function testIndexerInvalidationIfSourceDoesNotHaveStockLinks(

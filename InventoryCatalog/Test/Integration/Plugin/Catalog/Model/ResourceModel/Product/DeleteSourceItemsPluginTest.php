@@ -70,11 +70,15 @@ class DeleteSourceItemsPluginTest extends ProductImportExportBase
     }
 
     /**
+     * Isolation is off because unassigning a source reindexes the Default Stock, which is an ordinary
+     * MSI stock now: that builds and swaps a real index table, and DDL cannot run inside the
+     * transaction the framework would wrap the test in.
+     *
      * @magentoAppArea adminhtml
      * @throws LocalizedException
      */
     #[
-        DbIsolation(true),
+        DbIsolation(false),
         DataFixture(ProductFixture::class, ['sku' => 'SKU-1'], 'p1'),
         DataFixture(SourceFixture::class, ['source_code' => 'source2'], as: 'src1'),
     ]
