@@ -33,7 +33,38 @@ class IndexersOrderTest extends TestCase
      */
     public function testIndexersOrder()
     {
-        $unAdjusted = [
+        $output = $this->sortingAdjustment->adjust($this->buildIndexerList());
+        $this->assertArrayHasKey(PriceIndexer::INDEXER_ID, $output);
+        $this->assertArrayHasKey(InventoryIndexer::INDEXER_ID, $output);
+        $order = array_keys($output);
+        $inventoryPos = array_search(InventoryIndexer::INDEXER_ID, $order);
+        $pricePos = array_search(PriceIndexer::INDEXER_ID, $order);
+        $this->assertTrue($inventoryPos < $pricePos);
+    }
+
+    /**
+     * The legacy stock indexer no longer produces data, so hoisting it in front of the MSI indexer
+     * would only spend a full catalog pass on an inert action.
+     *
+     * @return void
+     */
+    public function testLegacyStockIndexerKeepsItsConfiguredPosition()
+    {
+        $unAdjusted = $this->buildIndexerList();
+        $expectedPosition = array_search(StockIndexer::INDEXER_ID, array_keys($unAdjusted));
+
+        $order = array_keys($this->sortingAdjustment->adjust($unAdjusted));
+
+        $this->assertNotSame(StockIndexer::INDEXER_ID, $order[0]);
+        $this->assertSame($expectedPosition, array_search(StockIndexer::INDEXER_ID, $order));
+    }
+
+    /**
+     * @return array
+     */
+    private function buildIndexerList(): array
+    {
+        return [
             'indexer1' => [],
             PriceIndexer::INDEXER_ID => [],
             'indexer2' => [],
@@ -42,15 +73,5 @@ class IndexersOrderTest extends TestCase
             StockIndexer::INDEXER_ID => [],
             'indexer4' => []
         ];
-        $output = $this->sortingAdjustment->adjust($unAdjusted);
-        $this->assertArrayHasKey(PriceIndexer::INDEXER_ID, $output);
-        $this->assertArrayHasKey(InventoryIndexer::INDEXER_ID, $output);
-        $this->assertArrayHasKey(StockIndexer::INDEXER_ID, $output);
-        $order = array_keys($output);
-        $inventoryPos = array_search(InventoryIndexer::INDEXER_ID, $order);
-        $stockPos = array_search(StockIndexer::INDEXER_ID, $order);
-        $pricePos = array_search(PriceIndexer::INDEXER_ID, $order);
-        $this->assertTrue($stockPos < $inventoryPos);
-        $this->assertTrue($inventoryPos < $pricePos);
     }
 }
