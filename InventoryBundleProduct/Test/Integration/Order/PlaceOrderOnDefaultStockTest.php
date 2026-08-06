@@ -37,6 +37,13 @@ use PHPUnit\Framework\TestCase;
  * @magentoDataFixture Magento_InventorySalesApi::Test/_files/quote.php
  * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
  * @magentoAppIsolation enabled
+ *
+ * The Default Stock is an ordinary MSI stock now, so reindexing it builds and swaps a real
+ * index table. That is DDL, and DDL cannot run inside the transaction the framework wraps a
+ * test in — the sibling tests for a non-default stock have always disabled isolation for the
+ * same reason.
+ *
+ * @magentoDbIsolation disabled
  */
 class PlaceOrderOnDefaultStockTest extends TestCase
 {

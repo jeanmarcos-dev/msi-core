@@ -15,6 +15,13 @@ use Magento\InventorySales\Test\Integration\Order\PlaceOrderOnDefaultStockTest a
  * Place Order On Default Stock For Grouped Product Test
  *
  * @SuppressWarnings(PHPMD.TooManyFields)
+ *
+ * The Default Stock is an ordinary MSI stock now, so reindexing it builds and swaps a real
+ * index table. That is DDL, and DDL cannot run inside the transaction the framework wraps a
+ * test in — the sibling tests for a non-default stock have always disabled isolation for the
+ * same reason.
+ *
+ * @magentoDbIsolation disabled
  */
 class PlaceOrderOnDefaultStockTest extends PlaceOrderTest
 {

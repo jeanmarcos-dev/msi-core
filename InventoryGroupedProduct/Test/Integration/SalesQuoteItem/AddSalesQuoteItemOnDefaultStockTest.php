@@ -19,6 +19,14 @@ use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 use Magento\Framework\DataObject\Factory as DataObjectFactory;
 
+/**
+ * The Default Stock is an ordinary MSI stock now, so reindexing it builds and swaps a real
+ * index table. That is DDL, and DDL cannot run inside the transaction the framework wraps a
+ * test in — the sibling tests for a non-default stock have always disabled isolation for the
+ * same reason.
+ *
+ * @magentoDbIsolation disabled
+ */
 class AddSalesQuoteItemOnDefaultStockTest extends TestCase
 {
     /**
