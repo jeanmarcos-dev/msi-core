@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryBundleProductIndexer\Model\ResourceModel\Indexer;
 
+use Magento\Bundle\Model\ResourceModel\Indexer\SelectionPriceModifierInterface;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Indexer\Product\Price\TableMaintainer;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
@@ -30,10 +31,9 @@ use Magento\Store\Model\Indexer\WebsiteDimensionProvider;
  *
  * Port of Magento\Bundle\Model\ResourceModel\Indexer\Price. Every helper of the original is
  * private, so filtering dynamic bundle selections by the MSI index instead of
- * cataloginventory_stock_status cannot be done through a plugin. The intentional deviations from
- * the original live in calculateDynamicBundleSelectionPrice() and in the method it delegates the
- * out of stock case to, removeUnsalableSelectionsOfSalableBundles(); re-diff those two alone when
- * porting a new Magento release.
+ * cataloginventory_stock_status cannot be done through a plugin. The only intentional deviation
+ * from the original lives in calculateDynamicBundleSelectionPrice(); re-diff that method alone
+ * when porting a new Magento release.
  *
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  * @SuppressWarnings(PHPMD.ExcessiveClassLength)
@@ -90,6 +90,11 @@ class Price implements DimensionalIndexerInterface
      * @var StockConfigurationInterface
      */
     private $stockConfiguration;
+
+    /**
+     * @var SelectionPriceModifierInterface
+     */
+    private $selectionPriceIndexer;
 
     /**
      * @var \Magento\Framework\DB\Adapter\AdapterInterface
@@ -154,6 +159,7 @@ class Price implements DimensionalIndexerInterface
      * @param StockResolverInterface $stockResolver
      * @param StoreManagerInterface $storeManager
      * @param StockConfigurationInterface $stockConfiguration
+     * @param SelectionPriceModifierInterface $selectionPriceIndexer
      * @param bool $fullReindexAction
      * @param string $connectionName
      *
@@ -172,6 +178,7 @@ class Price implements DimensionalIndexerInterface
         StockResolverInterface $stockResolver,
         StoreManagerInterface $storeManager,
         StockConfigurationInterface $stockConfiguration,
+        SelectionPriceModifierInterface $selectionPriceIndexer,
         $fullReindexAction = false,
         $connectionName = 'indexer'
     ) {
@@ -189,6 +196,7 @@ class Price implements DimensionalIndexerInterface
         $this->stockResolver = $stockResolver;
         $this->storeManager = $storeManager;
         $this->stockConfiguration = $stockConfiguration;
+        $this->selectionPriceIndexer = $selectionPriceIndexer;
     }
 
     /**
@@ -493,7 +501,7 @@ class Price implements DimensionalIndexerInterface
         $this->prepareBundleSelectionTable();
         $this->calculateFixedBundleSelectionPrice();
         $this->calculateDynamicBundleSelectionPrice($dimensions);
-        $this->removeUnsalableSelectionsOfSalableBundles($dimensions);
+        $this->selectionPriceIndexer->modify($this->getBundleSelectionTable(), $dimensions);
 
         $this->prepareBundleOptionTable();
 
@@ -809,58 +817,6 @@ class Price implements DimensionalIndexerInterface
                 $query,
                 implode(",", $updateValues)
             ));
-        }
-    }
-
-    /**
-     * Drop the selections a salable bundle cannot actually be bought with.
-     *
-     * Counterpart of the filter skipped while showing out of stock products: a bundle that can be bought
-     * must price what buying it would cost, while one that cannot has to keep advertising the range of
-     * everything it contains. Core does this through SelectionPriceModifierInterface, which only exists
-     * from 2.4.9 on and would make the whole indexer unloadable on the lines the fork still supports.
-     *
-     * @param array $dimensions
-     * @return void
-     */
-    private function removeUnsalableSelectionsOfSalableBundles(array $dimensions): void
-    {
-        if (!$this->stockConfiguration->isShowOutOfStock()) {
-            return;
-        }
-
-        $connection = $this->getConnection();
-
-        foreach ($this->getWebsiteIdsByStockId($dimensions) as $stockId => $websiteIds) {
-            $stockIndexTable = $this->stockIndexTableNameResolver->execute($stockId);
-            $select = $connection->select()
-                ->from(['i' => $this->getBundleSelectionTable()])
-                ->joinInner(
-                    ['bs' => $this->getTable('catalog_product_bundle_selection')],
-                    'bs.selection_id = i.selection_id',
-                    []
-                )->joinInner(
-                    ['parent_product' => $this->getTable('catalog_product_entity')],
-                    'parent_product.entity_id = i.entity_id',
-                    []
-                )->joinInner(
-                    ['selection_product' => $this->getTable('catalog_product_entity')],
-                    'selection_product.entity_id = bs.product_id',
-                    []
-                )->joinInner(
-                    ['parent_stock' => $stockIndexTable],
-                    'parent_stock.sku = parent_product.sku',
-                    []
-                )->joinInner(
-                    ['child_stock' => $stockIndexTable],
-                    'child_stock.sku = selection_product.sku',
-                    []
-                )
-                ->where('parent_stock.is_salable = ?', 1)
-                ->where('child_stock.is_salable = ?', 0)
-                ->where('i.website_id IN (?)', $websiteIds);
-
-            $connection->query($connection->deleteFromSelect($select, 'i'));
         }
     }
 

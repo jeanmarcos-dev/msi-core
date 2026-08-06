@@ -7,8 +7,10 @@ declare(strict_types=1);
 
 namespace Magento\InventoryBundleProductIndexer\Test\Unit\Model\ResourceModel\Indexer;
 
+use Magento\Bundle\Model\ResourceModel\Indexer\SelectionPriceModifierInterface;
 use Magento\Catalog\Model\Indexer\Product\Price\TableMaintainer;
 use Magento\Catalog\Model\ResourceModel\Product\Indexer\Price\BasePriceModifier;
+use Magento\Catalog\Model\ResourceModel\Product\Indexer\Price\IndexTableStructure;
 use Magento\Catalog\Model\ResourceModel\Product\Indexer\Price\IndexTableStructureFactory;
 use Magento\Catalog\Model\ResourceModel\Product\Indexer\Price\Query\JoinAttributeProcessor;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
@@ -46,6 +48,11 @@ class PriceTest extends TestCase
     private $stockConfiguration;
 
     /**
+     * @var SelectionPriceModifierInterface|MockObject
+     */
+    private $selectionPriceIndexer;
+
+    /**
      * @var string[]
      */
     private array $conditions = [];
@@ -65,6 +72,7 @@ class PriceTest extends TestCase
         $this->connection->method('select')->willReturnCallback(fn () => $this->createSelectMock());
 
         $this->stockConfiguration = $this->createMock(StockConfigurationInterface::class);
+        $this->selectionPriceIndexer = $this->createMock(SelectionPriceModifierInterface::class);
     }
 
     public function testTheStockFilterKeepsUnsalableSelectionsOutOfThePriceRange(): void
@@ -87,24 +95,18 @@ class PriceTest extends TestCase
         $this->assertNotContains('si.is_salable = ?', $this->conditions);
     }
 
-    public function testASalableBundleStillPricesOnlyWhatItCanBeBoughtWith(): void
+    public function testTheCoreModifierGetsToPruneWhatASalableBundleCannotBeBoughtWith(): void
     {
         $this->stockConfiguration->method('isShowOutOfStock')->willReturn(true);
-        $this->connection->method('deleteFromSelect')->willReturn('DELETE');
-        $this->connection->expects($this->once())->method('query')->with('DELETE');
+        $this->selectionPriceIndexer->expects($this->once())
+            ->method('modify')
+            ->with('catalog_product_index_price_bundle_sel_temp', []);
 
-        $this->invoke('removeUnsalableSelectionsOfSalableBundles');
+        $priceTable = $this->createMock(IndexTableStructure::class);
+        $priceTable->method('getTableName')->willReturn('price_tmp');
 
-        $this->assertContains('parent_stock.is_salable = ?', $this->conditions);
-        $this->assertContains('child_stock.is_salable = ?', $this->conditions);
-    }
-
-    public function testNothingIsPrunedWhileOutOfStockProductsAreHidden(): void
-    {
-        $this->stockConfiguration->method('isShowOutOfStock')->willReturn(false);
-        $this->connection->expects($this->never())->method('query');
-
-        $this->invoke('removeUnsalableSelectionsOfSalableBundles');
+        $price = $this->createPrice();
+        (new \ReflectionMethod($price, 'calculateBundleOptionPrice'))->invoke($price, $priceTable, []);
     }
 
     /**
@@ -126,6 +128,8 @@ class PriceTest extends TestCase
         $select = $this->createMock(Select::class);
         $select->method('from')->willReturnSelf();
         $select->method('columns')->willReturnSelf();
+        $select->method('group')->willReturnSelf();
+        $select->method('crossUpdateFromSelect')->willReturn('UPDATE');
         $select->method('__toString')->willReturn('SELECT 1');
         $recordJoin = function ($table) use ($select) {
             $this->joinedTables[] = is_array($table) ? current($table) : $table;
@@ -181,6 +185,7 @@ class PriceTest extends TestCase
             $stockResolver,
             $storeManager,
             $this->stockConfiguration,
+            $this->selectionPriceIndexer,
             false,
             self::CONNECTION_NAME
         );
