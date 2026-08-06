@@ -63,7 +63,10 @@ breakdown through the type-aware inventory services instead.
   badges for simple, virtual, grouped, configurable, bundle and downloadable
   products, so the panel never sits next to a duplicate or contradictory core
   stock badge. Options, swatches and links (rendered by separate blocks) are left
-  untouched.
+  untouched. The removal travels with the panel: both live in the
+  `inventory_stockviz_panel` layout handle, which is applied to the product page
+  only while the module is enabled, so switching it off gives the product page
+  its core badge back.
 
 ## Configuration
 

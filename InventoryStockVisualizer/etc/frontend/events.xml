@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="layout_load_before">
+        <observer name="inventory_stock_visualizer_panel"
+                  instance="Magento\InventoryStockVisualizer\Observer\AddPanelLayoutHandle"/>
+    </event>
+</config>
