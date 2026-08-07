@@ -171,7 +171,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
         $configurations = $this->getStockItemsConfiguration->execute(array_values($skus));
         $quantities = $this->getStockQuantityBySkuList->execute(array_values($skus), $stockId);
-        $types = $this->getProductTypes(array_values($skus));
+        $unstocked = array_values(array_diff(array_values($skus), array_keys($quantities)));
+        $types = $unstocked ? $this->getProductTypes($unstocked) : [];
 
         $stockItems = [];
         foreach ($skus as $productId => $sku) {
@@ -199,13 +200,15 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      */
     private function buildStockItem(string $sku, int $productId, int $stockId, int $scopeId): StockItemInterface
     {
+        $quantity = $this->getStockQuantityBySkuList->execute([$sku], $stockId)[$sku] ?? null;
+
         return $this->hydrateStockItem(
             $productId,
             $stockId,
             $scopeId,
             $this->getStockItemsConfiguration->execute([$sku])[$sku] ?? null,
-            $this->getStockQuantityBySkuList->execute([$sku], $stockId)[$sku] ?? null,
-            $this->stocksItsOwnQuantity($this->getProductTypes([$sku])[$sku] ?? null)
+            $quantity,
+            $quantity === null && $this->stocksItsOwnQuantity($this->getProductTypes([$sku])[$sku] ?? null)
         );
     }
 
