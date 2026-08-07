@@ -34,6 +34,7 @@
 
         <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="openProductGrid"/>
         <waitForPageLoad stepKey="waitForProductGrid"/>
+        <actionGroup ref="AdminResetDataGridToDefaultViewActionGroup" stepKey="resetProductGridColumnsBefore"/>
         <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="filterBySkuBefore">
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$product.sku$"/>
@@ -51,6 +52,7 @@
 
         <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="openProductGridAgain"/>
         <waitForPageLoad stepKey="waitForProductGridAgain"/>
+        <actionGroup ref="AdminResetDataGridToDefaultViewActionGroup" stepKey="resetProductGridColumnsAfter"/>
         <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="filterBySkuAfter">
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$product.sku$"/>

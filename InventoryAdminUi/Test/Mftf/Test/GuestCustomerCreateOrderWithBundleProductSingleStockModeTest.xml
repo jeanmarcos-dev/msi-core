@@ -123,6 +123,7 @@
 
         <comment userInput="Check simple product quantity and salable quantity." stepKey="checkSimpleProductQuantityComment"/>
         <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="navigateToProductIndexPageForCheckSimpleProductQtyAfterPlaceOrder"/>
+        <actionGroup ref="AdminResetDataGridToDefaultViewActionGroup" stepKey="resetProductGridColumns"/>
         <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="findSimpleProductBySkuToCheckQtyAfterPlaceOrder">
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$$simpleProduct.sku$$"/>
