@@ -140,10 +140,10 @@ class UpdateInventory
                 $this->logger->error($e->getLogMessage());
             }
         }
-        $this->reindexSourceItems($skus);
         if ($this->isSingleSourceMode->execute()) {
             $this->compositeProductStockStatusProcessor->execute($skus);
         }
+        $this->reindexSourceItems($skus);
     }
 
     /**
