@@ -62,7 +62,7 @@ class AdaptGetStockItemListPluginTest extends TestCase
 
         self::assertSame(
             $collection,
-            $this->plugin->afterGetList($this->subject, $collection, $this->criteriaFor(self::PRODUCT_IDS))
+            $this->plugin->aroundGetList($this->subject, fn () => $collection, $this->criteriaFor(self::PRODUCT_IDS))
         );
     }
 
@@ -75,7 +75,7 @@ class AdaptGetStockItemListPluginTest extends TestCase
 
         self::assertSame(
             $collection,
-            $this->plugin->afterGetList($this->subject, $collection, $this->criteriaWithoutProducts())
+            $this->plugin->aroundGetList($this->subject, fn () => $collection, $this->criteriaWithoutProducts())
         );
     }
 
@@ -112,7 +112,7 @@ class AdaptGetStockItemListPluginTest extends TestCase
 
         self::assertSame(
             $collection,
-            $this->plugin->afterGetList($this->subject, $collection, $this->criteriaFor($productsFilter))
+            $this->plugin->aroundGetList($this->subject, fn () => $collection, $this->criteriaFor($productsFilter))
         );
     }
 
@@ -148,9 +148,9 @@ class AdaptGetStockItemListPluginTest extends TestCase
             ->with($expectedIds, self::SCOPE_ID)
             ->willReturn([]);
 
-        $this->plugin->afterGetList(
+        $this->plugin->aroundGetList(
             $this->subject,
-            $this->createMock(StockItemCollectionInterface::class),
+            fn () => $this->createMock(StockItemCollectionInterface::class),
             $this->criteriaFor($productsFilter)
         );
     }

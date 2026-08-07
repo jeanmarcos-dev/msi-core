@@ -25,6 +25,8 @@ use Magento\InventoryCatalog\Model\StockRegistryProvider;
  */
 class AdaptGetStockItemListPlugin
 {
+    private const NO_PRODUCT = 0;
+
     /**
      * @param StockRegistryProvider $stockRegistryProvider
      */
@@ -34,26 +36,33 @@ class AdaptGetStockItemListPlugin
     }
 
     /**
-     * Replace the collection items with the ones MSI holds for the same products.
+     * Answer a list of stock items out of MSI instead of cataloginventory_stock_item.
+     *
+     * The original method is still called, but with a products filter that matches nothing: the collection
+     * it returns is the contract the caller expects, and loading it that way costs one empty query instead
+     * of a row and an object per product that would be thrown away right afterwards.
      *
      * @param StockItemRepositoryInterface $subject
-     * @param StockItemCollectionInterface $result
+     * @param callable $proceed
      * @param StockItemCriteriaInterface $criteria
      * @return StockItemCollectionInterface
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function afterGetList(
+    public function aroundGetList(
         StockItemRepositoryInterface $subject,
-        StockItemCollectionInterface $result,
+        callable $proceed,
         StockItemCriteriaInterface $criteria
     ): StockItemCollectionInterface {
         $productIds = $this->extractProductIds($criteria->getPart('products_filter')[0] ?? null);
         if (!$productIds) {
-            return $result;
+            return $proceed($criteria);
         }
 
         $scopeId = (int)($criteria->getPart('website_filter')[0] ?? 0);
         $stockItems = $this->stockRegistryProvider->getStockItems($productIds, $scopeId);
+
+        $unmatchable = clone $criteria;
+        $unmatchable->setProductsFilter(self::NO_PRODUCT);
+        $result = $proceed($unmatchable);
 
         $result->getItems();
         $result->setItems(array_values($stockItems));
