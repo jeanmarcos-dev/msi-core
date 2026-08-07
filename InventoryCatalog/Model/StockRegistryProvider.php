@@ -19,6 +19,7 @@ use Magento\CatalogInventory\Model\Spi\StockRegistryProviderInterface;
 use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\AbstractModel;
+use Magento\InventoryCatalog\Model\ResourceModel\GetStockQuantityBySkuList;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
@@ -48,6 +49,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * @param GetStockItemDataInterface $getStockItemData
      * @param GetStockItemsDataInterface $getStockItemsData
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
+     * @param GetStockQuantityBySkuList $getStockQuantityBySkuList
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -61,7 +63,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         private readonly GetStockItemsConfigurationInterface $getStockItemsConfiguration,
         private readonly GetStockItemDataInterface $getStockItemData,
         private readonly GetStockItemsDataInterface $getStockItemsData,
-        private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
+        private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
+        private readonly GetStockQuantityBySkuList $getStockQuantityBySkuList
     ) {
     }
 
@@ -91,7 +94,6 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      */
     public function getStockItem($productId, $scopeId)
     {
-        // The SPI is untyped but the registry storage is not, and it rejects the string ids the indexer passes.
         $productId = (int)$productId;
         $scopeId = (int)$scopeId;
 
@@ -148,8 +150,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * Assemble the legacy stock items of several products at once.
      *
      * The callers that need this are bulk by nature - a quote loading its lines, a grid loading a page -
-     * so the whole set is resolved in three queries regardless of how many products it covers. Serving
-     * them one by one through getStockItem() would issue two per product instead.
+     * so the whole set is resolved in four queries regardless of how many products it covers. Serving
+     * them one by one through getStockItem() would issue three per product instead.
      *
      * @param int[] $productIds
      * @param int $scopeId
@@ -166,6 +168,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
         $configurations = $this->getStockItemsConfiguration->execute(array_values($skus));
         $indexData = $this->getIndexDataOfSkus(array_values($skus), $stockId);
+        $quantities = $this->getStockQuantityBySkuList->execute(array_values($skus), $stockId);
 
         $stockItems = [];
         foreach ($skus as $productId => $sku) {
@@ -174,7 +177,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
                 $stockId,
                 $scopeId,
                 $configurations[$sku] ?? null,
-                $indexData[$sku] ?? null
+                $indexData[$sku] ?? null,
+                $quantities[$sku] ?? 0.0
             );
         }
 
@@ -197,7 +201,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
             $stockId,
             $scopeId,
             $this->getStockItemsConfiguration->execute([$sku])[$sku] ?? null,
-            $this->getIndexData($sku, $stockId)
+            $this->getIndexData($sku, $stockId),
+            $this->getStockQuantityBySkuList->execute([$sku], $stockId)[$sku] ?? 0.0
         );
     }
 
@@ -209,6 +214,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * @param int $scopeId
      * @param mixed $configuration
      * @param array|null $indexData
+     * @param float $quantity
      * @return StockItemInterface
      */
     private function hydrateStockItem(
@@ -216,30 +222,22 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         int $stockId,
         int $scopeId,
         $configuration,
-        ?array $indexData
+        ?array $indexData,
+        float $quantity
     ): StockItemInterface {
         /** @var StockItemInterface $stockItem */
         $stockItem = $this->stockItemFactory->create(
             ['data' => $configuration ? $configuration->getData() : []]
         );
-        // The registry storage only caches items carrying an id, and the row is keyed by sku in MSI.
         $stockItem->setItemId($productId);
         $stockItem->setProductId($productId);
         $stockItem->setStockId($stockId);
         $stockItem->setWebsiteId($scopeId);
 
-        // A sku the index does not carry is not stocked anywhere in this stock, so it reads as out of stock
-        // rather than as whatever the configuration's own flag was left saying — the same answer
-        // getStockStatus() gives, and the two must not disagree about the same product.
-        $stockItem->setQty((float)($indexData[GetStockItemDataInterface::QUANTITY] ?? 0));
-        $stockItem->setIsInStock((bool)(int)($indexData[GetStockItemDataInterface::IS_SALABLE] ?? 0));
-        // Snapshot what MSI reported, so the write bridge can tell a field the caller actually set from one it
-        // merely read back. Without it, saving an unrelated field would push the index quantity - an aggregate
-        // over every source of the stock - into the default source item.
+        $stockItem->setQty($quantity);
+        $stockItem->setIsInStock((bool)($indexData[GetStockItemDataInterface::IS_SALABLE] ?? false));
         $stockItem->setOrigData();
         if ($stockItem instanceof AbstractModel) {
-            // Hydrating through setters leaves the item looking modified, and the legacy save path reads that
-            // as "the caller changed the stock item", overwriting the values it was actually given with these.
             $stockItem->setDataChanges(false);
         }
 

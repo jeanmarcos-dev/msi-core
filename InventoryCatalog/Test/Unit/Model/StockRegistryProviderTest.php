@@ -16,6 +16,7 @@ use Magento\CatalogInventory\Model\Stock\Item;
 use Magento\CatalogInventory\Model\Stock\Status;
 use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\InventoryApi\Api\Data\StockInterface;
+use Magento\InventoryCatalog\Model\ResourceModel\GetStockQuantityBySkuList;
 use Magento\InventoryCatalog\Model\StockRegistryProvider;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
@@ -46,6 +47,16 @@ class StockRegistryProviderTest extends TestCase
     private $getStockItemsData;
 
     /**
+     * @var GetStockQuantityBySkuList|MockObject
+     */
+    private $getStockQuantityBySkuList;
+
+    /**
+     * @var float
+     */
+    private $sourceQuantity = 0.0;
+
+    /**
      * @var StockRegistryProvider
      */
     private $provider;
@@ -54,6 +65,10 @@ class StockRegistryProviderTest extends TestCase
     {
         $this->getStockItemData = $this->createMock(GetStockItemDataInterface::class);
         $this->getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
+        $this->getStockQuantityBySkuList = $this->createMock(GetStockQuantityBySkuList::class);
+        $this->getStockQuantityBySkuList->method('execute')->willReturnCallback(
+            fn () => [self::SKU => $this->sourceQuantity]
+        );
 
         $stock = $this->createMock(StockInterface::class);
         $stock->method('getStockId')->willReturn(self::STOCK_ID);
@@ -98,21 +113,37 @@ class StockRegistryProviderTest extends TestCase
             $getStockItemsConfiguration,
             $this->getStockItemData,
             $this->getStockItemsData,
-            $stockByWebsiteIdResolver
+            $stockByWebsiteIdResolver,
+            $this->getStockQuantityBySkuList
         );
     }
 
-    public function testItReportsTheIndexedQuantityAndStatus(): void
+    public function testItReportsTheStatusOfTheIndexAndTheQuantityOfTheSources(): void
     {
         $this->getStockItemData->method('execute')->willReturn([
-            GetStockItemDataInterface::QUANTITY => 5.5,
+            GetStockItemDataInterface::QUANTITY => 0.0,
             GetStockItemDataInterface::IS_SALABLE => 1,
         ]);
+        $this->quantityOfTheSourcesIs(5.5);
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
 
         self::assertSame(5.5, $stockItem->getQty());
         self::assertTrue($stockItem->getIsInStock());
+    }
+
+    public function testTheQuantityIgnoresTheIndexBecauseTheIndexZeroesAnOutOfStockSource(): void
+    {
+        $this->getStockItemData->method('execute')->willReturn([
+            GetStockItemDataInterface::QUANTITY => 0.0,
+            GetStockItemDataInterface::IS_SALABLE => 0,
+        ]);
+        $this->quantityOfTheSourcesIs(3.0);
+
+        $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
+
+        self::assertSame(3.0, $stockItem->getQty());
+        self::assertFalse($stockItem->getIsInStock());
     }
 
     /**
@@ -170,8 +201,17 @@ class StockRegistryProviderTest extends TestCase
         $stockItems = $this->provider->getStockItems([self::PRODUCT_ID, self::PRODUCT_ID + 1], self::SCOPE_ID);
 
         self::assertSame([self::PRODUCT_ID, self::PRODUCT_ID + 1], array_keys($stockItems));
-        self::assertEquals(4.0, $stockItems[self::PRODUCT_ID]->getQty());
+        self::assertEquals(0.0, $stockItems[self::PRODUCT_ID]->getQty());
         self::assertTrue((bool)$stockItems[self::PRODUCT_ID]->getIsInStock());
+    }
+
+    /**
+     * @param float $quantity
+     * @return void
+     */
+    private function quantityOfTheSourcesIs(float $quantity): void
+    {
+        $this->sourceQuantity = $quantity;
     }
 
     public function testAListOfProductsThatNoLongerExistIsEmpty(): void
