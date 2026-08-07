@@ -16,6 +16,17 @@ use Magento\InventoryConfiguration\Model\ResourceModel\StockItemConfiguration as
  */
 class StockItemConfigurationImporter
 {
+    private const STOCK_ROW_FIELDS = [
+        'qty' => null,
+        'is_in_stock' => null,
+        'min_qty' => null,
+        'use_config_min_qty' => null,
+        'backorders' => null,
+        'use_config_backorders' => null,
+        'out_of_stock_qty' => null,
+        'allow_backorders' => null,
+    ];
+
     /**
      * @param StockItemConfigurationResource $stockItemConfigurationResource
      */
@@ -42,7 +53,12 @@ class StockItemConfigurationImporter
     ): void {
         $rows = [];
         foreach ($stockData as $sku => $row) {
-            $configuration = [StockItemConfigurationResource::SKU => (string)$sku];
+            $sku = (string)$sku;
+            if (!$this->carriesStockColumn($importedData[$sku] ?? [])) {
+                continue;
+            }
+
+            $configuration = [StockItemConfigurationResource::SKU => $sku];
             foreach (StockItemConfigurationResource::FIELDS as $field) {
                 if (array_key_exists($field, $row)) {
                     $configuration[$field] = $row[$field];
@@ -52,5 +68,19 @@ class StockItemConfigurationImporter
         }
 
         $this->stockItemConfigurationResource->save($rows);
+    }
+
+    /**
+     * Tell whether an import row carries a usable stock column.
+     *
+     * @param array $importedRow
+     * @return bool
+     */
+    private function carriesStockColumn(array $importedRow): bool
+    {
+        return (bool) array_filter(
+            array_intersect_key($importedRow, self::STOCK_ROW_FIELDS),
+            static fn ($value) => $value !== null && $value !== ''
+        );
     }
 }
