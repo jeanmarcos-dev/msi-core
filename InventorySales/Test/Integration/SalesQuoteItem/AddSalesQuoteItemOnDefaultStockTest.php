@@ -19,6 +19,10 @@ use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 
 /**
+ * The Default Stock is an ordinary MSI stock now, so the reindex these fixtures run builds and swaps a
+ * real index table. That is DDL, and DDL cannot run inside the transaction the framework wraps a test in.
+ *
+ * @magentoDbIsolation disabled
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
 class AddSalesQuoteItemOnDefaultStockTest extends TestCase
