@@ -138,6 +138,9 @@ class AdaptGetStockItemListPluginTest extends TestCase
             'a list of ids' => [[11, 22], [11, 22]],
             'a list of ids as numeric strings' => [['11', '22'], [11, 22]],
             'a list with holes in it' => [[11, null, '', 22], [11, 22]],
+            'the grouped lists getChildrenIds() returns' => [[[11 => '11', 22 => '22']], [11, 22]],
+            'more than one group' => [[[11 => '11'], [22 => '22']], [11, 22]],
+            'a group repeating an id of another group' => [[[11 => '11', 22 => '22'], [22 => '22']], [11, 22]],
         ];
     }
 
@@ -148,6 +151,9 @@ class AdaptGetStockItemListPluginTest extends TestCase
             'an empty list' => [[]],
             'an empty string' => [''],
             'a list of nothing but holes' => [[null, '']],
+            'an empty group' => [[[]]],
+            'a group of nothing but holes' => [[[null, '']]],
+            'a non numeric id' => [['not-an-id']],
         ];
     }
 

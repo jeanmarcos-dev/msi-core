@@ -70,6 +70,11 @@ class AdaptGetStockItemListPlugin
     /**
      * Read the product ids out of a products filter.
      *
+     * Callers hand this filter whatever they have: a bare id, a product, a flat list, or the grouped
+     * lists Configurable::getChildrenIds() returns. Casting a group to int would silently yield 1 and
+     * answer about a product nobody asked for, so groups are walked and anything that is not a number
+     * is dropped.
+     *
      * @param mixed $products
      * @return int[]
      */
@@ -81,12 +86,16 @@ class AdaptGetStockItemListPlugin
 
         $productIds = [];
         foreach (is_array($products) ? $products : [$products] as $product) {
+            if (is_array($product)) {
+                $productIds[] = $this->extractProductIds($product);
+                continue;
+            }
             $productId = $product instanceof ProductInterface ? $product->getId() : $product;
-            if ($productId !== null && $productId !== '') {
-                $productIds[] = (int)$productId;
+            if (is_numeric($productId)) {
+                $productIds[] = [(int)$productId];
             }
         }
 
-        return $productIds;
+        return array_values(array_unique(array_merge([], ...$productIds)));
     }
 }
