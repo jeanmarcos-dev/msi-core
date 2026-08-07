@@ -21,18 +21,12 @@
     <preference for="Magento\CatalogInventory\Model\Indexer\Stock" type="Magento\InventoryCatalog\Model\Indexer\InertStockIndexer"/>
 
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
-        <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\UpdateCompositeProductStockStatusOnSourceItemsSave"/>
         <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_save"
                 type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
     </type>
     <type name="Magento\InventoryApi\Api\SourceItemsDeleteInterface">
         <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_delete"
                 type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
-    </type>
-    <type name="Magento\Inventory\Model\SourceItem\Command\DecrementSourceItemQty">
-        <plugin name="inventory_catalog_update_parent_stock_status_on_decrement_source_item_qty"
-                type="Magento\InventoryCatalog\Plugin\Inventory\UpdateCompositeProductStockStatusOnDecrementSourceItemQty" sortOrder="100"/>
     </type>
     <type name="Magento\InventoryIndexer\Indexer\Stock\Strategy\Sync">
         <plugin name="update_product_prices_plugin" type="Magento\InventoryCatalog\Plugin\InventoryIndexer\Indexer\Stock\Strategy\Sync\PriceIndexUpdatePlugin"/>
@@ -83,9 +77,6 @@
             <argument name="sourceItemsSave" xsi:type="object">Magento\Inventory\Model\SourceItem\Command\SourceItemsSaveWithoutLegacySynchronization</argument>
         </arguments>
     </type>
-    <type name="Magento\Inventory\Model\SourceItem\Command\SourceItemsSaveWithoutLegacySynchronization">
-        <plugin name="inventory_catalog_update_parent_stock_status_on_source_items_save" disabled="true"/>
-    </type>
     <preference for="Magento\CatalogInventory\Model\Spi\StockRegistryProviderInterface"
                 type="Magento\InventoryCatalog\Model\StockRegistryProvider"/>
     <type name="Magento\CatalogInventory\Api\StockRegistryInterface">
@@ -96,6 +87,7 @@
     </type>
     <type name="Magento\CatalogInventory\Api\StockItemRepositoryInterface">
         <plugin name="adapt_get_stock_item" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockItemRepository\AdaptGetStockItemPlugin"/>
+        <plugin name="adapt_get_stock_item_list" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockItemRepository\AdaptGetStockItemListPlugin"/>
     </type>
     <!-- Mass Source Assignment -->
     <preference for="Magento\InventoryCatalogApi\Api\BulkSourceAssignInterface"
@@ -214,7 +206,7 @@
         </arguments>
     </type>
     <type name="Magento\CatalogInventory\Observer\ParentItemProcessorInterface">
-        <plugin name="skip_parent_stock_processors" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Observer\ParentItemProcessor\SkipParentItemProcessorOnMultipleSourceMode"/>
+        <plugin name="skip_legacy_parent_item_processor" type="Magento\InventoryCatalog\Plugin\CatalogInventory\Observer\ParentItemProcessor\SkipLegacyParentItemProcessorPlugin"/>
     </type>
     <type name="Magento\InventoryIndexer\Model\CompositeProductSalabilityChangeProcessor">
         <arguments>

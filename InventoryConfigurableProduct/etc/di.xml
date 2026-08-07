@@ -34,9 +34,6 @@
                 type="Magento\InventoryConfigurableProduct\Plugin\CatalogInventory\Api\StockRegistry\SetQtyToLegacyStock" sortOrder="100"/>
     </type>
     <type name="Magento\CatalogInventory\Model\ResourceModel\Stock\Item">
-        <plugin name="after_update_stock_item_for_configurable_product"
-                type="Magento\InventoryConfigurableProduct\Plugin\CatalogInventory\UpdateLegacyStockStatusForConfigurableProduct"
-                sortOrder="100"/>
         <plugin name="updateStockChangedAuto" disabled="true"/>
     </type>
     <type name="Magento\InventoryCatalogApi\Model\CompositeProductStockStatusProcessorPool">
