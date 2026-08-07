@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockItemRepository;
 
+use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\CatalogInventory\Api\Data\StockItemCollectionInterface;
 use Magento\CatalogInventory\Api\StockItemCriteriaInterface;
 use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
@@ -46,18 +47,40 @@ class AdaptGetStockItemListPlugin
         StockItemCollectionInterface $result,
         StockItemCriteriaInterface $criteria
     ): StockItemCollectionInterface {
-        $productIds = $criteria->getPart('products_filter')[0] ?? null;
-        if (!is_array($productIds) || !$productIds) {
+        $productIds = $this->extractProductIds($criteria->getPart('products_filter')[0] ?? null);
+        if (!$productIds) {
             return $result;
         }
 
         $scopeId = (int)($criteria->getPart('website_filter')[0] ?? 0);
         $stockItems = $this->stockRegistryProvider->getStockItems($productIds, $scopeId);
 
-        // The collection fetches lazily and would overwrite whatever it is given, so let it load first.
         $result->getItems();
         $result->setItems(array_values($stockItems));
 
         return $result;
+    }
+
+    /**
+     * Read the product ids out of a products filter.
+     *
+     * @param mixed $products
+     * @return int[]
+     */
+    private function extractProductIds(mixed $products): array
+    {
+        if ($products === null) {
+            return [];
+        }
+
+        $productIds = [];
+        foreach (is_array($products) ? $products : [$products] as $product) {
+            $productId = $product instanceof ProductInterface ? $product->getId() : $product;
+            if ($productId !== null && $productId !== '') {
+                $productIds[] = (int)$productId;
+            }
+        }
+
+        return $productIds;
     }
 }
