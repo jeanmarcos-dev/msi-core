@@ -12,6 +12,8 @@ use Magento\CatalogInventory\Api\Data\StockItemCollectionInterface;
 use Magento\CatalogInventory\Api\Data\StockItemInterface;
 use Magento\CatalogInventory\Api\StockItemCriteriaInterface;
 use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
+use Magento\InventoryCatalog\Model\StockItemCollection;
+use Magento\InventoryCatalog\Model\StockItemCollectionFactory;
 use Magento\InventoryCatalog\Model\StockRegistryProvider;
 use Magento\InventoryCatalog\Plugin\CatalogInventory\Api\StockItemRepository\AdaptGetStockItemListPlugin;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -34,6 +36,11 @@ class AdaptGetStockItemListPluginTest extends TestCase
     private $subject;
 
     /**
+     * @var StockItemCollection
+     */
+    private $collection;
+
+    /**
      * @var AdaptGetStockItemListPlugin
      */
     private $plugin;
@@ -42,10 +49,14 @@ class AdaptGetStockItemListPluginTest extends TestCase
     {
         $this->stockRegistryProvider = $this->createMock(StockRegistryProvider::class);
         $this->subject = $this->createMock(StockItemRepositoryInterface::class);
-        $this->plugin = new AdaptGetStockItemListPlugin($this->stockRegistryProvider);
+        $this->collection = new StockItemCollection();
+        $collectionFactory = $this->createMock(StockItemCollectionFactory::class);
+        $collectionFactory->method('create')->willReturn($this->collection);
+
+        $this->plugin = new AdaptGetStockItemListPlugin($this->stockRegistryProvider, $collectionFactory);
     }
 
-    public function testItReplacesTheCollectionItemsWithTheOnesMsiHolds(): void
+    public function testItAnswersWithTheItemsMsiHoldsWithoutRunningTheOriginalMethod(): void
     {
         $msiItems = [
             11 => $this->createMock(StockItemInterface::class),
@@ -56,14 +67,17 @@ class AdaptGetStockItemListPluginTest extends TestCase
             ->with(self::PRODUCT_IDS, self::SCOPE_ID)
             ->willReturn($msiItems);
 
-        $collection = $this->createMock(StockItemCollectionInterface::class);
-        $collection->expects(self::once())->method('getItems');
-        $collection->expects(self::once())->method('setItems')->with(array_values($msiItems));
-
-        self::assertSame(
-            $collection,
-            $this->plugin->aroundGetList($this->subject, fn () => $collection, $this->criteriaFor(self::PRODUCT_IDS))
+        $result = $this->plugin->aroundGetList(
+            $this->subject,
+            function () {
+                self::fail('The original method must not be called for a criteria that names its products.');
+            },
+            $this->criteriaFor(self::PRODUCT_IDS)
         );
+
+        self::assertSame($this->collection, $result);
+        self::assertSame(array_values($msiItems), $result->getItems());
+        self::assertSame(2, $result->getTotalCount());
     }
 
     public function testACriteriaWithoutProductsIsLeftToTheOriginalMethod(): void

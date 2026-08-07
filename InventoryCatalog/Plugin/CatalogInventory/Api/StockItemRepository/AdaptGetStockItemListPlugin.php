@@ -11,6 +11,7 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\CatalogInventory\Api\Data\StockItemCollectionInterface;
 use Magento\CatalogInventory\Api\StockItemCriteriaInterface;
 use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
+use Magento\InventoryCatalog\Model\StockItemCollectionFactory;
 use Magento\InventoryCatalog\Model\StockRegistryProvider;
 
 /**
@@ -25,22 +26,21 @@ use Magento\InventoryCatalog\Model\StockRegistryProvider;
  */
 class AdaptGetStockItemListPlugin
 {
-    private const NO_PRODUCT = 0;
-
     /**
      * @param StockRegistryProvider $stockRegistryProvider
+     * @param StockItemCollectionFactory $stockItemCollectionFactory
      */
     public function __construct(
-        private readonly StockRegistryProvider $stockRegistryProvider
+        private readonly StockRegistryProvider $stockRegistryProvider,
+        private readonly StockItemCollectionFactory $stockItemCollectionFactory
     ) {
     }
 
     /**
      * Answer a list of stock items out of MSI instead of cataloginventory_stock_item.
      *
-     * The original method is still called, but with a products filter that matches nothing: the collection
-     * it returns is the contract the caller expects, and loading it that way costs one empty query instead
-     * of a row and an object per product that would be thrown away right afterwards.
+     * The original method is not called at all when the criteria names its products: every row it would
+     * fetch is one this plugin replaces, so running that query only to discard its result is waste.
      *
      * @param StockItemRepositoryInterface $subject
      * @param callable $proceed
@@ -58,16 +58,13 @@ class AdaptGetStockItemListPlugin
         }
 
         $scopeId = (int)($criteria->getPart('website_filter')[0] ?? 0);
-        $stockItems = $this->stockRegistryProvider->getStockItems($productIds, $scopeId);
+        $stockItems = array_values($this->stockRegistryProvider->getStockItems($productIds, $scopeId));
 
-        $unmatchable = clone $criteria;
-        $unmatchable->setProductsFilter(self::NO_PRODUCT);
-        $result = $proceed($unmatchable);
+        $collection = $this->stockItemCollectionFactory->create();
+        $collection->setItems($stockItems);
+        $collection->setTotalCount(count($stockItems));
 
-        $result->getItems();
-        $result->setItems(array_values($stockItems));
-
-        return $result;
+        return $collection;
     }
 
     /**
