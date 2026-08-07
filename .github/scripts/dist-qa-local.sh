@@ -40,6 +40,13 @@ CHANGED=$(
     } 2>/dev/null | sort -u | grep -v '^$' || true
 )
 
+# A file the branch modified and then deleted is still M against the base ref while its deletion
+# is uncommitted, and the tools cannot open what is no longer on disk. CI never sees this because
+# there the deletion is part of the commit range.
+CHANGED=$(printf '%s\n' "$CHANGED" | while IFS= read -r file; do
+    [ -n "$file" ] && [ -f "$file" ] && printf '%s\n' "$file"
+done)
+
 if [ -z "$CHANGED" ]; then
     echo "No changed PHP files. Nothing to check."
     exit 0
