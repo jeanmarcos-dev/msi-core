@@ -22,6 +22,7 @@ use Magento\Framework\Model\AbstractModel;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
+use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 
 /**
@@ -45,6 +46,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * @param GetSkusByProductIdsInterface $getSkusByProductIds
      * @param GetStockItemsConfigurationInterface $getStockItemsConfiguration
      * @param GetStockItemDataInterface $getStockItemData
+     * @param GetStockItemsDataInterface $getStockItemsData
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
@@ -58,6 +60,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         private readonly GetSkusByProductIdsInterface $getSkusByProductIds,
         private readonly GetStockItemsConfigurationInterface $getStockItemsConfiguration,
         private readonly GetStockItemDataInterface $getStockItemData,
+        private readonly GetStockItemsDataInterface $getStockItemsData,
         private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
     ) {
     }
@@ -142,6 +145,43 @@ class StockRegistryProvider implements StockRegistryProviderInterface
     }
 
     /**
+     * Assemble the legacy stock items of several products at once.
+     *
+     * The callers that need this are bulk by nature - a quote loading its lines, a grid loading a page -
+     * so the whole set is resolved in three queries regardless of how many products it covers. Serving
+     * them one by one through getStockItem() would issue two per product instead.
+     *
+     * @param int[] $productIds
+     * @param int $scopeId
+     * @return StockItemInterface[] keyed by product id
+     */
+    public function getStockItems(array $productIds, int $scopeId): array
+    {
+        $productIds = array_map('intval', $productIds);
+        $skus = $this->getSkus($productIds);
+        if (!$skus) {
+            return [];
+        }
+
+        $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
+        $configurations = $this->getStockItemsConfiguration->execute(array_values($skus));
+        $indexData = $this->getIndexDataOfSkus(array_values($skus), $stockId);
+
+        $stockItems = [];
+        foreach ($skus as $productId => $sku) {
+            $stockItems[$productId] = $this->hydrateStockItem(
+                $productId,
+                $stockId,
+                $scopeId,
+                $configurations[$sku] ?? null,
+                $indexData[$sku] ?? null
+            );
+        }
+
+        return $stockItems;
+    }
+
+    /**
      * Assemble a legacy stock item out of the MSI configuration and index.
      *
      * @param string $sku
@@ -152,9 +192,32 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      */
     private function buildStockItem(string $sku, int $productId, int $stockId, int $scopeId): StockItemInterface
     {
-        $configuration = $this->getStockItemsConfiguration->execute([$sku])[$sku] ?? null;
-        $indexData = $this->getIndexData($sku, $stockId);
+        return $this->hydrateStockItem(
+            $productId,
+            $stockId,
+            $scopeId,
+            $this->getStockItemsConfiguration->execute([$sku])[$sku] ?? null,
+            $this->getIndexData($sku, $stockId)
+        );
+    }
 
+    /**
+     * Shape the MSI configuration and index row of one product into a legacy stock item.
+     *
+     * @param int $productId
+     * @param int $stockId
+     * @param int $scopeId
+     * @param mixed $configuration
+     * @param array|null $indexData
+     * @return StockItemInterface
+     */
+    private function hydrateStockItem(
+        int $productId,
+        int $stockId,
+        int $scopeId,
+        $configuration,
+        ?array $indexData
+    ): StockItemInterface {
         /** @var StockItemInterface $stockItem */
         $stockItem = $this->stockItemFactory->create(
             ['data' => $configuration ? $configuration->getData() : []]
@@ -200,6 +263,22 @@ class StockRegistryProvider implements StockRegistryProviderInterface
     }
 
     /**
+     * Read the MSI index rows of several skus, tolerating stocks whose index is not built yet.
+     *
+     * @param string[] $skus
+     * @param int $stockId
+     * @return array
+     */
+    private function getIndexDataOfSkus(array $skus, int $stockId): array
+    {
+        try {
+            return $this->getStockItemsData->execute($skus, $stockId) ?? [];
+        } catch (LocalizedException $e) {
+            return [];
+        }
+    }
+
+    /**
      * Resolve the sku of a product id, or null when the product is gone.
      *
      * @param int $productId
@@ -211,6 +290,21 @@ class StockRegistryProvider implements StockRegistryProviderInterface
             return $this->getSkusByProductIds->execute([$productId])[$productId] ?? null;
         } catch (LocalizedException $e) {
             return null;
+        }
+    }
+
+    /**
+     * Resolve the skus of several product ids, dropping the ones whose product is gone.
+     *
+     * @param int[] $productIds
+     * @return string[] keyed by product id
+     */
+    private function getSkus(array $productIds): array
+    {
+        try {
+            return $this->getSkusByProductIds->execute($productIds);
+        } catch (LocalizedException $e) {
+            return [];
         }
     }
 }

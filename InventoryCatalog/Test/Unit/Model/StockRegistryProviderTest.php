@@ -20,6 +20,7 @@ use Magento\InventoryCatalog\Model\StockRegistryProvider;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
+use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -40,6 +41,11 @@ class StockRegistryProviderTest extends TestCase
     private $getStockItemData;
 
     /**
+     * @var GetStockItemsDataInterface|MockObject
+     */
+    private $getStockItemsData;
+
+    /**
      * @var StockRegistryProvider
      */
     private $provider;
@@ -47,6 +53,7 @@ class StockRegistryProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->getStockItemData = $this->createMock(GetStockItemDataInterface::class);
+        $this->getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
 
         $stock = $this->createMock(StockInterface::class);
         $stock->method('getStockId')->willReturn(self::STOCK_ID);
@@ -54,7 +61,9 @@ class StockRegistryProviderTest extends TestCase
         $stockByWebsiteIdResolver->method('execute')->willReturn($stock);
 
         $getSkusByProductIds = $this->createMock(GetSkusByProductIdsInterface::class);
-        $getSkusByProductIds->method('execute')->willReturn([self::PRODUCT_ID => self::SKU]);
+        $getSkusByProductIds->method('execute')->willReturnCallback(
+            fn (array $productIds) => array_fill_keys($productIds, self::SKU)
+        );
 
         $stockItemFactory = $this->createMock(StockItemInterfaceFactory::class);
         $stockItemFactory->method('create')->willReturnCallback(
@@ -88,6 +97,7 @@ class StockRegistryProviderTest extends TestCase
             $getSkusByProductIds,
             $getStockItemsConfiguration,
             $this->getStockItemData,
+            $this->getStockItemsData,
             $stockByWebsiteIdResolver
         );
     }
@@ -144,5 +154,30 @@ class StockRegistryProviderTest extends TestCase
 
         self::assertSame((int) $stockItem->getIsInStock(), (int) $stockStatus->getStockStatus());
         self::assertSame($stockItem->getQty(), (float) $stockStatus->getQty());
+    }
+
+    public function testItResolvesAWholeListWithoutReadingProductByProduct(): void
+    {
+        $this->getStockItemsData->expects(self::once())
+            ->method('execute')
+            ->willReturn([self::SKU => [
+                GetStockItemDataInterface::QUANTITY => 4.0,
+                GetStockItemDataInterface::IS_SALABLE => 1,
+            ]]);
+        // The per product reader is the route this method exists to avoid.
+        $this->getStockItemData->expects(self::never())->method('execute');
+
+        $stockItems = $this->provider->getStockItems([self::PRODUCT_ID, self::PRODUCT_ID + 1], self::SCOPE_ID);
+
+        self::assertSame([self::PRODUCT_ID, self::PRODUCT_ID + 1], array_keys($stockItems));
+        self::assertEquals(4.0, $stockItems[self::PRODUCT_ID]->getQty());
+        self::assertTrue((bool)$stockItems[self::PRODUCT_ID]->getIsInStock());
+    }
+
+    public function testAListOfProductsThatNoLongerExistIsEmpty(): void
+    {
+        $this->getStockItemsData->expects(self::never())->method('execute');
+
+        self::assertSame([], $this->provider->getStockItems([], self::SCOPE_ID));
     }
 }
