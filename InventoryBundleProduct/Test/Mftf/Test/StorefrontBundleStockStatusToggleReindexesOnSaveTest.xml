@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontBundleStockStatusToggleReindexesOnSaveTest">
+        <annotations>
+            <stories value="Composite products without source items"/>
+            <title value="Toggling the Stock Status of a bundle reindexes it without a manual reindex"/>
+            <description value="A bundle owns no source item, so changing its Stock Status in the admin writes none and nothing else triggers the source item indexer. The save itself has to reindex the composite, otherwise the index of every stock keeps answering with the status the bundle had before."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="multi_mode"/>
+        </annotations>
+
+        <before>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+            <actionGroup ref="AdminGoToConfigurationPageEnableDisableManageStock" stepKey="enableManageStock">
+                <argument name="manageStockValue" value="Yes"/>
+            </actionGroup>
+            <createData entity="SimpleSubCategory" stepKey="createSubCategory"/>
+            <createData entity="FullSource1" stepKey="createTestSource1"/>
+        </before>
+
+        <after>
+            <actionGroup ref="AdminDeleteStockActionGroup" stepKey="deleteCreatedStock">
+                <argument name="stockName" value="Test Stock 1"/>
+            </actionGroup>
+            <actionGroup ref="AdminGoToConfigurationPageEnableDisableManageStock" stepKey="restoreManageStock">
+                <argument name="manageStockValue" value="Yes"/>
+            </actionGroup>
+            <deleteData createDataKey="createMSISimpleProduct" stepKey="deleteMSISimpleProduct"/>
+            <deleteData createDataKey="createBundleProduct" stepKey="deleteBundleProduct"/>
+            <deleteData createDataKey="createSubCategory" stepKey="deleteSubCategory"/>
+            <actionGroup ref="DisableAllSourcesActionGroup" stepKey="disableAllSources"/>
+            <actionGroup ref="AdminOpenCatalogProductPageActionGroup" stepKey="goToProductCatalogPage"/>
+            <actionGroup ref="ClearFiltersAdminProductGridActionGroup" stepKey="clearProductGridFilters"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <actionGroup ref="AdminCreateNewStockActionGroup" stepKey="createNewStock">
+            <argument name="assignSource" value="$$createTestSource1.source[name]$$"/>
+            <argument name="stockName" value="Test Stock 1"/>
+        </actionGroup>
+
+        <createData entity="SimpleProduct" stepKey="createMSISimpleProduct">
+            <requiredEntity createDataKey="createSubCategory"/>
+        </createData>
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openSimpleProductPage">
+            <argument name="productSku" value="$$createMSISimpleProduct.sku$$"/>
+        </actionGroup>
+        <actionGroup ref="AdminAssignSourceToSimpleProduct" stepKey="assignSourceToSimpleProduct">
+            <argument name="filter_selector" value="AdminManageSourcesGridFilterControls.code"/>
+            <argument name="filter_value" value="$$createTestSource1.source[source_code]$$"/>
+            <argument name="sourceName" value="$$createTestSource1.source[name]$$"/>
+        </actionGroup>
+        <actionGroup ref="SaveProductFormActionGroup" stepKey="saveSimpleProduct"/>
+
+        <createData entity="ApiBundleProductShipmentTypeSeparately" stepKey="createBundleProduct"/>
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openBundleProductPage">
+            <argument name="productSku" value="$$createBundleProduct.sku$$"/>
+        </actionGroup>
+        <actionGroup ref="AdminAssignSourceToBundleProduct" stepKey="assignSourceToBundleProduct">
+            <argument name="categoryName" value="$$createSubCategory.name$$"/>
+            <argument name="product" value="$$createMSISimpleProduct$$"/>
+        </actionGroup>
+        <actionGroup ref="SaveProductFormActionGroup" stepKey="saveBundleProduct"/>
+
+        <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexBaseline">
+            <argument name="indices" value=""/>
+        </actionGroup>
+        <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheBaseline">
+            <argument name="tags" value=""/>
+        </actionGroup>
+        <actionGroup ref="AssertProductInStorefrontCategoryPage" stepKey="assertBundleVisibleBeforeToggle">
+            <argument name="category" value="$$createSubCategory$$"/>
+            <argument name="product" value="$$createBundleProduct$$"/>
+        </actionGroup>
+
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openBundleProductPageToSetOutOfStock">
+            <argument name="productSku" value="$$createBundleProduct.sku$$"/>
+        </actionGroup>
+        <selectOption userInput="Out of Stock" selector="{{AdminProductGridSection.selectStockStatus}}" stepKey="selectOutOfStock"/>
+        <actionGroup ref="SaveProductFormActionGroup" stepKey="saveBundleOutOfStock"/>
+
+        <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheAfterOutOfStock">
+            <argument name="tags" value=""/>
+        </actionGroup>
+        <actionGroup ref="AssertProductNotPresentInStorefrontCategoryPage" stepKey="assertBundleGoneAfterToggle">
+            <argument name="category" value="$$createSubCategory$$"/>
+            <argument name="product" value="$$createBundleProduct$$"/>
+        </actionGroup>
+
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openBundleProductPageToSetInStock">
+            <argument name="productSku" value="$$createBundleProduct.sku$$"/>
+        </actionGroup>
+        <selectOption userInput="In Stock" selector="{{AdminProductGridSection.selectStockStatus}}" stepKey="selectInStock"/>
+        <actionGroup ref="SaveProductFormActionGroup" stepKey="saveBundleInStock"/>
+        <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheAfterInStock">
+            <argument name="tags" value=""/>
+        </actionGroup>
+        <actionGroup ref="AssertProductInStorefrontCategoryPage" stepKey="assertBundleBackAfterToggle">
+            <argument name="category" value="$$createSubCategory$$"/>
+            <argument name="product" value="$$createBundleProduct$$"/>
+        </actionGroup>
+    </test>
+</tests>

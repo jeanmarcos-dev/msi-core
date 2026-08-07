@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminImportKeepsTheSourceItemOfAnUnsalableProductTest">
+        <annotations>
+            <stories value="Legacy stock item served from MSI"/>
+            <title value="An import that carries no stock columns leaves the source item of an unsalable product alone"/>
+            <description value="An import row that names no stock column must leave the stock configuration and the default source item alone. The product is held below the out of stock threshold, so it reads Out of Stock throughout; lowering the threshold afterwards must bring it back, which only holds if the import preserved its quantity."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="single_mode"/>
+        </annotations>
+
+        <before>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+            <magentoCLI command="config:set cataloginventory/item_options/min_qty 0" stepKey="clearOutOfStockThresholdBeforeCreate"/>
+            <createData entity="SimpleSubCategory" stepKey="createCategory"/>
+            <createData entity="SimpleProductBeforeUpdate" stepKey="createProduct">
+                <requiredEntity createDataKey="createCategory"/>
+            </createData>
+            <magentoCLI command="config:set cataloginventory/item_options/min_qty 2000" stepKey="raiseOutOfStockThreshold"/>
+            <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexBaseline">
+                <argument name="indices" value=""/>
+            </actionGroup>
+            <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheBaseline">
+                <argument name="tags" value=""/>
+            </actionGroup>
+        </before>
+
+        <after>
+            <magentoCLI command="config:set cataloginventory/item_options/min_qty 0" stepKey="restoreOutOfStockThreshold"/>
+            <deleteData createDataKey="createProduct" stepKey="deleteProduct"/>
+            <deleteData createDataKey="createCategory" stepKey="deleteCategory"/>
+            <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexAfter">
+                <argument name="indices" value=""/>
+            </actionGroup>
+            <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheAfter">
+                <argument name="tags" value=""/>
+            </actionGroup>
+            <actionGroup ref="AdminOpenCatalogProductPageActionGroup" stepKey="goToProductCatalogPage"/>
+            <actionGroup ref="ClearFiltersAdminProductGridActionGroup" stepKey="clearProductGridFilters"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openProductBeforeImport">
+            <argument name="productSku" value="$$createProduct.sku$$"/>
+        </actionGroup>
+        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="Out of Stock" stepKey="seeHeldOutOfStockBeforeImport"/>
+
+        <actionGroup ref="AdminImportProductsActionGroup" stepKey="importProduct">
+            <argument name="behavior" value="Add/Update"/>
+            <argument name="importFile" value="simpleProductUpdate.csv"/>
+            <argument name="importNoticeMessage" value="Created: 0, Updated: 1, Deleted: 0"/>
+        </actionGroup>
+
+        <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openProductAfterImport">
+            <argument name="productSku" value="$$createProduct.sku$$"/>
+        </actionGroup>
+        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="Out of Stock" stepKey="seeHeldOutOfStockAfterImport"/>
+
+        <magentoCLI command="config:set cataloginventory/item_options/min_qty 0" stepKey="lowerOutOfStockThreshold"/>
+        <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexAfterThresholdLowered">
+            <argument name="indices" value=""/>
+        </actionGroup>
+        <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCacheAfterThresholdLowered">
+            <argument name="tags" value=""/>
+        </actionGroup>
+
+        <amOnPage url="{{StorefrontProductPage.url('simpleprod')}}" stepKey="goToProductPage"/>
+        <waitForPageLoad stepKey="waitForProductPage"/>
+        <see selector="{{StorefrontProductInfoMainSection.productStockStatus}}" userInput="In stock" stepKey="seeProductSalableAgain"/>
+    </test>
+</tests>

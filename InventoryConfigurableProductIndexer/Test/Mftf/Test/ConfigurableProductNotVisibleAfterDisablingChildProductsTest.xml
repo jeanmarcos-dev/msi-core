@@ -10,11 +10,10 @@
        xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
     <test name="ConfigurableProductNotVisibleAfterDisablingChildProductsTest">
         <annotations>
-            <stories value="Configurable Product Custom Stock."/>
-            <title value="Configurable product should be not visible after disabling child products"/>
-            <description value="Verify, configurable product is not displayed on category page after disabling first child product and set out of stock to second"/>
-            <testCaseId value="MC-38896"/>
-            <useCaseId value="MC-38590"/>
+            <stories value="Configurable Product Stock Index."/>
+            <title value="Disabled child products are excluded from the configurable product stock index"/>
+            <description value="Verify the configurable stock index drops a disabled child, so a parent whose only remaining child is out of stock on its source stops being indexed as salable and leaves the category page"/>
+            <testCaseId value="https://github.com/magento/inventory/pull/3241"/>
             <severity value="AVERAGE"/>
             <group value="msi"/>
         </annotations>
