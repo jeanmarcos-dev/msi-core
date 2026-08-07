@@ -20,10 +20,11 @@ use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\AbstractModel;
 use Magento\InventoryCatalog\Model\ResourceModel\GetStockQuantityBySkuList;
+use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
+use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
-use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 
 /**
@@ -47,9 +48,10 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * @param GetSkusByProductIdsInterface $getSkusByProductIds
      * @param GetStockItemsConfigurationInterface $getStockItemsConfiguration
      * @param GetStockItemDataInterface $getStockItemData
-     * @param GetStockItemsDataInterface $getStockItemsData
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
      * @param GetStockQuantityBySkuList $getStockQuantityBySkuList
+     * @param GetProductTypesBySkusInterface $getProductTypesBySkus
+     * @param IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowed
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -62,9 +64,10 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         private readonly GetSkusByProductIdsInterface $getSkusByProductIds,
         private readonly GetStockItemsConfigurationInterface $getStockItemsConfiguration,
         private readonly GetStockItemDataInterface $getStockItemData,
-        private readonly GetStockItemsDataInterface $getStockItemsData,
         private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
-        private readonly GetStockQuantityBySkuList $getStockQuantityBySkuList
+        private readonly GetStockQuantityBySkuList $getStockQuantityBySkuList,
+        private readonly GetProductTypesBySkusInterface $getProductTypesBySkus,
+        private readonly IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowed
     ) {
     }
 
@@ -150,7 +153,7 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * Assemble the legacy stock items of several products at once.
      *
      * The callers that need this are bulk by nature - a quote loading its lines, a grid loading a page -
-     * so the whole set is resolved in four queries regardless of how many products it covers. Serving
+     * so the whole set is resolved in three queries regardless of how many products it covers. Serving
      * them one by one through getStockItem() would issue three per product instead.
      *
      * @param int[] $productIds
@@ -167,8 +170,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
 
         $stockId = (int)$this->stockByWebsiteIdResolver->execute($scopeId)->getStockId();
         $configurations = $this->getStockItemsConfiguration->execute(array_values($skus));
-        $indexData = $this->getIndexDataOfSkus(array_values($skus), $stockId);
         $quantities = $this->getStockQuantityBySkuList->execute(array_values($skus), $stockId);
+        $types = $this->getProductTypes(array_values($skus));
 
         $stockItems = [];
         foreach ($skus as $productId => $sku) {
@@ -177,8 +180,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
                 $stockId,
                 $scopeId,
                 $configurations[$sku] ?? null,
-                $indexData[$sku] ?? null,
-                $quantities[$sku] ?? 0.0
+                $quantities[$sku] ?? null,
+                $this->stocksItsOwnQuantity($types[$sku] ?? null)
             );
         }
 
@@ -201,8 +204,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
             $stockId,
             $scopeId,
             $this->getStockItemsConfiguration->execute([$sku])[$sku] ?? null,
-            $this->getIndexData($sku, $stockId),
-            $this->getStockQuantityBySkuList->execute([$sku], $stockId)[$sku] ?? 0.0
+            $this->getStockQuantityBySkuList->execute([$sku], $stockId)[$sku] ?? null,
+            $this->stocksItsOwnQuantity($this->getProductTypes([$sku])[$sku] ?? null)
         );
     }
 
@@ -213,8 +216,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
      * @param int $stockId
      * @param int $scopeId
      * @param mixed $configuration
-     * @param array|null $indexData
-     * @param float $quantity
+     * @param float|null $quantity
+     * @param bool $stocksItsOwnQuantity
      * @return StockItemInterface
      */
     private function hydrateStockItem(
@@ -222,8 +225,8 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         int $stockId,
         int $scopeId,
         $configuration,
-        ?array $indexData,
-        float $quantity
+        ?float $quantity,
+        bool $stocksItsOwnQuantity
     ): StockItemInterface {
         /** @var StockItemInterface $stockItem */
         $stockItem = $this->stockItemFactory->create(
@@ -234,8 +237,10 @@ class StockRegistryProvider implements StockRegistryProviderInterface
         $stockItem->setStockId($stockId);
         $stockItem->setWebsiteId($scopeId);
 
-        $stockItem->setQty($quantity);
-        $stockItem->setIsInStock((bool)($indexData[GetStockItemDataInterface::IS_SALABLE] ?? false));
+        $stockItem->setQty((float)($quantity ?? 0));
+        if ($quantity === null && $stocksItsOwnQuantity) {
+            $stockItem->setIsInStock(false);
+        }
         $stockItem->setOrigData();
         if ($stockItem instanceof AbstractModel) {
             $stockItem->setDataChanges(false);
@@ -261,16 +266,28 @@ class StockRegistryProvider implements StockRegistryProviderInterface
     }
 
     /**
-     * Read the MSI index rows of several skus, tolerating stocks whose index is not built yet.
+     * Tell whether a product type carries source items of its own.
+     *
+     * A composite is stocked through its children, so the absence of source items says nothing about it.
+     *
+     * @param string|null $type
+     * @return bool
+     */
+    private function stocksItsOwnQuantity(?string $type): bool
+    {
+        return $type !== null && $this->isSourceItemManagementAllowed->execute($type);
+    }
+
+    /**
+     * Read the product types of several skus, tolerating the ones that are gone.
      *
      * @param string[] $skus
-     * @param int $stockId
-     * @return array
+     * @return string[] keyed by sku
      */
-    private function getIndexDataOfSkus(array $skus, int $stockId): array
+    private function getProductTypes(array $skus): array
     {
         try {
-            return $this->getStockItemsData->execute($skus, $stockId) ?? [];
+            return $this->getProductTypesBySkus->execute($skus);
         } catch (LocalizedException $e) {
             return [];
         }

@@ -18,10 +18,11 @@ use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryCatalog\Model\ResourceModel\GetStockQuantityBySkuList;
 use Magento\InventoryCatalog\Model\StockRegistryProvider;
+use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryCatalogApi\Model\GetSkusByProductIdsInterface;
+use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
 use Magento\InventoryConfiguration\Model\GetStockItemsConfigurationInterface;
 use Magento\InventorySalesApi\Model\GetStockItemDataInterface;
-use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -42,19 +43,19 @@ class StockRegistryProviderTest extends TestCase
     private $getStockItemData;
 
     /**
-     * @var GetStockItemsDataInterface|MockObject
-     */
-    private $getStockItemsData;
-
-    /**
      * @var GetStockQuantityBySkuList|MockObject
      */
     private $getStockQuantityBySkuList;
 
     /**
-     * @var float
+     * @var array
      */
-    private $sourceQuantity = 0.0;
+    private $quantityBySku = [];
+
+    /**
+     * @var bool
+     */
+    private $sourceItemManagementAllowed = true;
 
     /**
      * @var StockRegistryProvider
@@ -64,10 +65,18 @@ class StockRegistryProviderTest extends TestCase
     protected function setUp(): void
     {
         $this->getStockItemData = $this->createMock(GetStockItemDataInterface::class);
-        $this->getStockItemsData = $this->createMock(GetStockItemsDataInterface::class);
         $this->getStockQuantityBySkuList = $this->createMock(GetStockQuantityBySkuList::class);
         $this->getStockQuantityBySkuList->method('execute')->willReturnCallback(
-            fn () => [self::SKU => $this->sourceQuantity]
+            fn () => $this->quantityBySku
+        );
+
+        $getProductTypesBySkus = $this->createMock(GetProductTypesBySkusInterface::class);
+        $getProductTypesBySkus->method('execute')->willReturn([self::SKU => 'simple']);
+        $isSourceItemManagementAllowed = $this->createMock(
+            IsSourceItemManagementAllowedForProductTypeInterface::class
+        );
+        $isSourceItemManagementAllowed->method('execute')->willReturnCallback(
+            fn () => $this->sourceItemManagementAllowed
         );
 
         $stock = $this->createMock(StockInterface::class);
@@ -95,8 +104,6 @@ class StockRegistryProviderTest extends TestCase
             fn () => $this->createPartialMock(Status::class, [])
         );
 
-        // Item::getIsInStock() short-circuits to true for an unmanaged product, so the configuration the
-        // stock item is seeded from has to manage stock for the flag under test to be reachable at all.
         $configuration = $this->createPartialMock(Item::class, ['setOrigData']);
         $configuration->setData(['manage_stock' => 1, 'is_in_stock' => 1]);
         $getStockItemsConfiguration = $this->createMock(GetStockItemsConfigurationInterface::class);
@@ -112,19 +119,16 @@ class StockRegistryProviderTest extends TestCase
             $getSkusByProductIds,
             $getStockItemsConfiguration,
             $this->getStockItemData,
-            $this->getStockItemsData,
             $stockByWebsiteIdResolver,
-            $this->getStockQuantityBySkuList
+            $this->getStockQuantityBySkuList,
+            $getProductTypesBySkus,
+            $isSourceItemManagementAllowed
         );
     }
 
-    public function testItReportsTheStatusOfTheIndexAndTheQuantityOfTheSources(): void
+    public function testItReportsTheConfiguredStatusAndTheQuantityTheSourcesHold(): void
     {
-        $this->getStockItemData->method('execute')->willReturn([
-            GetStockItemDataInterface::QUANTITY => 0.0,
-            GetStockItemDataInterface::IS_SALABLE => 1,
-        ]);
-        $this->quantityOfTheSourcesIs(5.5);
+        $this->quantityBySku = [self::SKU => 5.5];
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
 
@@ -132,27 +136,30 @@ class StockRegistryProviderTest extends TestCase
         self::assertTrue($stockItem->getIsInStock());
     }
 
-    public function testTheQuantityIgnoresTheIndexBecauseTheIndexZeroesAnOutOfStockSource(): void
+    /**
+     * A product held below the out of stock threshold is unsalable while still configured In Stock. Reading
+     * the salability back here would let the legacy save path persist it as the merchant's own intent.
+     */
+    public function testAnUnsalableProductStillReportsTheConfiguredStatus(): void
     {
+        $this->quantityBySku = [self::SKU => 3.0];
         $this->getStockItemData->method('execute')->willReturn([
             GetStockItemDataInterface::QUANTITY => 0.0,
             GetStockItemDataInterface::IS_SALABLE => 0,
         ]);
-        $this->quantityOfTheSourcesIs(3.0);
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
 
         self::assertSame(3.0, $stockItem->getQty());
-        self::assertFalse($stockItem->getIsInStock());
+        self::assertTrue($stockItem->getIsInStock());
     }
 
     /**
-     * A sku the index does not carry is stocked nowhere in the stock, whatever the configuration row
-     * that seeds the rest of the stock item still says about it.
+     * Nothing stocks the product on this stock any more, so there is no configured intent left to honour.
      */
-    public function testAnUnindexedSkuReadsAsOutOfStock(): void
+    public function testASkuWithoutSourceItemsReadsAsOutOfStock(): void
     {
-        $this->getStockItemData->method('execute')->willReturn(null);
+        $this->quantityBySku = [];
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
 
@@ -166,18 +173,31 @@ class StockRegistryProviderTest extends TestCase
      */
     public function testTheStockItemDoesNotLookModified(): void
     {
-        $this->getStockItemData->method('execute')->willReturn([
-            GetStockItemDataInterface::QUANTITY => 5.5,
-            GetStockItemDataInterface::IS_SALABLE => 1,
-        ]);
+        $this->quantityBySku = [self::SKU => 5.5];
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
 
         self::assertFalse($stockItem->hasDataChanges());
     }
 
-    public function testTheStockItemAndTheStockStatusAgreeAboutAnUnindexedSku(): void
+    /**
+     * A composite is stocked through its children and carries no source items of its own, so their
+     * absence must not read as a stock status it never had.
+     */
+    public function testACompositeWithoutSourceItemsKeepsItsConfiguredStatus(): void
     {
+        $this->quantityBySku = [];
+        $this->sourceItemManagementAllowed = false;
+
+        $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
+
+        self::assertSame(0.0, $stockItem->getQty());
+        self::assertTrue($stockItem->getIsInStock());
+    }
+
+    public function testTheStockItemAndTheStockStatusAgreeAboutASkuNothingStocks(): void
+    {
+        $this->quantityBySku = [];
         $this->getStockItemData->method('execute')->willReturn(null);
 
         $stockItem = $this->provider->getStockItem(self::PRODUCT_ID, self::SCOPE_ID);
@@ -189,34 +209,20 @@ class StockRegistryProviderTest extends TestCase
 
     public function testItResolvesAWholeListWithoutReadingProductByProduct(): void
     {
-        $this->getStockItemsData->expects(self::once())
-            ->method('execute')
-            ->willReturn([self::SKU => [
-                GetStockItemDataInterface::QUANTITY => 4.0,
-                GetStockItemDataInterface::IS_SALABLE => 1,
-            ]]);
-        // The per product reader is the route this method exists to avoid.
+        $this->quantityBySku = [self::SKU => 4.0];
+        $this->getStockQuantityBySkuList->expects(self::once())->method('execute');
         $this->getStockItemData->expects(self::never())->method('execute');
 
         $stockItems = $this->provider->getStockItems([self::PRODUCT_ID, self::PRODUCT_ID + 1], self::SCOPE_ID);
 
         self::assertSame([self::PRODUCT_ID, self::PRODUCT_ID + 1], array_keys($stockItems));
-        self::assertEquals(0.0, $stockItems[self::PRODUCT_ID]->getQty());
+        self::assertEquals(4.0, $stockItems[self::PRODUCT_ID]->getQty());
         self::assertTrue((bool)$stockItems[self::PRODUCT_ID]->getIsInStock());
-    }
-
-    /**
-     * @param float $quantity
-     * @return void
-     */
-    private function quantityOfTheSourcesIs(float $quantity): void
-    {
-        $this->sourceQuantity = $quantity;
     }
 
     public function testAListOfProductsThatNoLongerExistIsEmpty(): void
     {
-        $this->getStockItemsData->expects(self::never())->method('execute');
+        $this->getStockQuantityBySkuList->expects(self::never())->method('execute');
 
         self::assertSame([], $this->provider->getStockItems([], self::SCOPE_ID));
     }

@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Legacy stock item served from MSI"/>
             <title value="An import that carries no stock columns leaves the source item of an unsalable product alone"/>
-            <description value="An import row that names no stock column must leave the stock configuration and the default source item alone. The product is held below the out of stock threshold, so it reads Out of Stock throughout; lowering the threshold afterwards must bring it back, which only holds if the import preserved its quantity."/>
+            <description value="is_in_stock is the configured flag, not the computed salability. A product held below the out of stock threshold is unsalable while still configured In Stock; an import row that names neither column must not read the salability back and turn the default source item off."/>
             <severity value="CRITICAL"/>
             <group value="msi"/>
             <group value="single_mode"/>
@@ -52,7 +52,7 @@
         <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openProductBeforeImport">
             <argument name="productSku" value="$$createProduct.sku$$"/>
         </actionGroup>
-        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="Out of Stock" stepKey="seeHeldOutOfStockBeforeImport"/>
+        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="In Stock" stepKey="seeConfiguredInStockBeforeImport"/>
 
         <actionGroup ref="AdminImportProductsActionGroup" stepKey="importProduct">
             <argument name="behavior" value="Add/Update"/>
@@ -63,7 +63,7 @@
         <actionGroup ref="FilterAndSelectProductActionGroup" stepKey="openProductAfterImport">
             <argument name="productSku" value="$$createProduct.sku$$"/>
         </actionGroup>
-        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="Out of Stock" stepKey="seeHeldOutOfStockAfterImport"/>
+        <seeOptionIsSelected selector="{{AdminProductGridSection.selectStockStatus}}" userInput="In Stock" stepKey="seeConfiguredInStockAfterImport"/>
 
         <magentoCLI command="config:set cataloginventory/item_options/min_qty 0" stepKey="lowerOutOfStockThreshold"/>
         <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexAfterThresholdLowered">
