@@ -23,6 +23,8 @@ use PHPUnit\Framework\TestCase;
  */
 class GetStockStatusAsyncReindexTest extends TestCase
 {
+    private const MAX_MESSAGES_TO_PROCESS = 1000;
+
     /**
      * @var StockRegistryInterface
      */
@@ -176,6 +178,6 @@ class GetStockStatusAsyncReindexTest extends TestCase
     {
         $consumerFactory = Bootstrap::getObjectManager()->get(ConsumerFactory::class);
         $consumer = $consumerFactory->get('inventory.indexer.stock');
-        $consumer->process(2);
+        $consumer->process(self::MAX_MESSAGES_TO_PROCESS);
     }
 }
