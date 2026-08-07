@@ -141,7 +141,9 @@ class SourceItemImporterTest extends TestCase
 
         $this->sourceItemResourceModelMock->expects($this->once())
             ->method('findAllBySkus')
-            ->willReturn([['sku' => $sku, 'source_code' => 'default', 'source_item_id' => 1]]);
+            ->willReturn([
+                ['sku' => $sku, 'source_code' => 'default', 'source_item_id' => 1, 'quantity' => $quantity]
+            ]);
 
         $this->skuStorageMock->method('get')->willReturnCallback(function ($sku) use ($existingSkus) {
             $skuLowered = strtolower($sku);
@@ -179,7 +181,102 @@ class SourceItemImporterTest extends TestCase
         }
         $this->compositeProductsIndexerMock->expects($this->once())->method('reindexList')->with([$sku]);
 
-        $this->plugin->afterProcess($this->stockItemProcessorMock, '', $stockData, []);
+        $this->plugin->afterProcess(
+            $this->stockItemProcessorMock,
+            '',
+            $stockData,
+            [$sku => ['sku' => $sku, 'qty' => $quantity]]
+        );
+    }
+
+    public function testItKeepsTheStoredQuantityWhenTheImportRowCarriesNoQty(): void
+    {
+        $sku = 'simple';
+        $this->stubDefaultSourceItem($sku, 3.0);
+        $this->stubSourceItemCreation();
+        $this->isSingleSourceModeMock->method('execute')->willReturn(false);
+
+        $this->sourceItemMock->expects(self::once())->method('setQuantity')->with(3.0)->willReturnSelf();
+        $this->sourceItemsSaveMock->expects(self::once())->method('execute')->with([$this->sourceItemMock]);
+
+        $this->plugin->afterProcess(
+            $this->stockItemProcessorMock,
+            '',
+            [$sku => ['qty' => 0.0, 'is_in_stock' => 0]],
+            [$sku => ['sku' => $sku, 'out_of_stock_qty' => 2]]
+        );
+    }
+
+    public function testItWritesTheImportedQuantityWhenTheRowCarriesOne(): void
+    {
+        $sku = 'simple';
+        $this->stubDefaultSourceItem($sku, 3.0);
+        $this->stubSourceItemCreation();
+        $this->isSingleSourceModeMock->method('execute')->willReturn(false);
+
+        $this->sourceItemMock->expects(self::once())->method('setQuantity')->with(7.0)->willReturnSelf();
+        $this->sourceItemsSaveMock->expects(self::once())->method('execute')->with([$this->sourceItemMock]);
+
+        $this->plugin->afterProcess(
+            $this->stockItemProcessorMock,
+            '',
+            [$sku => ['qty' => 7.0, 'is_in_stock' => 1]],
+            [$sku => ['sku' => $sku, 'qty' => 7]]
+        );
+    }
+
+    public function testItDoesNotLoadStoredSourceItemsInSingleSourceModeWhenEveryRowCarriesQuantity(): void
+    {
+        $sku = 'simple';
+        $this->skuStorageMock->method('has')->willReturn(true);
+        $this->defaultSourceMock->method('getCode')->willReturn('default');
+        $this->isSingleSourceModeMock->method('execute')->willReturn(true);
+        $this->stubSourceItemCreation();
+
+        $this->sourceItemResourceModelMock->expects(self::never())->method('findAllBySkus');
+        $this->sourceItemMock->expects(self::once())->method('setQuantity')->with(9.0)->willReturnSelf();
+        $this->sourceItemsSaveMock->expects(self::once())->method('execute')->with([$this->sourceItemMock]);
+
+        $this->plugin->afterProcess(
+            $this->stockItemProcessorMock,
+            '',
+            [$sku => ['qty' => 9.0, 'is_in_stock' => 1]],
+            [$sku => ['sku' => $sku, 'qty' => 9]]
+        );
+    }
+
+    public function testItLeavesTheDefaultSourceItemAloneWhenTheImportRowCarriesNoStockColumn(): void
+    {
+        $sku = 'simple';
+        $this->stubDefaultSourceItem($sku, 100.0);
+        $this->isSingleSourceModeMock->method('execute')->willReturn(true);
+
+        $this->sourceItemFactoryMock->expects(self::never())->method('create');
+        $this->sourceItemsSaveMock->expects(self::never())->method('execute');
+
+        $this->plugin->afterProcess(
+            $this->stockItemProcessorMock,
+            '',
+            [$sku => ['qty' => 100.0, 'is_in_stock' => 0]],
+            [$sku => ['sku' => $sku, 'name' => 'Updated name']]
+        );
+    }
+
+    private function stubDefaultSourceItem(string $sku, float $quantity): void
+    {
+        $this->sourceItemResourceModelMock->method('findAllBySkus')->willReturn([
+            ['sku' => $sku, 'source_code' => 'default', 'source_item_id' => 1, 'quantity' => $quantity]
+        ]);
+        $this->skuStorageMock->method('has')->willReturn(true);
+        $this->defaultSourceMock->method('getCode')->willReturn('default');
+    }
+
+    private function stubSourceItemCreation(): void
+    {
+        $this->sourceItemFactoryMock->method('create')->willReturn($this->sourceItemMock);
+        $this->sourceItemMock->method('setSku')->willReturnSelf();
+        $this->sourceItemMock->method('setSourceCode')->willReturnSelf();
+        $this->sourceItemMock->method('setStatus')->willReturnSelf();
     }
 
     /**
