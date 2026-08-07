@@ -244,6 +244,7 @@ class BackorderConditionTest extends TestCase
         array $stockConfig,
         ?array $expectedData
     ): void {
+        $this->updateStockItem($sku, $stockConfig);
         $this->appendReservations->execute(
             [
                 $this->reservationBuilder->setStockId($stockId)->setSku($sku)->setQuantity(-20)->build(),
@@ -251,7 +252,7 @@ class BackorderConditionTest extends TestCase
                 $this->reservationBuilder->setStockId($stockId)->setSku($sku)->setQuantity(-50)->build(),
             ]
         );
-        $this->updateStockItem($sku, $stockConfig);
+        $this->reindexSourceItem($sku);
 
         self::assertEquals($expectedData, $this->getStockItemData->execute($sku, $stockId));
     }
@@ -410,8 +411,17 @@ class BackorderConditionTest extends TestCase
         }
         $this->stockItemRepository->save($legacyStockItem);
 
-        $sourceItem = $this->getSourceItemBySku($sku);
-        $this->sourceItemsSave->execute([$sourceItem]);
+        $this->reindexSourceItem($sku);
+    }
+
+    /**
+     * Save the source item back so the stock index picks up whatever changed around it.
+     *
+     * @param string $sku
+     */
+    private function reindexSourceItem(string $sku): void
+    {
+        $this->sourceItemsSave->execute([$this->getSourceItemBySku($sku)]);
     }
 
     /**
