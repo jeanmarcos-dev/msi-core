@@ -132,9 +132,6 @@ class UpdateInventory
         $skus = $data->getSkus();
         $inventoryData = $this->serializer->unserialize($data->getData());
         $this->updateStockItemConfiguration->execute($skus, $inventoryData);
-        if ($this->isSingleSourceMode->execute()) {
-            $this->compositeProductStockStatusProcessor->execute($skus);
-        }
         $sourceItems = $this->getDefaultSourceItems($skus, $inventoryData);
         if ($sourceItems) {
             try {
@@ -144,6 +141,9 @@ class UpdateInventory
             }
         }
         $this->reindexSourceItems($skus);
+        if ($this->isSingleSourceMode->execute()) {
+            $this->compositeProductStockStatusProcessor->execute($skus);
+        }
     }
 
     /**
