@@ -89,7 +89,6 @@
         <actionGroup ref="AdminShipThePendingOrderActionGroup" stepKey="shipOrder"/>
         <!--Verify product quantity.-->
         <amOnPage url="{{AdminProductIndexPage.url}}" stepKey="navigateToProductGrid"/>
-        <actionGroup ref="AdminResetDataGridToDefaultViewActionGroup" stepKey="resetProductGridColumns"/>
         <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="findProduct">
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$product.sku$$"/>
