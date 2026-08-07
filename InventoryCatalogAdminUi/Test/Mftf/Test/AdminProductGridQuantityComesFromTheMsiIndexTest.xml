@@ -43,7 +43,7 @@
         <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToEdit">
             <argument name="productId" value="$product.id$"/>
         </actionGroup>
-        <fillField selector="{{AdminProductSourcesGrid.rowQtyBySourceCode(_defaultSource.source_code)}}" userInput="55" stepKey="setDefaultSourceQuantity"/>
+        <fillField selector="{{AdminProductFormSection.productQuantity}}" userInput="55" stepKey="setDefaultSourceQuantity"/>
         <actionGroup ref="AdminProductFormSaveActionGroup" stepKey="saveProduct"/>
         <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindexInventory">
             <argument name="indices" value="inventory"/>
