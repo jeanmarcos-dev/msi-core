@@ -22,6 +22,7 @@ use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
 use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
+use Magento\InventoryIndexer\Model\ReindexSourceItemsBySkus;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -40,9 +41,28 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
      */
     private $plugin;
 
+    /**
+     * @var UpdateSourceItemBasedOnLegacyStockItem|MockObject
+     */
+    private $updateSourceItemBasedOnLegacyStockItem;
+
+    /**
+     * @var ReindexSourceItemsBySkus|MockObject
+     */
+    private $reindexSourceItemsBySkus;
+
+    /**
+     * @var ProjectLegacyStockItemToConfiguration|MockObject
+     */
+    private $projectLegacyStockItemToConfiguration;
+
     protected function setUp(): void
     {
         $this->stockRegistryStorage = $this->createMock(StockRegistryStorage::class);
+        $this->updateSourceItemBasedOnLegacyStockItem = $this->createMock(
+            UpdateSourceItemBasedOnLegacyStockItem::class
+        );
+        $this->reindexSourceItemsBySkus = $this->createMock(ReindexSourceItemsBySkus::class);
 
         $resourceConnection = $this->createMock(ResourceConnection::class);
         $resourceConnection->method('getConnection')->willReturn($this->createMock(AdapterInterface::class));
@@ -61,8 +81,12 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
         $isSingleSourceMode = $this->createMock(IsSingleSourceModeInterface::class);
         $isSingleSourceMode->method('execute')->willReturn(false);
 
+        $this->projectLegacyStockItemToConfiguration = $this->createMock(
+            ProjectLegacyStockItemToConfiguration::class
+        );
+
         $this->plugin = new UpdateSourceItemAtLegacyStockItemSavePlugin(
-            $this->createMock(UpdateSourceItemBasedOnLegacyStockItem::class),
+            $this->updateSourceItemBasedOnLegacyStockItem,
             $resourceConnection,
             $isSourceItemManagementAllowed,
             $getProductTypesBySkus,
@@ -71,9 +95,40 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
             $this->createMock(CacheStorage::class),
             $this->createMock(CompositeProductStockStatusProcessorInterface::class),
             $isSingleSourceMode,
-            $this->createMock(ProjectLegacyStockItemToConfiguration::class),
-            $this->stockRegistryStorage
+            $this->projectLegacyStockItemToConfiguration,
+            $this->stockRegistryStorage,
+            $this->reindexSourceItemsBySkus
         );
+    }
+
+    public function testItReindexesWhenTheSaveOnlyChangedTheConfiguration(): void
+    {
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(true);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(false);
+        $this->reindexSourceItemsBySkus->expects(self::once())->method('execute')->with([self::SKU]);
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
+    }
+
+    public function testItDoesNotReindexWhenTheSaveTouchedNothingTheIndexReads(): void
+    {
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(false);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(false);
+        $this->reindexSourceItemsBySkus->expects(self::never())->method('execute');
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
+    }
+
+    public function testItLeavesTheReindexToTheSourceItemSaveThatAlreadyRanOne(): void
+    {
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(true);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(true);
+        $this->reindexSourceItemsBySkus->expects(self::never())->method('execute');
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
     }
 
     public function testItDropsTheRegistrySnapshotOfTheSavedProduct(): void
@@ -81,11 +136,19 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
         $this->stockRegistryStorage->expects(self::once())->method('removeStockItem')->with(self::PRODUCT_ID);
         $this->stockRegistryStorage->expects(self::once())->method('removeStockStatus')->with(self::PRODUCT_ID);
 
+        $subject = $this->createMock(ItemResourceModel::class);
+
+        self::assertSame($subject, $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem()));
+    }
+
+    /**
+     * @return Item
+     */
+    private function legacyStockItem(): Item
+    {
         $stockItem = $this->getMockBuilder(Item::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $stockItem->setData(['product_id' => self::PRODUCT_ID, 'qty' => 5.0, 'is_in_stock' => 1, 'manage_stock' => 1]);
 
-        $subject = $this->createMock(ItemResourceModel::class);
-
-        self::assertSame($subject, $this->plugin->aroundSave($subject, fn () => $subject, $stockItem));
+        return $stockItem;
     }
 }

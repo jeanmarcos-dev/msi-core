@@ -74,12 +74,12 @@ class UpdateSourceItemBasedOnLegacyStockItem
      * and is taken at face value.
      *
      * @param Item $legacyStockItem
-     * @return void
+     * @return bool whether a source item was saved, and with it the reindex that follows one
      * @throws \Magento\Framework\Exception\CouldNotSaveException
      * @throws \Magento\Framework\Exception\InputException
      * @throws \Magento\Framework\Validation\ValidationException
      */
-    public function execute(Item $legacyStockItem)
+    public function execute(Item $legacyStockItem): bool
     {
         $productSku = $this->getSkusByProductIds
             ->execute([$legacyStockItem->getProductId()])[$legacyStockItem->getProductId()];
@@ -91,7 +91,7 @@ class UpdateSourceItemBasedOnLegacyStockItem
             || $this->isChangedByCaller($legacyStockItem, StockItemInterface::IS_IN_STOCK);
 
         if (!$applyQty && !$applyStatus) {
-            return;
+            return false;
         }
 
         if ($isNewSourceItem) {
@@ -109,6 +109,8 @@ class UpdateSourceItemBasedOnLegacyStockItem
         }
 
         $this->sourceItemsSave->execute([$sourceItem]);
+
+        return true;
     }
 
     /**

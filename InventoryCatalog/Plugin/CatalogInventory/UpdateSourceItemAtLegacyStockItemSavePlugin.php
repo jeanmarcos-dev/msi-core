@@ -23,6 +23,7 @@ use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
 use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
+use Magento\InventoryIndexer\Model\ReindexSourceItemsBySkus;
 
 /**
  * Persist a legacy stock item save into MSI instead of cataloginventory_stock_item.
@@ -50,6 +51,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
      * @param IsSingleSourceModeInterface $isSingleSourceMode
      * @param ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
      * @param StockRegistryStorage $stockRegistryStorage
+     * @param ReindexSourceItemsBySkus $reindexSourceItemsBySkus
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -63,7 +65,8 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
         private readonly CompositeProductStockStatusProcessorInterface $compositeProductStockStatusProcessor,
         private readonly IsSingleSourceModeInterface $isSingleSourceMode,
         private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration,
-        private readonly StockRegistryStorage $stockRegistryStorage
+        private readonly StockRegistryStorage $stockRegistryStorage,
+        private readonly ReindexSourceItemsBySkus $reindexSourceItemsBySkus
     ) {
     }
 
@@ -91,12 +94,13 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             $typeId = $this->getProductTypeBySku->execute([$sku])[$sku];
 
             $this->stockItemCacheStorage->delete($sku);
-            $this->projectLegacyStockItemToConfiguration->execute($sku, $legacyStockItem);
+            $configurationChanged = $this->projectLegacyStockItemToConfiguration->execute($sku, $legacyStockItem);
 
+            $sourceItemSaved = false;
             if ($this->isSourceItemManagementAllowed->execute($typeId)
                 && $this->shouldAlignDefaultSourceWithLegacy($legacyStockItem)
             ) {
-                $this->updateSourceItemBasedOnLegacyStockItem->execute($legacyStockItem);
+                $sourceItemSaved = $this->updateSourceItemBasedOnLegacyStockItem->execute($legacyStockItem);
             }
             try {
                 // Prevent recursion.
@@ -117,6 +121,10 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             $this->stockRegistryStorage->removeStockStatus($productId);
 
             $connection->commit();
+
+            if ($configurationChanged && !$sourceItemSaved) {
+                $this->reindexSourceItemsBySkus->execute([$sku]);
+            }
 
             return $subject;
         } catch (Exception $e) {
