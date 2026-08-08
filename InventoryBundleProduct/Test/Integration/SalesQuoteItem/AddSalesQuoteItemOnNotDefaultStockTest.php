@@ -57,6 +57,11 @@ class AddSalesQuoteItemOnNotDefaultStockTest extends TestCase
     private $dataObjectFactory;
 
     /**
+     * @var string
+     */
+    private $originalStoreCode;
+
+    /**
      * @inheritdoc
      */
     protected function setUp(): void
@@ -69,6 +74,7 @@ class AddSalesQuoteItemOnNotDefaultStockTest extends TestCase
         $this->storeRepository = Bootstrap::getObjectManager()->get(StoreRepositoryInterface::class);
         $this->storeManager = Bootstrap::getObjectManager()->get(StoreManagerInterface::class);
         $this->dataObjectFactory = Bootstrap::getObjectManager()->get(DataObjectFactory::class);
+        $this->originalStoreCode = $this->storeManager->getStore()->getCode();
         $this->cleanupReservations->execute();
     }
 
@@ -85,8 +91,6 @@ class AddSalesQuoteItemOnNotDefaultStockTest extends TestCase
      */
     public function testAddInStockProductToQuote()
     {
-        $this->markTestSkipped('Waiting for bundle product on not default stock support');
-
         $productSku = 'bundle';
         $productQty = 4;
         $expectedQtyInCart = 4;
@@ -115,8 +119,6 @@ class AddSalesQuoteItemOnNotDefaultStockTest extends TestCase
      */
     public function testAddOutOffStockProductToQuote()
     {
-        $this->markTestSkipped('Waiting for bundle product on not default stock support');
-
         $productSku = 'bundle';
         $productQty = 6;
         $expectedItemsInCart = 0;
@@ -201,6 +203,7 @@ class AddSalesQuoteItemOnNotDefaultStockTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->storeManager->setCurrentStore($this->originalStoreCode);
         $this->cleanupReservations->execute();
     }
 }
