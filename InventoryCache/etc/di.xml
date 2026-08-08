@@ -9,6 +9,17 @@
     <type name="Magento\InventoryIndexer\Indexer\Stock\Strategy\Sync">
         <plugin name="invalidate_products_cache" type="Magento\InventoryCache\Plugin\InventoryIndexer\Indexer\Stock\Strategy\Sync\CacheFlush"/>
     </type>
+    <type name="Magento\InventoryIndexer\Indexer\InventoryIndexer">
+        <plugin name="register_cache_tags_on_full_reindex" type="Magento\InventoryCache\Plugin\InventoryIndexer\Indexer\InventoryIndexer\RegisterCacheTagsOnFullReindexPlugin"/>
+    </type>
+    <type name="Magento\InventoryCache\Plugin\InventoryIndexer\Indexer\InventoryIndexer\RegisterCacheTagsOnFullReindexPlugin">
+        <arguments>
+            <argument name="cacheTags" xsi:type="array">
+                <item name="product" xsi:type="const">Magento\Catalog\Model\Product::CACHE_TAG</item>
+                <item name="category" xsi:type="const">Magento\Catalog\Model\Category::CACHE_TAG</item>
+            </argument>
+        </arguments>
+    </type>
     <type name="Magento\InventoryCache\Model\FlushCacheByProductIds">
         <arguments>
             <argument name="productCacheTag" xsi:type="const">Magento\Catalog\Model\Product::CACHE_TAG</argument>
