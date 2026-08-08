@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontStockVisualizerCacheIsPurgedWhenTheQuantityChangesTest">
+        <annotations>
+            <stories value="Stock Visualizer"/>
+            <title value="The availability panel follows a quantity change instead of serving the cached one"/>
+            <description value="The panel is served from a cache of its own, keyed by a dedicated tag, so every other test in this module can pass while the purge is broken: they all render a page whose quantity never moves. This one moves it. The number a shopper reads has to be the one the source item holds, with no manual flush in between, which is what makes the panel safe to cache at all."/>
+            <severity value="CRITICAL"/>
+            <group value="stock_visualizer"/>
+            <group value="msi"/>
+            <group value="single_mode"/>
+        </annotations>
+
+        <before>
+            <createData entity="StockVisualizerExactQtyProduct" stepKey="product"/>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="enableVisualizer">
+                <argument name="enabled" value="1"/>
+                <argument name="displayType" value="quantity"/>
+                <argument name="mode" value="instant"/>
+            </actionGroup>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <actionGroup ref="StorefrontConfigureStockVisualizerActionGroup" stepKey="restoreDefaults"/>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPage"/>
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerExactQty.qty}}" time="30" stepKey="waitForTheQuantityToBeCached"/>
+
+        <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToChangeTheQuantity">
+            <argument name="productId" value="$$product.id$$"/>
+        </actionGroup>
+        <fillField selector="{{AdminProductFormSection.productQuantity}}" userInput="17" stepKey="setTheNewQuantity"/>
+        <actionGroup ref="AdminProductFormSaveActionGroup" stepKey="saveProduct"/>
+
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPageAgain"/>
+        <waitForPageLoad time="30" stepKey="waitForProductPageAgain"/>
+        <waitForText selector="{{StorefrontStockVisualizerSection.count}}" userInput="17" time="30" stepKey="waitForTheNewQuantity"/>
+        <see selector="{{StorefrontStockVisualizerSection.count}}" userInput="17" stepKey="seeTheNewQuantity"/>
+        <dontSee selector="{{StorefrontStockVisualizerSection.count}}" userInput="{{StockVisualizerExactQty.qty}}" stepKey="dontSeeTheCachedQuantity"/>
+    </test>
+</tests>
