@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="StorefrontDefaultStockCacheIsPurgedOnStockStatusChangeTest">
+        <annotations>
+            <stories value="Full page cache invalidation"/>
+            <title value="Changing the stock status of a product in the Default Stock purges its cached pages"/>
+            <description value="The only cache invalidation test MSI shipped uses a custom stock and lives in a group both journey suites exclude, so the Default Stock had no functional coverage at all. That stock used to be indexed by the legacy CatalogInventory indexer, which is retired here, and its cache now has to be purged by the MSI indexer like any other stock. Both directions are asserted because they travel different paths: going out of stock is purged from the difference the reindex leaves behind, and coming back in stock is purged from the salability change."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="single_mode"/>
+        </annotations>
+
+        <before>
+            <createData entity="_defaultCategory" stepKey="category"/>
+            <createData entity="SimpleProduct" stepKey="product">
+                <requiredEntity createDataKey="category"/>
+            </createData>
+            <actionGroup ref="CliIndexerReindexActionGroup" stepKey="reindex">
+                <argument name="indices" value=""/>
+            </actionGroup>
+            <actionGroup ref="CliCacheFlushActionGroup" stepKey="flushCache">
+                <argument name="tags" value=""/>
+            </actionGroup>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <deleteData createDataKey="category" stepKey="deleteCategory"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <actionGroup ref="AssertProductInStorefrontCategoryPage" stepKey="cacheTheCategoryPageWhileInStock">
+            <argument name="category" value="$category$"/>
+            <argument name="product" value="$product$"/>
+        </actionGroup>
+        <amOnPage url="{{StorefrontProductPage.url($product.custom_attributes[url_key]$)}}" stepKey="cacheTheProductPageWhileInStock"/>
+        <waitForPageLoad stepKey="waitForProductPageWhileInStock"/>
+        <actionGroup ref="AssertStorefrontProductStockStatusOnProductPageActionGroup" stepKey="seeInStockBeforeTheChange">
+            <argument name="productStockStatus" value="In stock"/>
+        </actionGroup>
+
+        <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToTakeItOutOfStock">
+            <argument name="productId" value="$product.id$"/>
+        </actionGroup>
+        <selectOption selector="{{AdminProductFormSection.productStockStatus}}" userInput="Out of Stock" stepKey="setOutOfStock"/>
+        <actionGroup ref="AdminProductFormSaveActionGroup" stepKey="saveProductOutOfStock"/>
+
+        <actionGroup ref="AssertStorefrontProductAbsentOnCategoryPageActionGroup" stepKey="seeTheCategoryPagePurged">
+            <argument name="categoryUrlKey" value="$category.name$"/>
+            <argument name="productName" value="$product.name$"/>
+        </actionGroup>
+        <amOnPage url="{{StorefrontProductPage.url($product.custom_attributes[url_key]$)}}" stepKey="openProductPageAfterTheChange"/>
+        <waitForPageLoad stepKey="waitForProductPageAfterTheChange"/>
+        <actionGroup ref="AssertStorefrontProductStockStatusOnProductPageActionGroup" stepKey="seeOutOfStockAfterTheChange">
+            <argument name="productStockStatus" value="Out of stock"/>
+        </actionGroup>
+
+        <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToPutItBackInStock">
+            <argument name="productId" value="$product.id$"/>
+        </actionGroup>
+        <selectOption selector="{{AdminProductFormSection.productStockStatus}}" userInput="In Stock" stepKey="setInStock"/>
+        <actionGroup ref="AdminProductFormSaveActionGroup" stepKey="saveProductInStock"/>
+
+        <actionGroup ref="AssertProductInStorefrontCategoryPage" stepKey="seeTheCategoryPagePurgedAgain">
+            <argument name="category" value="$category$"/>
+            <argument name="product" value="$product$"/>
+        </actionGroup>
+        <amOnPage url="{{StorefrontProductPage.url($product.custom_attributes[url_key]$)}}" stepKey="openProductPageBackInStock"/>
+        <waitForPageLoad stepKey="waitForProductPageBackInStock"/>
+        <actionGroup ref="AssertStorefrontProductStockStatusOnProductPageActionGroup" stepKey="seeInStockAgain">
+            <argument name="productStockStatus" value="In stock"/>
+        </actionGroup>
+    </test>
+</tests>
