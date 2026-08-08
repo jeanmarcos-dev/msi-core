@@ -43,13 +43,27 @@ class ProjectLegacyStockItemToConfiguration
     }
 
     /**
+     * Fields the stock index reads to decide whether a row is salable.
+     *
+     * @var string[]
+     */
+    private const FIELDS_THE_INDEX_READS = [
+        'manage_stock',
+        'use_config_manage_stock',
+        'backorders',
+        'use_config_backorders',
+        'min_qty',
+        'use_config_min_qty',
+    ];
+
+    /**
      * Mirror a legacy stock item entity into the MSI stock item configuration table.
      *
      * @param string $sku
      * @param AbstractModel $legacyStockItem
-     * @return void
+     * @return bool whether a field the stock index reads changed, and with it the index the caller holds
      */
-    public function execute(string $sku, AbstractModel $legacyStockItem): void
+    public function execute(string $sku, AbstractModel $legacyStockItem): bool
     {
         $data = $legacyStockItem->getData();
         $row = [StockItemConfigurationResource::SKU => $sku];
@@ -62,5 +76,30 @@ class ProjectLegacyStockItemToConfiguration
 
         $this->stockItemConfigurationResource->save([$row]);
         $this->cacheStorage->delete($sku);
+
+        return $this->changedWhatTheIndexReads($legacyStockItem, $data);
+    }
+
+    /**
+     * Whether the caller moved any of the fields the stock index resolves when it is built.
+     *
+     * @param AbstractModel $legacyStockItem
+     * @param array $data
+     * @return bool
+     */
+    private function changedWhatTheIndexReads(AbstractModel $legacyStockItem, array $data): bool
+    {
+        foreach (self::FIELDS_THE_INDEX_READS as $field) {
+            if (!array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $originalValue = $legacyStockItem->getOrigData($field);
+            if ($originalValue === null || (string)$originalValue !== (string)$data[$field]) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
