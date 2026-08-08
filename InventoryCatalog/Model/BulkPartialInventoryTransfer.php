@@ -7,14 +7,11 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Model;
 
-use Magento\CatalogInventory\Model\Indexer\Stock as LegacyIndexer;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially;
 use Magento\InventoryCatalogApi\Api\BulkPartialInventoryTransferInterface;
 use Magento\InventoryCatalogApi\Api\Data\PartialInventoryTransferItemInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
-use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
 use Magento\InventoryCatalogApi\Model\PartialInventoryTransferValidatorInterface;
 use Magento\InventoryIndexer\Indexer\Source\SourceIndexer;
 
@@ -31,47 +28,23 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
     private $transferCommand;
 
     /**
-     * @var GetProductIdsBySkusInterface
-     */
-    private $productIdsBySkus;
-
-    /**
-     * @var DefaultSourceProviderInterface
-     */
-    private $defaultSourceProvider;
-
-    /**
      * @var SourceIndexer
      */
     private $sourceIndexer;
 
     /**
-     * @var LegacyIndexer
-     */
-    private $legacyIndexer;
-
-    /**
      * @param PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator
      * @param TransferInventoryPartially $transferInventoryPartiallyCommand
-     * @param GetProductIdsBySkusInterface $getProductIdsBySkus
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
      * @param SourceIndexer $sourceIndexer
-     * @param LegacyIndexer $legacyIndexer
      */
     public function __construct(
         PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator,
         TransferInventoryPartially $transferInventoryPartiallyCommand,
-        GetProductIdsBySkusInterface $getProductIdsBySkus,
-        DefaultSourceProviderInterface $defaultSourceProvider,
-        SourceIndexer $sourceIndexer,
-        LegacyIndexer $legacyIndexer
+        SourceIndexer $sourceIndexer
     ) {
         $this->transferValidator = $partialInventoryTransferValidator;
         $this->transferCommand = $transferInventoryPartiallyCommand;
-        $this->productIdsBySkus = $getProductIdsBySkus;
-        $this->defaultSourceProvider = $defaultSourceProvider;
         $this->sourceIndexer = $sourceIndexer;
-        $this->legacyIndexer = $legacyIndexer;
     }
 
     /**
@@ -104,18 +77,10 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
      */
     private function processTransfer(string $originSourceCode, string $destinationSourceCode, array $items): void
     {
-        $processedSkus = [];
         foreach ($items as $item) {
             $this->transferCommand->execute($item, $originSourceCode, $destinationSourceCode);
-            $processedSkus[] = $item->getSku();
         }
 
-        $sources = array_unique([$originSourceCode, $destinationSourceCode]);
-        $this->sourceIndexer->executeList($sources);
-
-        if (in_array($this->defaultSourceProvider->getCode(), $sources)) {
-            $productIds = $this->productIdsBySkus->execute($processedSkus);
-            $this->legacyIndexer->executeList($productIds);
-        }
+        $this->sourceIndexer->executeList(array_unique([$originSourceCode, $destinationSourceCode]));
     }
 }

@@ -9,11 +9,9 @@ namespace Magento\InventoryCatalog\Model;
 
 use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalogApi\Api\BulkSourceUnassignInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 use Magento\InventoryCatalogApi\Model\BulkSourceUnassignValidatorInterface;
 use Magento\InventoryCatalog\Model\ResourceModel\BulkSourceUnassign as BulkSourceUnassignResource;
 use Magento\InventoryIndexer\Indexer\Source\SourceIndexer;
-use Magento\CatalogInventory\Model\Indexer\Stock as LegacyIndexer;
 
 /**
  * @inheritdoc
@@ -36,56 +34,20 @@ class BulkSourceUnassign implements BulkSourceUnassignInterface
     private $sourceIndexer;
 
     /**
-     * @var LegacyIndexer
-     */
-    private $legacyIndexer;
-
-    /**
-     * @var DefaultSourceProviderInterface
-     */
-    private $defaultSourceProvider;
-
-    /**
-     * @var GetProductIdsBySkus
-     */
-    private $getProductIdsBySkus;
-
-    /**
      * MassProductSourceAssign constructor.
      * @param BulkSourceUnassignValidatorInterface $unassignValidator
      * @param BulkSourceUnassignResource $bulkSourceUnassign
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
-     * @param GetProductIdsBySkus $getProductIdsBySkus
      * @param SourceIndexer $sourceIndexer
-     * @param LegacyIndexer $legacyIndexer
      * @SuppressWarnings(PHPMD.LongVariable)
      */
     public function __construct(
         BulkSourceUnassignValidatorInterface $unassignValidator,
         BulkSourceUnassignResource $bulkSourceUnassign,
-        DefaultSourceProviderInterface $defaultSourceProvider,
-        GetProductIdsBySkus $getProductIdsBySkus,
-        SourceIndexer $sourceIndexer,
-        LegacyIndexer $legacyIndexer
+        SourceIndexer $sourceIndexer
     ) {
         $this->unassignValidator = $unassignValidator;
         $this->bulkSourceUnassign = $bulkSourceUnassign;
         $this->sourceIndexer = $sourceIndexer;
-        $this->legacyIndexer = $legacyIndexer;
-        $this->defaultSourceProvider = $defaultSourceProvider;
-        $this->getProductIdsBySkus = $getProductIdsBySkus;
-    }
-
-    /**
-     * Reindex legacy stock (for default source)
-     *
-     * @param array $skus
-     * @throws \Magento\Framework\Exception\NoSuchEntityException
-     */
-    private function reindexLegacy(array $skus): void
-    {
-        $productIds = array_values($this->getProductIdsBySkus->execute($skus));
-        $this->legacyIndexer->executeList($productIds);
     }
 
     /**
@@ -102,9 +64,6 @@ class BulkSourceUnassign implements BulkSourceUnassignInterface
         $res = $this->bulkSourceUnassign->execute($skus, $sourceCodes);
 
         $this->sourceIndexer->executeList($sourceCodes);
-        if (in_array($this->defaultSourceProvider->getCode(), $sourceCodes, true)) {
-            $this->reindexLegacy($skus);
-        }
 
         return $res;
     }
