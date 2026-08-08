@@ -16,6 +16,7 @@
             <severity value="MAJOR"/>
             <group value="stock_visualizer"/>
             <group value="msi"/>
+            <group value="single_mode"/>
         </annotations>
 
         <before>
