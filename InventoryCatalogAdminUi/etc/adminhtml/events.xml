@@ -11,5 +11,6 @@
     </event>
     <event name="admin_system_config_changed_section_cataloginventory">
         <observer name="inventory_configuration" instance="Magento\InventoryCatalogAdminUi\Observer\UpdateSourceItemsUponConfigChangeObserver"/>
+        <observer name="inventory" instance="Magento\CatalogInventory\Observer\UpdateItemsStockUponConfigChangeObserver" disabled="true"/>
     </event>
 </config>
