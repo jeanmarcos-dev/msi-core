@@ -8,8 +8,9 @@ The Multi-Source Inventory (MSI) project is designed to enable stock management 
 
 > **This is the `next-release` branch of the `jeanmarcos/inventory` fork.** It removes the
 > special treatment of the Default Stock: stock id 1 behaves like any other stock, and the
-> `cataloginventory_*` tables are no longer read or written by MSI. They are kept but stay
-> frozen and empty, and code reading them with raw SQL will see stale data.
+> `cataloginventory_*` tables are no longer read or written by MSI. They are kept but frozen
+> on the rows they held at the upgrade, so code reading them with raw SQL sees stale data and
+> code writing them changes nothing — writes are counted and reported rather than applied.
 > Read [`UPGRADE.md`](UPGRADE.md) before installing or upgrading, and
 > [`DISTRIBUTION.md`](DISTRIBUTION.md) for what else this fork changes.
 

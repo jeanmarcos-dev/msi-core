@@ -1,0 +1,15 @@
+{
+    "inventory_legacy_stock_write": {
+        "column": {
+            "table_name": true,
+            "operation": true,
+            "write_count": true,
+            "sample_product_id": true,
+            "first_detected_at": true,
+            "last_detected_at": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}

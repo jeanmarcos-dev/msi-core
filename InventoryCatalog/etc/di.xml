@@ -221,4 +221,11 @@
         </arguments>
     </type>
     <preference for="Magento\Framework\Indexer\Config\Converter\SortingAdjustmentInterface" type="Magento\InventoryCatalog\Model\SortingAdjustment" />
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="inventoryCatalogLegacyStockWrites" xsi:type="object">Magento\InventoryCatalog\Console\Command\LegacyStockWritesCommand</item>
+            </argument>
+        </arguments>
+    </type>
 </config>

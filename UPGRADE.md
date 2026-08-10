@@ -63,9 +63,11 @@ a product created after the upgrade
 
 Truncating them is safe: with both tables empty, the conformance suite, the functional end
 to end suite and a concurrent checkout run all pass unchanged, and nothing writes a row
-back. It is nevertheless left as a deliberate decision rather than done for you, because a
-store that still runs an extension reading them will fail differently — visibly on a
-truncated table, silently on a frozen one.
+back. It is nevertheless left as a deliberate decision rather than done for you, and there
+is a reason to lean against it. A store that still runs an extension *reading* them fails
+differently — visibly on a truncated table, silently on a frozen one — but keeping the rows
+is what lets the write detector below see an extension *writing* them. Reads argue for
+truncating, writes argue for keeping; neither is free.
 
 ## What breaks
 
@@ -99,6 +101,31 @@ appear to succeed and change nothing. Point it at `SourceItemsSaveInterface`, or
 `StockRegistryInterface::updateStockItemBySku()`, which MSI projects onto the default
 source item.
 
+Because that failure is silent, the upgrade installs four database triggers that count
+those writes into `inventory_legacy_stock_write`. An admin notification then names the
+table and the number of ignored writes, and the same record is available from the console:
+
+```
+bin/magento inventory:legacy-stock:writes            # report; exits non-zero while any write is on record
+bin/magento inventory:legacy-stock:writes --clear    # acknowledge and forget them
+bin/magento inventory:legacy-stock:writes --disable  # drop the triggers
+```
+
+The report is a starting point, not an audit. A trigger fires per row, so it catches every
+`INSERT` and every `UPDATE` that matches at least one row — but an `UPDATE` matching nothing
+is invisible to the database, and no trigger can see it. **That is a reason not to truncate
+the tables**: while they still hold their pre-upgrade rows, an extension updating a product
+by id still hits a row and gets counted; on an empty table the same statement passes
+unnoticed. The triggers need the `TRIGGER` privilege; without it `setup:upgrade` logs a
+warning and continues, and detection stays off until the privilege is granted and
+`--enable` is run.
+
+CatalogInventory itself used to be the loudest writer here: saving the inventory
+configuration section made it rewrite every `cataloginventory_stock_item` row through
+`UpdateItemsStockUponConfigChangeObserver` — 2464 discarded writes on a 2.5k product
+catalog, and a full pass over the table for nothing. That observer is disabled, so what the
+detector reports is third-party code and not Magento talking to itself.
+
 ## Upgrading
 
 The upgrade is a maintenance operation. Expect downtime proportional to your catalog size.
@@ -114,7 +141,9 @@ The upgrade is a maintenance operation. Expect downtime proportional to your cat
      the slow step;
    - `DisableLegacyStockIndexer`: switches `cataloginventory_stock` back to realtime mode,
      which is the only way to drop its mview triggers — the subscriptions have to be
-     removed while the view still knows about them.
+     removed while the view still knows about them;
+   - `DetectLegacyStockWrites`: installs the triggers that count writes made against the
+     frozen tables. It needs the `TRIGGER` privilege and only warns when it is missing.
 4. `bin/magento indexer:reindex inventory` — required: stock 1 has no index rows yet. The
    schema patch already invalidates the indexer, so a cron-driven reindex would eventually
    pick it up too; do not rely on that during an upgrade window.

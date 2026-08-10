@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="inventory_legacy_stock_write" resource="default" engine="innodb"
+           comment="Writes Detected Against the Frozen CatalogInventory Tables">
+        <column xsi:type="varchar" name="table_name" nullable="false" length="64" comment="Legacy Table Name"/>
+        <column xsi:type="varchar" name="operation" nullable="false" length="16" comment="Sql Operation"/>
+        <column xsi:type="bigint" name="write_count" unsigned="true" nullable="false" identity="false"
+                default="0" comment="Number of Rows Written"/>
+        <column xsi:type="int" name="sample_product_id" unsigned="true" nullable="true"
+                comment="Product Id of the Last Detected Write"/>
+        <column xsi:type="timestamp" name="first_detected_at" nullable="true" comment="First Detected At"/>
+        <column xsi:type="timestamp" name="last_detected_at" nullable="true" comment="Last Detected At"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="table_name"/>
+            <column name="operation"/>
+        </constraint>
+    </table>
+</schema>
