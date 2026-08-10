@@ -78,7 +78,6 @@ class AbstractStockqtyPlugin
      * @param AbstractStockqty $subject
      * @param callable $proceed
      * @return bool
-     * @throws SkuIsNotAssignedToStockException
      * @throws LocalizedException
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
@@ -90,9 +89,12 @@ class AbstractStockqtyPlugin
             $stockId = (int)$this->stockByWebsiteId->execute(
                 (int)$subject->getProduct()->getStore()->getWebsiteId()
             )->getStockId();
-            $stockItemConfig = $this->getStockItemConfiguration->execute($sku, $stockId);
-
-            $salableQty = $this->getProductSalableQty->execute($sku, $stockId);
+            try {
+                $stockItemConfig = $this->getStockItemConfiguration->execute($sku, $stockId);
+                $salableQty = $this->getProductSalableQty->execute($sku, $stockId);
+            } catch (SkuIsNotAssignedToStockException $e) {
+                return false;
+            }
 
             return $stockItemConfig->isManageStock()
                 && $this->qtyLeftChecker->execute($salableQty, $stockItemConfig);
