@@ -37,6 +37,10 @@
             </createData>
             <!--Assign created source to product and set product sock status to out of stock.-->
             <actionGroup ref="AdminLoginActionGroup" stepKey="loginToAdminArea"/>
+            <actionGroup ref="AssignWebsiteToStockActionGroup" stepKey="assignMainWebsiteToCustomStock">
+                <argument name="stockName" value="$$stock.stock[name]$$"/>
+                <argument name="websiteName" value="{{_defaultWebsite.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductEditPageToAssignSource">
                 <argument name="productId" value="$$product.id$$"/>
             </actionGroup>
