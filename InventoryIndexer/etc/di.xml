@@ -86,7 +86,7 @@
             <argument name="dimensionName" xsi:type="string">stock_</argument>
         </arguments>
     </type>
-    <type name="Magento\InventorySales\Model\PlaceReservationsForSalesEvent">
+    <type name="Magento\InventorySales\Model\SourceReservation\PlaceReservationsForSalesEventRouter">
         <plugin name="schedule_reservation_place" type="Magento\InventoryIndexer\Plugin\InventorySales\EnqueueAfterPlaceReservationsForSalesEvent"/>
     </type>
     <type name="Magento\InventoryIndexer\Model\ResourceModel\GetProductIdsByStockIds">

@@ -10,9 +10,9 @@ namespace Magento\InventoryIndexer\Plugin\InventorySales;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\InventoryIndexer\Model\Queue\ReservationData;
 use Magento\InventoryIndexer\Model\Queue\ReservationDataFactory;
-use Magento\InventorySales\Model\PlaceReservationsForSalesEvent;
 use Magento\InventorySalesApi\Api\Data\ItemToSellInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
+use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
 use Magento\InventorySalesApi\Model\GetAssignedStockIdForWebsiteInterface;
 
 /**
@@ -58,7 +58,7 @@ class EnqueueAfterPlaceReservationsForSalesEvent
     /**
      * Publish reservation data for reindex.
      *
-     * @param PlaceReservationsForSalesEvent $subject
+     * @param PlaceReservationsForSalesEventInterface $subject
      * @param void $result
      * @param ItemToSellInterface[] $items
      * @param SalesChannelInterface $salesChannel
@@ -67,7 +67,7 @@ class EnqueueAfterPlaceReservationsForSalesEvent
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function afterExecute(
-        PlaceReservationsForSalesEvent $subject,
+        PlaceReservationsForSalesEventInterface $subject,
         $result,
         array $items,
         SalesChannelInterface $salesChannel
