@@ -11,7 +11,6 @@ use Magento\Framework\Webapi\Rest\Request;
 use Magento\InventoryApi\Api\Data\SourceCarrierLinkInterface;
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\TestFramework\TestCase\WebapiAbstract;
-use PHPUnit\Framework\Attributes\DataProvider;
 
 class CarrierLinkManagementTest extends WebapiAbstract
 {
@@ -21,129 +20,6 @@ class CarrierLinkManagementTest extends WebapiAbstract
     private const RESOURCE_PATH = '/V1/inventory/sources';
     private const SERVICE_NAME = 'inventoryApiSourceRepositoryV1';
     /**#@-*/
-
-    /**
-     * @param array $carrierLinks
-     * @magentoApiDataFixture ../../../../app/code/Magento/InventoryApi/Test/_files/source.php
-     */
-    #[DataProvider('dataProviderCarrierLinks')]
-    public function testCarrierLinksManagement(array $carrierLinks)
-    {
-        $this->markTestSkipped('Binding carriers to individual sources is not implemented in MSI MVP');
-        $sourceCode = 'source-code-1';
-        $expectedData = [
-            SourceInterface::NAME => 'source-name-1',
-            SourceInterface::POSTCODE => 'source-postcode',
-            SourceInterface::COUNTRY_ID => 'US',
-            SourceInterface::USE_DEFAULT_CARRIER_CONFIG => 0,
-            SourceInterface::CARRIER_LINKS => $carrierLinks,
-        ];
-
-        $this->saveSource($sourceCode, $expectedData);
-        $sourceData = $this->getSourceDataByCode($sourceCode);
-
-        self::assertArrayHasKey(SourceInterface::USE_DEFAULT_CARRIER_CONFIG, $sourceData);
-        self::assertEquals(
-            $expectedData[SourceInterface::USE_DEFAULT_CARRIER_CONFIG],
-            $sourceData[SourceInterface::USE_DEFAULT_CARRIER_CONFIG]
-        );
-
-        self::assertArrayHasKey(SourceInterface::CARRIER_LINKS, $sourceData);
-        self::assertEquals($expectedData[SourceInterface::CARRIER_LINKS], $sourceData[SourceInterface::CARRIER_LINKS]);
-    }
-
-    /**
-     * @return array
-     */
-    public static function dataProviderCarrierLinks(): array
-    {
-        return [
-            'add_carrier_new_links' => [
-                [
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'ups',
-                        SourceCarrierLinkInterface::POSITION => 100,
-                    ],
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'usps',
-                        SourceCarrierLinkInterface::POSITION => 200,
-                    ],
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'dhl',
-                        SourceCarrierLinkInterface::POSITION => 300,
-                    ],
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'fedex',
-                        SourceCarrierLinkInterface::POSITION => 400,
-                    ],
-                ],
-            ],
-            'replace_carrier_links' => [
-                [
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'dhl',
-                        SourceCarrierLinkInterface::POSITION => 100,
-                    ],
-                    [
-                        SourceCarrierLinkInterface::CARRIER_CODE => 'fedex',
-                        SourceCarrierLinkInterface::POSITION => 200,
-                    ],
-                ],
-            ],
-            'delete_carrier_links' => [
-                [],
-            ],
-        ];
-    }
-
-    /**
-     * @param string $sourceCode
-     * @param array $data
-     * @return void
-     */
-    private function saveSource(string $sourceCode, array $data)
-    {
-        $serviceInfo = [
-            'rest' => [
-                'resourcePath' => self::RESOURCE_PATH . '/' . $sourceCode,
-                'httpMethod' => Request::HTTP_METHOD_PUT,
-            ],
-            'soap' => [
-                'service' => self::SERVICE_NAME,
-                'operation' => self::SERVICE_NAME . 'Save',
-            ],
-        ];
-        if (TESTS_WEB_API_ADAPTER === self::ADAPTER_REST) {
-            $this->_webApiCall($serviceInfo, ['source' => $data]);
-        } else {
-            $requestData = $data;
-            $requestData['sourceCode'] = $sourceCode;
-            $this->_webApiCall($serviceInfo, ['source' => $requestData]);
-        }
-    }
-
-    /**
-     * @param string $sourceCode
-     * @return array
-     */
-    private function getSourceDataByCode(string $sourceCode): array
-    {
-        $serviceInfo = [
-            'rest' => [
-                'resourcePath' => self::RESOURCE_PATH . '/' . $sourceCode,
-                'httpMethod' => Request::HTTP_METHOD_GET,
-            ],
-            'soap' => [
-                'service' => self::SERVICE_NAME,
-                'operation' => self::SERVICE_NAME . 'Get',
-            ],
-        ];
-        $response = (TESTS_WEB_API_ADAPTER === self::ADAPTER_REST)
-            ? $this->_webApiCall($serviceInfo)
-            : $this->_webApiCall($serviceInfo, ['sourceCode' => $sourceCode]);
-        self::assertArrayHasKey(SourceInterface::SOURCE_CODE, $response);
-        return $response;
-    }
 
     /**
      * @param array $carrierData
@@ -176,51 +52,6 @@ class CarrierLinkManagementTest extends WebapiAbstract
                         'You can\'t configure "%field" because you have chosen Global Shipping configuration.',
                     'parameters' => [
                         'field' => SourceInterface::CARRIER_LINKS,
-                    ],
-                ],
-            ],
-        ];
-
-        $this->validate($carrierData, $expectedErrorData);
-    }
-
-    /**
-     * @param array $carrierData
-     * @param array $expectedErrorData
-     */
-    public function testCarrierLinksValidationWithNonExistedCarrierCode()
-    {
-        $this->markTestSkipped('Binding carriers to individual sources is not implemented in MSI MVP');
-        $carrierData = [
-            SourceInterface::SOURCE_CODE => 'source-code-1',
-            SourceInterface::NAME => 'source-name-1',
-            SourceInterface::POSTCODE => 'source-postcode',
-            SourceInterface::COUNTRY_ID => 'US',
-            SourceInterface::USE_DEFAULT_CARRIER_CONFIG => 0,
-            SourceInterface::CARRIER_LINKS => [
-                [
-                    SourceCarrierLinkInterface::CARRIER_CODE => 'no_exists_1',
-                    SourceCarrierLinkInterface::POSITION => 100,
-                ],
-                [
-                    SourceCarrierLinkInterface::CARRIER_CODE => 'no_exists_2',
-                    SourceCarrierLinkInterface::POSITION => 200,
-                ],
-            ],
-        ];
-        $expectedErrorData = [
-            'message' => 'Validation Failed',
-            'errors' => [
-                [
-                    'message' => 'Carrier with code: "%carrier" don\'t exists.',
-                    'parameters' => [
-                        'carrier' => 'no_exists_1',
-                    ],
-                ],
-                [
-                    'message' => 'Carrier with code: "%carrier" don\'t exists.',
-                    'parameters' => [
-                        'carrier' => 'no_exists_2',
                     ],
                 ],
             ],
