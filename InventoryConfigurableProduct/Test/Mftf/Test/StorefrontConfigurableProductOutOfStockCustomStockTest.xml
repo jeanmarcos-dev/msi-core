@@ -145,6 +145,8 @@
             <argument name="website" value="{{NewWebSiteData.name}}"/>
         </actionGroup>
         <!-- Generate product options  -->
+        <scrollToTopOfPage stepKey="scrollToTopBeforeGeneratingConfigurations"/>
+        <waitForPageLoad stepKey="waitForFormAfterWebsiteAssignment"/>
         <actionGroup ref="createConfigurationsForTwoAttributeCustomSource" stepKey="createConfigurationsWithCustomStock">
             <argument name="attributeCode" value="$$createFirstConfigProductAttribute.attribute_code$$"/>
             <argument name="secondAttributeCode" value="$$createSecondConfigProductAttribute.attribute_code$$"/>
