@@ -71,7 +71,10 @@ This mirrors the target Magento version and does not collide with Adobe's own
   read nor written by MSI. This removes the ~50 `if (default stock)` branches
   that gave the same catalog two behaviours, and with them a class of defects
   that could only be fixed twice. Breaking change — see [`UPGRADE.md`](UPGRADE.md)
-  for what it costs, what it breaks and how to migrate.
+  for what it costs, what it breaks and how to migrate. Because a write to those
+  frozen tables now changes nothing and raises nothing, the upgrade installs
+  triggers that count such writes and reports them in the admin and through
+  `bin/magento inventory:legacy-stock:writes`.
 - **Source-level reservations** (opt-in, default off): the global config
   `cataloginventory/source_reservations/enabled` (Stores > Configuration >
   Catalog > Inventory > Source-Level Reservations) splits each sales
