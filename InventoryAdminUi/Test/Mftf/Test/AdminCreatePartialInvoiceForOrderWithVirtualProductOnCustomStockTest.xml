@@ -30,7 +30,7 @@
                 <requiredEntity createDataKey="customStock"/>
                 <requiredEntity createDataKey="customSource"/>
             </createData>
-            <createData entity="SourceStockLinked1" stepKey="stockSourceLink2">
+            <createData entity="SourceStockLinked2" stepKey="stockSourceLink2">
                 <requiredEntity createDataKey="customStock"/>
                 <requiredEntity createDataKey="customSource2"/>
             </createData>
