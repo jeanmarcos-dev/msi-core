@@ -1,13 +1,14 @@
 name: dist QA
 
-# Lean, self-contained quality gate for the jeanmarcos/inventory distribution.
+# Lean, self-contained quality gate for both distributed packages,
+# jeanmarcos/inventory (dist-*) and jeanmarcos/msi-core (next-release).
 # Runs php-lint + phpcs (Magento2) + phpmd on the PR's changed PHP files only.
 # No magento/framework and no repo.magento.com auth: phpunit and the framework-
 # dependent PHPMD rules stay in the local QA gate.
 
 on:
   pull_request:
-    branches: ['dist-**']
+    branches: ['dist-**', 'next-release']
     paths: ['**.php']
   workflow_dispatch:
 
