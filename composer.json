@@ -1,8 +1,22 @@
 {
-    "name": "jeanmarcos/inventory",
-    "description": "Community distribution of Magento Multi-Source Inventory (MSI) with curated fixes. Derived from magento/inventory (Copyright Adobe), redistributed under AFL-3.0. Not affiliated with or endorsed by Adobe.",
+    "name": "jeanmarcos/msi-core",
+    "description": "Multi-Source Inventory as the single inventory system for Magento Open Source: one code path for every stock, no special Default Stock, and the cataloginventory_* tables no longer read or written. Derived from magento/inventory (Copyright Adobe), redistributed under AFL-3.0. Not affiliated with or endorsed by Adobe.",
     "type": "library",
     "license": "AFL-3.0",
+    "keywords": [
+        "magento",
+        "magento2",
+        "mage-os",
+        "inventory",
+        "msi",
+        "multi-source-inventory",
+        "stock"
+    ],
+    "homepage": "https://github.com/jeanmarcos-dev/inventory",
+    "support": {
+        "issues": "https://github.com/jeanmarcos-dev/inventory/issues",
+        "source": "https://github.com/jeanmarcos-dev/inventory/tree/next-release"
+    },
     "require": {
         "php": "~8.3.0||~8.4.0||~8.5.0",
         "magento/framework": ">=103.0.9 <103.0.10",
@@ -186,6 +200,9 @@
         "mage-os/module-inventory-swatches-frontend-ui": "*",
         "mage-os/module-inventory-visual-merchandiser": "*",
         "mage-os/module-inventory-wishlist": "*"
+    },
+    "conflict": {
+        "jeanmarcos/inventory": "*"
     },
     "autoload": {
         "files": [
