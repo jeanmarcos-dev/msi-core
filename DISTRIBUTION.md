@@ -1,14 +1,20 @@
-# jeanmarcos/inventory — Community MSI distribution (Magento 2.4.9)
+# Distribution
 
 A redistributable fork of Magento **Multi-Source Inventory (MSI)** that ships
-curated community fixes ahead of the upstream release cadence.
+curated community fixes ahead of the upstream release cadence, published as two
+packages:
 
-> **This branch (`next-release`) is not a drop-in replacement.** It removes the
-> special Default Stock and stops MSI from writing the `cataloginventory_*`
-> tables, which changes the schema and the data contract. Read
-> [`UPGRADE.md`](UPGRADE.md) before installing it anywhere. Everything below
-> describes the shared distribution mechanics; the `Installation` and
-> `Versioning` sections apply to the `dist-2.4.x` branches, not to this one.
+| Branch | Package | Magento | Drop-in |
+|---|---|---|---|
+| `dist-2.4.7` | `jeanmarcos/inventory:2.4.7.*` | 2.4.7 | yes |
+| `dist-2.4.8` | `jeanmarcos/inventory:2.4.8.*` | 2.4.8 | yes |
+| `dist-2.4.9` | `jeanmarcos/inventory:2.4.9.*` | 2.4.9 | yes |
+| `next-release` | `jeanmarcos/msi-core:^1.0` | 2.4.9 | **no** |
+
+> **`msi-core` is not a drop-in replacement.** It removes the special Default
+> Stock and stops MSI from writing the `cataloginventory_*` tables, which changes
+> the schema and the data contract. Read [`UPGRADE.md`](UPGRADE.md) before
+> installing it anywhere.
 
 > This is a modified derivative of [`magento/inventory`](https://github.com/magento/inventory)
 > (Copyright Adobe), redistributed under **AFL-3.0**. Not affiliated with or
@@ -23,17 +29,26 @@ Composer package identity changes.
 
 `next-release` is based on `dist-2.4.9` and keeps the module names and
 namespaces, but adds a table, migrates data into it and stops writing two core
-tables, so it is a schema upgrade rather than a swap. Its package name and
-distribution channel are still undecided; until they are, install it from the
-branch and pin the commit.
+tables, so it is a schema upgrade rather than a swap. It ships as a separate
+package, `jeanmarcos/msi-core`, under plain Semantic Versioning — see
+[`VERSIONING.md`](VERSIONING.md) for why the two schemes differ and what a
+version number promises.
+
+The two packages replace the same modules and therefore cannot coexist.
+`msi-core` declares an explicit `conflict` on `jeanmarcos/inventory`, so Composer
+refuses the combination instead of producing a broken tree.
 
 ## How it works
 
-The single package `jeanmarcos/inventory` uses Composer's `replace` directive
-to provide the 73 open-source MSI modules that ship with Magento 2.4.9.
-Its `require` pins `magento/framework` to the 2.4.9 line, so Composer will
-only install this build on a matching Magento version and auto-selects the right
-build across versions.
+Both packages use Composer's `replace` directive to provide the 73 open-source
+MSI modules that ship with Magento, plus the fork's own
+`Magento_InventoryStockVisualizer`. On the 2.4.9 line and on `msi-core` the
+`replace` covers the `mage-os/*` packages as well as the `magento/*` ones, which
+is what makes them install on Mage-OS without further configuration.
+
+Each build pins `magento/framework` to its target line, so Composer only installs
+it on a matching Magento version and auto-selects the right build across
+versions.
 
 ## Installation
 
@@ -47,25 +62,34 @@ build across versions.
 ```
 
 ```bash
-# explicit for this line:
+# a drop-in line, explicit:
 composer require "jeanmarcos/inventory:2.4.9.*"
 # or let the framework gate auto-select the right build:
 composer require "jeanmarcos/inventory:*"
+
+# or this line, which is a schema upgrade — read UPGRADE.md first:
+composer require "jeanmarcos/msi-core:^1.0"
+
 bin/magento setup:upgrade
 ```
 
 ## Versioning
 
-Releases are tagged **`2.4.9.<n>`** (e.g. `2.4.9.0`, `2.4.9.1`) — the
-4th segment is this distribution's release counter for the Magento 2.4.9 line.
+`jeanmarcos/inventory` is tagged **`2.4.M.<n>`** (e.g. `2.4.9.0`, `2.4.9.1`) — the
+4th segment is this distribution's release counter for the Magento 2.4.M line.
 This mirrors the target Magento version and does not collide with Adobe's own
 `-pN` security-patch naming. Each Magento line has its own `dist-<version>` branch.
+
+`jeanmarcos/msi-core` is tagged with plain Semantic Versioning, and carries its
+Magento compatibility in the `magento/framework` constraint rather than in the
+version number. [`VERSIONING.md`](VERSIONING.md) states what each scheme
+promises and what counts as public API.
 
 ## Differences from upstream
 
 - Curated fixes applied on top of the Magento 2.4.9 MSI baseline (cherry-picked
   commits are tagged `[picked #NNNN]`).
-- **No special Default Stock** (`next-release` only): stock id 1 is indexed,
+- **No special Default Stock** (`msi-core` only): stock id 1 is indexed,
   configured, edited and deleted like any stock you create yourself, the
   composite indexers cover it, and the `cataloginventory_*` tables are neither
   read nor written by MSI. This removes the ~50 `if (default stock)` branches
@@ -90,9 +114,10 @@ This mirrors the target Magento version and does not collide with Adobe's own
   - `inventory:reservation:create-compensations` still creates stock-scoped
     compensations; per-source residues of such orders are kept (not deleted by
     the cleanup cron) and remain visible until compensated per source.
-  - Concurrent orders on different stocks sharing a source are not serialized
-    against each other (the place-order lock is per stock); totals per stock
-    are always preserved.
+  - Concurrent orders that could draw from the same source are serialized
+    against each other: the lock is taken per `(sku, source)` rather than per
+    `(sku, stock)`, so two orders on different stocks sharing a source can no
+    longer race on it. Orders with no source in common run fully in parallel.
 - **Salable quantity broken down by source**: the *Product Salable Quantity*
   section of the product form and the *Salable Quantity* column of the product
   grid report, for every source of a stock, the quantity on hand, that source's

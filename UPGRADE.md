@@ -162,10 +162,57 @@ repopulated from MSI — quantities from `inventory_source_item` for the default
 configuration from `inventory_stock_item_configuration` — and the `inventory_stock_1`
 view recreated. Restore the backup instead.
 
+## Deployment requirements
+
+### The salability consumer must run
+
+```bash
+bin/magento queue:consumers:start inventory.reservations.updateSalabilityStatus
+```
+
+This is a requirement, not a tuning recommendation. Placing a reservation publishes a
+message that refreshes the stock index; nothing else does. With the consumer down, two
+things happen at once: the index goes stale, so the storefront keeps selling what is
+already committed, and `queue_message` grows without bound, so every subsequent
+reservation pays to write into a larger table.
+
+Measured on the reservation path, 8 workers placing 25 reservations each:
+
+| | `place_ms` |
+|---|---|
+| publisher disabled | 8.5 |
+| publisher on, queue drained | 14.2 |
+| publisher on, 2568 pending rows | 16.5 |
+
+The 2.3 ms between the last two rows is not a fixed cost — it scales with the table. On a
+~620 ms checkout the whole publish is about 1%, but it does not stay there if nothing
+consumes.
+
+The standard `consumers_runner` cron covers this. Verify it after the upgrade rather than
+assuming it, and alert on the depth of that queue.
+
+### Other consumers
+
+If you enable the storefront stock visualizer with the queue purge strategy, also run
+`inventory.stockvisualizer.purge`. The existing MSI consumers (`inventory.indexer.*`,
+`inventory.reservations.*`) are unchanged by this upgrade.
+
 ## Not a drop-in replacement
 
 The `dist-2.4.x` branches of this fork replace `magento/inventory-*` transparently through
 Composer's `replace` directive: same module names, same namespaces, same schema. This line
 changes the schema and the data contract, so it cannot share their versioning or their
-package identity. Its distribution channel and package name are not settled yet; until
-they are, install it from the branch and pin the commit.
+package identity.
+
+It ships as `jeanmarcos/msi-core` under plain Semantic Versioning:
+
+```bash
+composer require "jeanmarcos/msi-core:^1.0"
+```
+
+The two packages provide the same modules and cannot coexist. `msi-core` declares an
+explicit `conflict` on `jeanmarcos/inventory`, so replacing one with the other is a single
+`composer require` — Composer removes the old package rather than leaving both in the tree.
+
+See [`VERSIONING.md`](VERSIONING.md) for what a version number promises here, and which
+parts of the codebase that promise covers.
