@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.0 — unreleased
+# msi-core 1.0.0 — 2026-08-13
 
 The first release in which MSI is the only inventory system. Exclusive to this line: it changes the
 schema and the data contract, which is why it cannot ship on the `dist-2.4.x` lines at all.
