@@ -111,9 +111,10 @@ since the module names, namespaces and service contracts are unchanged:
 ## Contributing
 
 Issues and pull requests are welcome at
-[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core). Report anything specific to
-the drop-in lines at [jeanmarcos-dev/inventory](https://github.com/jeanmarcos-dev/inventory)
-instead; the two repositories share this codebase, and a fix that applies to both is ported.
+[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core), for the drop-in lines too —
+that repository is a fork and has its issue tracker disabled. Say which package and which Magento
+version you are on; the two repositories share this codebase, and a fix that applies to both is
+ported.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) with a single-line
 subject; a git hook enforces it. Changes to reservations, salability or the indexers must come with
