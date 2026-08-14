@@ -207,12 +207,13 @@ package identity.
 It ships as `jeanmarcos/msi-core` under plain Semantic Versioning:
 
 ```bash
+composer remove jeanmarcos/inventory
 composer require "jeanmarcos/msi-core:^1.0"
 ```
 
-The two packages provide the same modules and cannot coexist. `msi-core` declares an
-explicit `conflict` on `jeanmarcos/inventory`, so replacing one with the other is a single
-`composer require` — Composer removes the old package rather than leaving both in the tree.
+The two packages provide the same modules and cannot coexist. Remove the old one first:
+nothing in either package declares a `conflict` that would stop you, so a tree holding
+both is your responsibility to avoid.
 
 See [`VERSIONING.md`](VERSIONING.md) for what a version number promises here, and which
 parts of the codebase that promise covers.

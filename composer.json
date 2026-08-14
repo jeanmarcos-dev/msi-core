@@ -201,9 +201,6 @@
         "mage-os/module-inventory-visual-merchandiser": "*",
         "mage-os/module-inventory-wishlist": "*"
     },
-    "conflict": {
-        "jeanmarcos/inventory": "*"
-    },
     "autoload": {
         "files": [
             "Inventory/registration.php",

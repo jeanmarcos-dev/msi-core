@@ -38,8 +38,9 @@ swaps the package, the module names and namespaces stay identical, and no migrat
 **Pick `msi-core`** if you want one inventory system instead of two, and can accept a schema
 migration with downtime and a documented break for code that reads `cataloginventory_*` by raw SQL.
 
-> `msi-core` and `jeanmarcos/inventory` provide the same modules and cannot be installed together.
-> Composer will refuse the combination rather than produce a broken tree.
+> `msi-core` and `jeanmarcos/inventory` provide the same modules, so a store runs one or the other,
+> never both. Remove the old package in the same operation that requires the new one:
+> `composer remove jeanmarcos/inventory && composer require jeanmarcos/msi-core:^1.0`.
 
 ## Install
 

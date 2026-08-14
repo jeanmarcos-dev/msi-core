@@ -34,9 +34,12 @@ package, `jeanmarcos/msi-core`, under plain Semantic Versioning — see
 [`VERSIONING.md`](VERSIONING.md) for why the two schemes differ and what a
 version number promises.
 
-The two packages replace the same modules and therefore cannot coexist.
-`msi-core` declares an explicit `conflict` on `jeanmarcos/inventory`, so Composer
-refuses the combination instead of producing a broken tree.
+The two packages replace the same modules and therefore cannot coexist. Remove
+one before requiring the other; do not expect a `conflict` declaration to stop
+you, because a package published from this repository cannot declare one against
+its sibling — Packagist serves every branch of a repository under a single
+package name, so such a declaration reads as a conflict against itself and is
+rejected.
 
 ## How it works
 
