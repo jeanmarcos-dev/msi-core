@@ -211,9 +211,9 @@ composer remove jeanmarcos/inventory
 composer require "jeanmarcos/msi-core:^1.0"
 ```
 
-The two packages provide the same modules and cannot coexist. Remove the old one first:
-nothing in either package declares a `conflict` that would stop you, so a tree holding
-both is your responsibility to avoid.
+The two packages provide the same modules and cannot coexist. `msi-core` declares an
+explicit `conflict` on `jeanmarcos/inventory`, so Composer refuses a tree holding both
+rather than producing a broken one — remove the old package first.
 
 See [`VERSIONING.md`](VERSIONING.md) for what a version number promises here, and which
 parts of the codebase that promise covers.

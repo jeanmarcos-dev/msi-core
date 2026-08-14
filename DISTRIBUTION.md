@@ -2,14 +2,19 @@
 
 A redistributable fork of Magento **Multi-Source Inventory (MSI)** that ships
 curated community fixes ahead of the upstream release cadence, published as two
-packages:
+packages from two repositories:
 
-| Branch | Package | Magento | Drop-in |
+| Package | Repository · branch | Magento | Drop-in |
 |---|---|---|---|
-| `dist-2.4.7` | `jeanmarcos/inventory:2.4.7.*` | 2.4.7 | yes |
-| `dist-2.4.8` | `jeanmarcos/inventory:2.4.8.*` | 2.4.8 | yes |
-| `dist-2.4.9` | `jeanmarcos/inventory:2.4.9.*` | 2.4.9 | yes |
-| `next-release` | `jeanmarcos/msi-core:^1.0` | 2.4.9 | **no** |
+| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` · `dist-2.4.7` | 2.4.7 | yes |
+| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` · `dist-2.4.8` | 2.4.8 | yes |
+| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` · `dist-2.4.9` | 2.4.9 | yes |
+| `jeanmarcos/msi-core:^1.0` | `jeanmarcos-dev/msi-core` · `main` | 2.4.9 | **no** |
+
+They are two repositories rather than two branches of one because Packagist
+serves every branch of a repository under a single package name: a second
+package identity needs a second repository. The codebase is shared, and a fix
+that applies to both is ported.
 
 > **`msi-core` is not a drop-in replacement.** It removes the special Default
 > Stock and stops MSI from writing the `cataloginventory_*` tables, which changes
@@ -22,24 +27,20 @@ packages:
 
 ## What this is
 
-The `dist-2.4.9` branch targets **Magento Open Source 2.4.9** (PHP 8.3 - 8.5).
-The PHP code keeps its original `Magento_Inventory*` module names and
-`Magento\Inventory*` namespaces, so it is a **drop-in replacement**. Only the
-Composer package identity changes.
+The `dist-2.4.x` branches keep the original `Magento_Inventory*` module names and
+`Magento\Inventory*` namespaces, and change nothing else, so each is a **drop-in
+replacement** for the MSI of its Magento line. Only the Composer package identity
+changes.
 
-`next-release` is based on `dist-2.4.9` and keeps the module names and
-namespaces, but adds a table, migrates data into it and stops writing two core
-tables, so it is a schema upgrade rather than a swap. It ships as a separate
-package, `jeanmarcos/msi-core`, under plain Semantic Versioning — see
-[`VERSIONING.md`](VERSIONING.md) for why the two schemes differ and what a
-version number promises.
+`msi-core` is based on `dist-2.4.9` and keeps the module names and namespaces
+too, but adds a table, migrates data into it and stops writing two core tables,
+so it is a schema upgrade rather than a swap. It carries plain Semantic
+Versioning — see [`VERSIONING.md`](VERSIONING.md) for why the two schemes differ
+and what a version number promises.
 
-The two packages replace the same modules and therefore cannot coexist. Remove
-one before requiring the other; do not expect a `conflict` declaration to stop
-you, because a package published from this repository cannot declare one against
-its sibling — Packagist serves every branch of a repository under a single
-package name, so such a declaration reads as a conflict against itself and is
-rejected.
+The two packages replace the same modules and therefore cannot coexist.
+`msi-core` declares an explicit `conflict` on `jeanmarcos/inventory`, so Composer
+refuses the combination instead of producing a broken tree.
 
 ## How it works
 
@@ -55,23 +56,25 @@ versions.
 
 ## Installation
 
+Each package is installed from its own repository.
+
 ```jsonc
-// composer.json
+// composer.json — this package
 {
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/jeanmarcos-dev/inventory" }
+        { "type": "vcs", "url": "https://github.com/jeanmarcos-dev/msi-core" }
     ]
 }
 ```
 
 ```bash
-# a drop-in line, explicit:
+# this package: a schema upgrade — read UPGRADE.md first
+composer require "jeanmarcos/msi-core:^1.0"
+
+# or a drop-in line, from jeanmarcos-dev/inventory, explicit:
 composer require "jeanmarcos/inventory:2.4.9.*"
 # or let the framework gate auto-select the right build:
 composer require "jeanmarcos/inventory:*"
-
-# or this line, which is a schema upgrade — read UPGRADE.md first:
-composer require "jeanmarcos/msi-core:^1.0"
 
 bin/magento setup:upgrade
 ```

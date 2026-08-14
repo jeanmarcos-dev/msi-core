@@ -19,27 +19,29 @@ stay open on the other, and a new feature is written and tested once.
 
 ## Which line do I install?
 
-This repository ships four lines. Three are drop-in replacements for the MSI that comes with your
-Magento version; the fourth — this one — is a schema upgrade.
+The same fork is distributed as two packages. This repository holds `msi-core`, which is a schema
+upgrade; its sibling [`jeanmarcos-dev/inventory`](https://github.com/jeanmarcos-dev/inventory) holds
+three drop-in lines that replace the MSI shipped with your Magento version and change nothing else.
 
-| Line | Package | Magento | PHP | Drop-in |
+| Package | Repository | Magento | PHP | Drop-in |
 |---|---|---|---|---|
-| `dist-2.4.7` | `jeanmarcos/inventory:2.4.7.*` | 2.4.7 | 8.1 – 8.3 | yes |
-| `dist-2.4.8` | `jeanmarcos/inventory:2.4.8.*` | 2.4.8 | 8.2 – 8.4 | yes |
-| `dist-2.4.9` | `jeanmarcos/inventory:2.4.9.*` | 2.4.9 | 8.3 – 8.5 | yes |
-| **`next-release`** | **`jeanmarcos/msi-core:^1.0`** | **2.4.9** | **8.3 – 8.5** | **no** |
+| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` | 2.4.7 | 8.1 – 8.3 | yes |
+| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` | 2.4.8 | 8.2 – 8.4 | yes |
+| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` | 2.4.9 | 8.3 – 8.5 | yes |
+| **`jeanmarcos/msi-core:^1.0`** | **`jeanmarcos-dev/msi-core`** | **2.4.9** | **8.3 – 8.5** | **no** |
 
 Mage-OS is supported on the 2.4.9 line and therefore on `msi-core`: the package replaces both the
 `magento/*` and the `mage-os/*` MSI packages. Mage-OS 3.x tracks Magento 2.4.9.
 
-**Pick a `dist-2.4.x` line** if you want the curated fixes and nothing else to change. Composer
+**Pick `jeanmarcos/inventory`** if you want the curated fixes and nothing else to change. Composer
 swaps the package, the module names and namespaces stay identical, and no migration runs.
 
 **Pick `msi-core`** if you want one inventory system instead of two, and can accept a schema
 migration with downtime and a documented break for code that reads `cataloginventory_*` by raw SQL.
 
-> `msi-core` and `jeanmarcos/inventory` provide the same modules, so a store runs one or the other,
-> never both. Remove the old package in the same operation that requires the new one:
+> The two packages provide the same modules, so a store runs one or the other, never both.
+> `msi-core` declares a `conflict` on `jeanmarcos/inventory`, so Composer refuses a tree holding
+> both rather than producing a broken one. Migrating is
 > `composer remove jeanmarcos/inventory && composer require jeanmarcos/msi-core:^1.0`.
 
 ## Install
@@ -48,7 +50,7 @@ migration with downtime and a documented break for code that reads `cataloginven
 // composer.json
 {
     "repositories": [
-        { "type": "vcs", "url": "https://github.com/jeanmarcos-dev/inventory" }
+        { "type": "vcs", "url": "https://github.com/jeanmarcos-dev/msi-core" }
     ]
 }
 ```
@@ -109,7 +111,9 @@ since the module names, namespaces and service contracts are unchanged:
 ## Contributing
 
 Issues and pull requests are welcome at
-[jeanmarcos-dev/inventory](https://github.com/jeanmarcos-dev/inventory).
+[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core). Report anything specific to
+the drop-in lines at [jeanmarcos-dev/inventory](https://github.com/jeanmarcos-dev/inventory)
+instead; the two repositories share this codebase, and a fix that applies to both is ported.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) with a single-line
 subject; a git hook enforces it. Changes to reservations, salability or the indexers must come with

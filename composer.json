@@ -12,10 +12,10 @@
         "multi-source-inventory",
         "stock"
     ],
-    "homepage": "https://github.com/jeanmarcos-dev/inventory",
+    "homepage": "https://github.com/jeanmarcos-dev/msi-core",
     "support": {
-        "issues": "https://github.com/jeanmarcos-dev/inventory/issues",
-        "source": "https://github.com/jeanmarcos-dev/inventory/tree/next-release"
+        "issues": "https://github.com/jeanmarcos-dev/msi-core/issues",
+        "source": "https://github.com/jeanmarcos-dev/msi-core"
     },
     "require": {
         "php": "~8.3.0||~8.4.0||~8.5.0",
@@ -200,6 +200,9 @@
         "mage-os/module-inventory-swatches-frontend-ui": "*",
         "mage-os/module-inventory-visual-merchandiser": "*",
         "mage-os/module-inventory-wishlist": "*"
+    },
+    "conflict": {
+        "jeanmarcos/inventory": "*"
     },
     "autoload": {
         "files": [
