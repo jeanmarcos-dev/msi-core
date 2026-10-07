@@ -17,6 +17,33 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.5 — unreleased
+
+### Shipments ignored the source the order reserved at
+
+With source reservations enabled, an order reserves each item at specific sources when it is
+placed. Shipping did not read that allocation.
+
+- **The admin shipment form suggested sources by physical quantity only.** Once another open order
+  had reserved a source, the form could suggest it anyway, and shipping from it left that source
+  negative net of its reservations until the other order closed. The form now suggests the sources
+  the order reserved at, with those quantities. The source selection only places the rest.
+- **A shipment created without a source in a stock with several sources used the `default`
+  source** (REST `ShipOrder` without `extension_attributes.source_code`, or programmatic
+  shipments). It failed when `default` had no row for the SKU. When `default` did have one, the
+  shipment drew from a source outside the order's stock. The source is now resolved in this order:
+  1. the only source of the stock;
+  2. the source the order reserved every item at;
+  3. the default source selection, when it ships everything from one source.
+
+  When none of these applies, the shipment is rejected with a validation message asking for a
+  source. It no longer fails with `Source item not found`.
+
+A source chosen explicitly, in the admin or through `extension_attributes.source_code`, is still
+used as given.
+
+---
+
 # msi-core 1.0.4 — 2026-10-07
 
 ### Partial source transfer could leave negative quantities and move reserved stock
