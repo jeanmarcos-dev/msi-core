@@ -17,6 +17,30 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.4 — unreleased
+
+### Partial source transfer could leave negative quantities and move reserved stock
+
+`POST /V1/inventory/bulk-partial-source-transfer` validated each item against the unlocked physical
+quantity and then wrote absolute values computed in PHP, one transaction per item.
+
+- **A SKU repeated in one request was checked item by item**, so 3 + 3 out of a source with 3 left
+  it at −3. Repeated SKUs are now summed before validating.
+- **A zero or negative quantity was accepted** and ran the transfer in reverse, which could take
+  the destination negative. It is now rejected.
+- **A destination removed between validation and write made the units disappear.** The rows are
+  now read with `SELECT … FOR UPDATE` and the transfer aborts if either source item is missing.
+- **Concurrent writes were lost.** The origin is decremented with a relative update that refuses to
+  go below zero, and the whole request runs in one transaction: every item moves or none does.
+- **With source reservations enabled, units reserved by open orders at the origin could be moved
+  away**, leaving those orders without stock at their source. The transfer now holds the same
+  `(sku, source)` locks as checkout and refuses to move more than the origin quantity net of its
+  source reservations.
+
+The full transfer (`bulk-product-source-transfer`) is unchanged.
+
+---
+
 # msi-core 1.0.3 — 2026-10-07
 
 ### Source item writers that skipped the stock index and the salability processors
