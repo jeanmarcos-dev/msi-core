@@ -46,6 +46,12 @@
         <plugin name="detect_oversell_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnTransferInventoryPartiallyPlugin"/>
         <plugin name="validate_salable_qty_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\ValidateSalableQtyOnTransferInventoryPartiallyPlugin"/>
     </type>
+    <type name="Magento\InventoryShipping\Model\ResolveShipmentSourceCode">
+        <plugin name="prefer_allocated_source_on_resolve_shipment_source_code" type="Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin"/>
+    </type>
+    <type name="Magento\InventoryShippingAdminUi\Ui\DataProvider\GetSourcesByOrderIdSkuAndQty">
+        <plugin name="prefer_allocated_sources_on_get_sources_by_order_id_sku_and_qty" type="Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin"/>
+    </type>
     <type name="Magento\InventoryCatalogApi\Api\BulkPartialInventoryTransferInterface">
         <plugin name="lock_source_items_on_bulk_partial_inventory_transfer" type="Magento\InventorySales\Plugin\InventoryCatalog\LockSourceItemsOnBulkPartialInventoryTransferPlugin"/>
     </type>

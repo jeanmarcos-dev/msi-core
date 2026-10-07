@@ -8,13 +8,12 @@ declare(strict_types=1);
 namespace Magento\InventoryShipping\Plugin\Sales\Shipment;
 
 use Magento\Framework\App\RequestInterface;
+use Magento\InventoryShipping\Model\ResolveShipmentSourceCode;
 use Magento\Sales\Api\Data\ShipmentInterface;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Shipment;
 use Magento\Sales\Model\Order\ShipmentFactory;
 use Magento\Sales\Api\Data\ShipmentExtensionFactory;
-use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
-use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 
 class AssignSourceCodeToShipmentPlugin
 {
@@ -29,66 +28,44 @@ class AssignSourceCodeToShipmentPlugin
     private $shipmentExtensionFactory;
 
     /**
-     * @var StockByWebsiteIdResolverInterface
+     * @var ResolveShipmentSourceCode
      */
-    private $stockByWebsiteIdResolver;
-
-    /**
-     * @var GetSourcesAssignedToStockOrderedByPriorityInterface
-     */
-    private $getSourcesAssignedToStockOrderedByPriority;
-
-    /**
-     * @var DefaultSourceProviderInterface
-     */
-    private $defaultSourceProvider;
+    private $resolveShipmentSourceCode;
 
     /**
      * @param RequestInterface $request
      * @param ShipmentExtensionFactory $shipmentExtensionFactory
-     * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
-     * @param GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStockOrderedByPriority
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
+     * @param ResolveShipmentSourceCode $resolveShipmentSourceCode
      */
     public function __construct(
         RequestInterface $request,
         ShipmentExtensionFactory $shipmentExtensionFactory,
-        StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
-        GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStockOrderedByPriority,
-        DefaultSourceProviderInterface $defaultSourceProvider
+        ResolveShipmentSourceCode $resolveShipmentSourceCode
     ) {
         $this->request = $request;
         $this->shipmentExtensionFactory = $shipmentExtensionFactory;
-        $this->stockByWebsiteIdResolver = $stockByWebsiteIdResolver;
-        $this->getSourcesAssignedToStockOrderedByPriority = $getSourcesAssignedToStockOrderedByPriority;
-        $this->defaultSourceProvider = $defaultSourceProvider;
+        $this->resolveShipmentSourceCode = $resolveShipmentSourceCode;
     }
 
     /**
-     * Sets the source code for a shipment based on request data, stock priority, or default source configuration.
+     * Sets the source code for a shipment from the request, or the source resolved within the order stock.
      *
      * @param ShipmentFactory $subject
      * @param ShipmentInterface $shipment
      * @param Order $order
      * @return ShipmentInterface
-     * @throws \Magento\Framework\Exception\InputException
-     * @throws \Magento\Framework\Exception\LocalizedException
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function afterCreate(ShipmentFactory $subject, ShipmentInterface $shipment, Order $order)
     {
         $sourceCode = $this->request->getParam('sourceCode');
-        if (empty($sourceCode)) {
-            $websiteId = $order->getStore()->getWebsiteId();
-            $stockId = $this->stockByWebsiteIdResolver->execute((int)$websiteId)->getStockId();
-            $sources = $this->getSourcesAssignedToStockOrderedByPriority->execute((int)$stockId);
-            //TODO: need ro rebuild this logic | create separate service
-            if (!empty($sources) && count($sources) == 1) {
-                $sourceCode = $sources[0]->getSourceCode();
-            } else {
-                $sourceCode = $this->defaultSourceProvider->getCode();
-            }
+        if (empty($sourceCode) && $shipment instanceof Shipment) {
+            $sourceCode = $this->resolveShipmentSourceCode->execute($shipment, $order);
         }
+        if (empty($sourceCode)) {
+            return $shipment;
+        }
+
         $shipmentExtension = $shipment->getExtensionAttributes();
 
         if (empty($shipmentExtension)) {
