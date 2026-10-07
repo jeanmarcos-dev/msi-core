@@ -23,7 +23,11 @@ class BulkSourceUnassignTest extends TestCase
         $validator = $this->createMock(BulkSourceUnassignValidatorInterface::class);
         $validator->method('validate')->willReturn($validationResult);
         $reindexSkusInSources = $this->createMock(ReindexSkusInSources::class);
-        $model = new BulkSourceUnassign($validator, $this->createMock(BulkSourceUnassignResource::class), $reindexSkusInSources);
+        $model = new BulkSourceUnassign(
+            $validator,
+            $this->createMock(BulkSourceUnassignResource::class),
+            $reindexSkusInSources
+        );
 
         $reindexSkusInSources->expects(self::once())->method('execute')->with(['SKU-1'], ['slr_a', 'slr_b']);
 

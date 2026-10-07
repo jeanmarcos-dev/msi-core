@@ -59,7 +59,11 @@ class CreateSourceItemsPluginTest extends TestCase
         $slrB->expects(self::once())->method('setSku')->with('NEW');
         $this->sourceItemsSave->expects(self::once())->method('execute')->with([0 => $slrA, 2 => $slrB]);
 
-        $this->plugin->afterSave($this->createMock(Product::class), $this->createMock(Product::class), $this->product('OLD', 'NEW'));
+        $this->plugin->afterSave(
+            $this->createMock(Product::class),
+            $this->createMock(Product::class),
+            $this->product('OLD', 'NEW')
+        );
     }
 
     public function testDoesNothingWhenTheSkuDidNotChange(): void
@@ -67,7 +71,11 @@ class CreateSourceItemsPluginTest extends TestCase
         $this->getSourceItemsBySku->expects(self::never())->method('execute');
         $this->sourceItemsSave->expects(self::never())->method('execute');
 
-        $this->plugin->afterSave($this->createMock(Product::class), $this->createMock(Product::class), $this->product('SAME', 'SAME'));
+        $this->plugin->afterSave(
+            $this->createMock(Product::class),
+            $this->createMock(Product::class),
+            $this->product('SAME', 'SAME')
+        );
     }
 
     public function testDoesNothingWhenOnlyTheDefaultSourceHoldsTheOldSku(): void
@@ -76,7 +84,11 @@ class CreateSourceItemsPluginTest extends TestCase
 
         $this->sourceItemsSave->expects(self::never())->method('execute');
 
-        $this->plugin->afterSave($this->createMock(Product::class), $this->createMock(Product::class), $this->product('OLD', 'NEW'));
+        $this->plugin->afterSave(
+            $this->createMock(Product::class),
+            $this->createMock(Product::class),
+            $this->product('OLD', 'NEW')
+        );
     }
 
     private function sourceItem(string $sourceCode): SourceItemInterface

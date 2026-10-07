@@ -24,7 +24,11 @@ class BulkPartialInventoryTransferTest extends TestCase
         $validator = $this->createMock(PartialInventoryTransferValidatorInterface::class);
         $validator->method('validate')->willReturn($validationResult);
         $reindexSkusInSources = $this->createMock(ReindexSkusInSources::class);
-        $model = new BulkPartialInventoryTransfer($validator, $this->createMock(TransferInventoryPartially::class), $reindexSkusInSources);
+        $model = new BulkPartialInventoryTransfer(
+            $validator,
+            $this->createMock(TransferInventoryPartially::class),
+            $reindexSkusInSources
+        );
         $items = [];
         foreach (['SKU-1', 'SKU-2', 'SKU-1'] as $sku) {
             $item = $this->createMock(PartialInventoryTransferItemInterface::class);
@@ -32,7 +36,8 @@ class BulkPartialInventoryTransferTest extends TestCase
             $items[] = $item;
         }
 
-        $reindexSkusInSources->expects(self::once())->method('execute')->with(['SKU-1', 'SKU-2', 'SKU-1'], ['slr_a', 'slr_b']);
+        $reindexSkusInSources->expects(self::once())->method('execute')
+            ->with(['SKU-1', 'SKU-2', 'SKU-1'], ['slr_a', 'slr_b']);
 
         $model->execute('slr_a', 'slr_b', $items);
     }

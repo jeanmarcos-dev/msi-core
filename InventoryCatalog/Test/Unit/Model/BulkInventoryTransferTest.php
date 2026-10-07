@@ -23,7 +23,11 @@ class BulkInventoryTransferTest extends TestCase
         $validator = $this->createMock(BulkInventoryTransferValidatorInterface::class);
         $validator->method('validate')->willReturn($validationResult);
         $reindexSkusInSources = $this->createMock(ReindexSkusInSources::class);
-        $model = new BulkInventoryTransfer($validator, $this->createMock(BulkInventoryTransferResource::class), $reindexSkusInSources);
+        $model = new BulkInventoryTransfer(
+            $validator,
+            $this->createMock(BulkInventoryTransferResource::class),
+            $reindexSkusInSources
+        );
 
         $reindexSkusInSources->expects(self::once())->method('execute')->with(['SKU-1', 'SKU-2'], ['slr_a', 'slr_b']);
 
