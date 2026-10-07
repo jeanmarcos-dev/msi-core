@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.3 — unreleased
+# msi-core 1.0.3 — 2026-10-07
 
 ### Source item writers that skipped the stock index and the salability processors
 
