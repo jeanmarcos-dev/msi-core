@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Model;
 
-use Magento\Inventory\Model\ResourceModel\SourceItem\DeleteMultiple;
+use Magento\InventoryApi\Api\SourceItemsDeleteInterface;
 use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
 use Psr\Log\LoggerInterface;
 
@@ -22,7 +22,7 @@ class DeleteSourceItemsBySkus
     private $getSourceItemsBySku;
 
     /**
-     * @var DeleteMultiple
+     * @var SourceItemsDeleteInterface
      */
     private $sourceItemsDelete;
 
@@ -33,12 +33,12 @@ class DeleteSourceItemsBySkus
 
     /**
      * @param GetSourceItemsBySkuInterface $getSourceItemsBySku
-     * @param DeleteMultiple $sourceItemsDelete
+     * @param SourceItemsDeleteInterface $sourceItemsDelete
      * @param LoggerInterface $logger
      */
     public function __construct(
         GetSourceItemsBySkuInterface $getSourceItemsBySku,
-        DeleteMultiple $sourceItemsDelete,
+        SourceItemsDeleteInterface $sourceItemsDelete,
         LoggerInterface $logger
     ) {
         $this->getSourceItemsBySku = $getSourceItemsBySku;
