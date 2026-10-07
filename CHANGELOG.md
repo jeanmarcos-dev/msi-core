@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.1 — unreleased
+# msi-core 1.0.1 — 2026-10-07
 
 Upstream `magento/inventory` `develop` merged up to `dea64c0`. No schema, configuration or API
 change.
