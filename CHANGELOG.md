@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.2 — unreleased
+# msi-core 1.0.2 — 2026-10-07
 
 ### Reservation cleanup no longer leaves phantom salable quantity
 
