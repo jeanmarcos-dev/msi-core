@@ -17,6 +17,29 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.2 — unreleased
+
+### Reservation cleanup no longer leaves phantom salable quantity
+
+The `inventory_cleanup_reservations` cron deletes the reservations of an object once they add up to
+zero. It had three defects:
+
+- **Groups larger than `group_concat_max_len` were deleted partially.** The list of ids was cut at
+  32768 characters, so only part of the group was deleted and the rest stayed forever as salable
+  quantity that does not exist. An 8000-row zero-sum group left 2539 rows adding up to +13. The
+  cleanup now checks the list against `COUNT(*)` and reads the whole group again when it was cut.
+- **Grouping ignored `object_type` and `source_code`.** `Select::group()` only reads its first
+  argument, so the cleanup grouped by `object_id` alone. A group could add up to zero across two
+  sources while each source still held a balance, and the per-source quantity changed when it was
+  deleted.
+- **Reservations without `object_id` were cleaned as one group.** Every such row, of any SKU or
+  stock, was summed together. They are now left alone.
+
+**Behavior change:** reservations written without `object_id` or `object_increment_id` in their
+metadata are no longer deleted by the cron. MSI always writes both.
+
+---
+
 # msi-core 1.0.1 — 2026-10-07
 
 Upstream `magento/inventory` `develop` merged up to `dea64c0`. No schema, configuration or API
