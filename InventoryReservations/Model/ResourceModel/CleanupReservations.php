@@ -9,6 +9,8 @@ namespace Magento\InventoryReservations\Model\ResourceModel;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\DB\Select;
+use Magento\Framework\DB\Sql\Expression;
 use Magento\InventoryReservationsApi\Model\ReservationInterface;
 use Magento\InventoryReservationsApi\Model\CleanupReservationsInterface;
 
@@ -18,6 +20,8 @@ use Magento\InventoryReservationsApi\Model\CleanupReservationsInterface;
 class CleanupReservations implements CleanupReservationsInterface
 {
     private const DELETE_CHUNK_SIZE = 10000;
+
+    private const OBJECT_TYPE_KEY = "CAST(JSON_EXTRACT(metadata, '$.object_type') AS CHAR)";
 
     /**
      * @var ResourceConnection
@@ -46,33 +50,21 @@ class CleanupReservations implements CleanupReservationsInterface
      */
     public function execute(): void
     {
-        $groupedReservationIds = array_unique(
-            array_merge(
-                $this->getReservationIdsByField('object_id'),
-                $this->getReservationIdsByField('object_increment_id')
-            )
-        );
-
         $connection = $this->resource->getConnection();
         $seenIds = [];
         $chunk = [];
-        foreach ($groupedReservationIds as $groupedIds) {
-            $groupIds = [];
-            foreach (explode(',', (string)$groupedIds) as $reservationId) {
-                $reservationId = (int)$reservationId;
-                if ($reservationId && !isset($seenIds[$reservationId])) {
-                    $seenIds[$reservationId] = true;
-                    $groupIds[] = $reservationId;
+        foreach (['object_id', 'object_increment_id'] as $field) {
+            foreach ($this->getCompensatedGroups($field) as $group) {
+                $groupIds = $this->takeUnseenIds($this->getGroupReservationIds($field, $group), $seenIds);
+                if (!$groupIds) {
+                    continue;
                 }
+                if ($chunk && count($chunk) + count($groupIds) > self::DELETE_CHUNK_SIZE) {
+                    $this->deleteReservations($connection, $chunk);
+                    $chunk = [];
+                }
+                array_push($chunk, ...$groupIds);
             }
-            if (!$groupIds) {
-                continue;
-            }
-            if ($chunk && count($chunk) + count($groupIds) > self::DELETE_CHUNK_SIZE) {
-                $this->deleteReservations($connection, $chunk);
-                $chunk = [];
-            }
-            array_push($chunk, ...$groupIds);
         }
         if ($chunk) {
             $this->deleteReservations($connection, $chunk);
@@ -80,7 +72,27 @@ class CleanupReservations implements CleanupReservationsInterface
     }
 
     /**
-     * Delete reservations by ids.
+     * Keep the ids not deleted yet by an earlier group
+     *
+     * @param int[] $reservationIds
+     * @param array $seenIds
+     * @return int[]
+     */
+    private function takeUnseenIds(array $reservationIds, array &$seenIds): array
+    {
+        $unseenIds = [];
+        foreach ($reservationIds as $reservationId) {
+            if ($reservationId && !isset($seenIds[$reservationId])) {
+                $seenIds[$reservationId] = true;
+                $unseenIds[] = $reservationId;
+            }
+        }
+
+        return $unseenIds;
+    }
+
+    /**
+     * Delete reservations by id
      *
      * @param AdapterInterface $connection
      * @param int[] $reservationIds
@@ -95,27 +107,83 @@ class CleanupReservations implements CleanupReservationsInterface
     }
 
     /**
-     * Returns reservation ids by specified field.
+     * Groups of one object, type and source whose reservations add up to zero
      *
      * @param string $field
      * @return array
      */
-    private function getReservationIdsByField(string $field) : array
+    private function getCompensatedGroups(string $field): array
     {
         $connection = $this->resource->getConnection();
-        $reservationTable = $this->resource->getTableName('inventory_reservation');
+        $objectKey = $this->getObjectKey($field);
         $select = $connection->select()
             ->from(
-                $reservationTable,
-                ['GROUP_CONCAT(' . ReservationInterface::RESERVATION_ID . ')']
+                $this->resource->getTableName('inventory_reservation'),
+                [
+                    'reservation_ids' => 'GROUP_CONCAT(' . ReservationInterface::RESERVATION_ID . ')',
+                    'reservation_count' => 'COUNT(*)',
+                    'object_key' => new Expression($objectKey),
+                    'object_type' => new Expression(self::OBJECT_TYPE_KEY),
+                    'source_code' => ReservationInterface::SOURCE_CODE,
+                ]
             )
-            ->group(
-                "JSON_EXTRACT(metadata, '$.$field')",
-                "JSON_EXTRACT(metadata, '$.object_type')",
-                ReservationInterface::SOURCE_CODE
-            )
+            ->where($objectKey . ' IS NOT NULL')
+            ->group([$objectKey, self::OBJECT_TYPE_KEY, ReservationInterface::SOURCE_CODE])
             ->having('SUM(' . ReservationInterface::QUANTITY . ') = 0');
         $connection->query('SET group_concat_max_len = ' . $this->groupConcatMaxLen);
-        return $connection->fetchCol($select);
+
+        return $connection->fetchAll($select);
+    }
+
+    /**
+     * Reservation ids of a group, read again when GROUP_CONCAT truncated the list
+     *
+     * @param string $field
+     * @param array $group
+     * @return int[]
+     */
+    private function getGroupReservationIds(string $field, array $group): array
+    {
+        $reservationIds = array_map('intval', explode(',', (string)$group['reservation_ids']));
+        if (count($reservationIds) === (int)$group['reservation_count']) {
+            return $reservationIds;
+        }
+
+        $connection = $this->resource->getConnection();
+        $select = $connection->select()
+            ->from($this->resource->getTableName('inventory_reservation'), [ReservationInterface::RESERVATION_ID])
+            ->where($this->getObjectKey($field) . ' = ?', $group['object_key']);
+        $this->whereNullable($select, self::OBJECT_TYPE_KEY, $group['object_type']);
+        $this->whereNullable($select, ReservationInterface::SOURCE_CODE, $group['source_code']);
+
+        return array_map('intval', $connection->fetchCol($select));
+    }
+
+    /**
+     * Match a column that may be NULL
+     *
+     * @param Select $select
+     * @param string $column
+     * @param string|null $value
+     * @return void
+     */
+    private function whereNullable(Select $select, string $column, ?string $value): void
+    {
+        if ($value === null) {
+            $select->where($column . ' IS NULL');
+        } else {
+            $select->where($column . ' = ?', $value);
+        }
+    }
+
+    /**
+     * Text of a metadata field, so that grouping and matching compare the same value
+     *
+     * @param string $field
+     * @return string
+     */
+    private function getObjectKey(string $field): string
+    {
+        return "CAST(JSON_EXTRACT(metadata, '$.$field') AS CHAR)";
     }
 }
