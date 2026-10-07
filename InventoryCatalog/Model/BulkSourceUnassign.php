@@ -11,7 +11,7 @@ use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalogApi\Api\BulkSourceUnassignInterface;
 use Magento\InventoryCatalogApi\Model\BulkSourceUnassignValidatorInterface;
 use Magento\InventoryCatalog\Model\ResourceModel\BulkSourceUnassign as BulkSourceUnassignResource;
-use Magento\InventoryIndexer\Indexer\Source\SourceIndexer;
+use Magento\InventoryIndexer\Indexer\SourceItem\ReindexSkusInSources;
 
 /**
  * @inheritdoc
@@ -29,25 +29,25 @@ class BulkSourceUnassign implements BulkSourceUnassignInterface
     private $bulkSourceUnassign;
 
     /**
-     * @var SourceIndexer
+     * @var ReindexSkusInSources
      */
-    private $sourceIndexer;
+    private $reindexSkusInSources;
 
     /**
      * MassProductSourceAssign constructor.
      * @param BulkSourceUnassignValidatorInterface $unassignValidator
      * @param BulkSourceUnassignResource $bulkSourceUnassign
-     * @param SourceIndexer $sourceIndexer
+     * @param ReindexSkusInSources $reindexSkusInSources
      * @SuppressWarnings(PHPMD.LongVariable)
      */
     public function __construct(
         BulkSourceUnassignValidatorInterface $unassignValidator,
         BulkSourceUnassignResource $bulkSourceUnassign,
-        SourceIndexer $sourceIndexer
+        ReindexSkusInSources $reindexSkusInSources
     ) {
         $this->unassignValidator = $unassignValidator;
         $this->bulkSourceUnassign = $bulkSourceUnassign;
-        $this->sourceIndexer = $sourceIndexer;
+        $this->reindexSkusInSources = $reindexSkusInSources;
     }
 
     /**
@@ -63,7 +63,7 @@ class BulkSourceUnassign implements BulkSourceUnassignInterface
 
         $res = $this->bulkSourceUnassign->execute($skus, $sourceCodes);
 
-        $this->sourceIndexer->executeList($sourceCodes);
+        $this->reindexSkusInSources->execute($skus, $sourceCodes);
 
         return $res;
     }

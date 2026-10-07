@@ -9,8 +9,8 @@ namespace Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product;
 
 use Magento\Catalog\Model\ResourceModel\Product;
 use Magento\Framework\Model\AbstractModel;
-use Magento\Inventory\Model\ResourceModel\SourceItem\SaveMultiple;
 use Magento\InventoryApi\Api\GetSourceItemsBySkuInterface;
+use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 
 /**
@@ -24,9 +24,9 @@ class CreateSourceItemsPlugin
     private $getSourceItemsBySku;
 
     /**
-     * @var SaveMultiple
+     * @var SourceItemsSaveInterface
      */
-    private $saveMultiple;
+    private $sourceItemsSave;
 
     /**
      * @var DefaultSourceProviderInterface
@@ -35,16 +35,16 @@ class CreateSourceItemsPlugin
 
     /**
      * @param GetSourceItemsBySkuInterface $getSourceItemsBySku
-     * @param SaveMultiple $saveMultiple
+     * @param SourceItemsSaveInterface $sourceItemsSave
      * @param DefaultSourceProviderInterface $defaultSourceProvider
      */
     public function __construct(
         GetSourceItemsBySkuInterface $getSourceItemsBySku,
-        SaveMultiple $saveMultiple,
+        SourceItemsSaveInterface $sourceItemsSave,
         DefaultSourceProviderInterface $defaultSourceProvider
     ) {
         $this->getSourceItemsBySku = $getSourceItemsBySku;
-        $this->saveMultiple = $saveMultiple;
+        $this->sourceItemsSave = $sourceItemsSave;
         $this->defaultSourceProvider = $defaultSourceProvider;
     }
 
@@ -72,7 +72,7 @@ class CreateSourceItemsPlugin
             $sourceItem->setSku($product->getSku());
         }
         if ($sourceItems) {
-            $this->saveMultiple->execute($sourceItems);
+            $this->sourceItemsSave->execute($sourceItems);
         }
 
         return $result;

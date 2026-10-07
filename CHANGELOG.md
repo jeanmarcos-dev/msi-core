@@ -17,6 +17,31 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.3 — unreleased
+
+### Source item writers that skipped the stock index and the salability processors
+
+Some services write `inventory_source_item` without going through `SourceItemsSaveInterface` or
+`SourceItemsDeleteInterface`, and skipped part of what those trigger.
+
+- **Deleting or renaming a product left its SKU salable in the stock index.** The
+  `inventory.source.items.cleanup` consumer deleted the source items but not their index rows, so
+  `GetProductSalableQty` kept reporting the old quantity for a SKU with no stock. It now deletes
+  through `SourceItemsDeleteInterface`.
+- **Bulk transfer, partial transfer and bulk unassign left product and category pages cached as in
+  stock.** They rebuilt whole stocks, a path that never runs the salability change processors (page
+  cache, fulltext, catalog rule, stock visualizer). They now reindex only the affected SKUs through
+  the same processor chain as a regular save.
+- **Bulk assign passed source codes to an indexer that expects source item ids**, so newly assigned
+  items got no index row. It uses the same SKU reindex.
+- **Renaming a product through REST or SOAP left the new SKU unindexed.** The copied source items
+  are now saved through `SourceItemsSaveInterface`.
+
+**After upgrading:** rows left behind by deleted or renamed products are not removed retroactively.
+Run `bin/magento indexer:reindex inventory` once.
+
+---
+
 # msi-core 1.0.2 — 2026-10-07
 
 ### Reservation cleanup no longer leaves phantom salable quantity
