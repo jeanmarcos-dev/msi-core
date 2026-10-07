@@ -44,6 +44,10 @@
     </type>
     <type name="Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially">
         <plugin name="detect_oversell_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnTransferInventoryPartiallyPlugin"/>
+        <plugin name="validate_salable_qty_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\ValidateSalableQtyOnTransferInventoryPartiallyPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalogApi\Api\BulkPartialInventoryTransferInterface">
+        <plugin name="lock_source_items_on_bulk_partial_inventory_transfer" type="Magento\InventorySales\Plugin\InventoryCatalog\LockSourceItemsOnBulkPartialInventoryTransferPlugin"/>
     </type>
     <type name="Magento\InventoryCatalog\Model\ResourceModel\BulkSourceAssign">
         <plugin name="detect_oversell_on_bulk_source_assign" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnBulkSourceAssignPlugin"/>

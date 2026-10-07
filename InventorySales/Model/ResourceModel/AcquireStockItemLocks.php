@@ -129,6 +129,44 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     }
 
     /**
+     * Acquire the (sku, source) locks of the SKUs on the given sources, the same locks checkout takes.
+     *
+     * @param string[] $skus
+     * @param string[] $sourceCodes
+     * @return void
+     * @throws CouldNotSaveException
+     */
+    public function executeForSources(array $skus, array $sourceCodes): void
+    {
+        $lockNames = $this->buildOrderedSourceLockNames($skus, $sourceCodes);
+        if (!$lockNames) {
+            return;
+        }
+        $this->acquireOrdered($lockNames);
+    }
+
+    /**
+     * Build the globally-ordered list of (sku, source) lock names.
+     *
+     * @param string[] $skus
+     * @param string[] $sourceCodes
+     * @return string[]
+     */
+    public function buildOrderedSourceLockNames(array $skus, array $sourceCodes): array
+    {
+        $names = [];
+        foreach ($skus as $sku) {
+            foreach ($sourceCodes as $sourceCode) {
+                $names[] = $this->sourceLockName((string)$sku, (string)$sourceCode);
+            }
+        }
+        $names = array_values(array_unique($names));
+        sort($names, SORT_STRING);
+
+        return $names;
+    }
+
+    /**
      * Release every lock acquired by this instance.
      *
      * @return void
