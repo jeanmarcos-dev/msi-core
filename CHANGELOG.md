@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.6 — unreleased
+# msi-core 1.0.6 — 2026-10-07
 
 ### Salable quantity table headers out of line with their values
 
