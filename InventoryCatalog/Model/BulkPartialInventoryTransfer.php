@@ -13,7 +13,7 @@ use Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially;
 use Magento\InventoryCatalogApi\Api\BulkPartialInventoryTransferInterface;
 use Magento\InventoryCatalogApi\Api\Data\PartialInventoryTransferItemInterface;
 use Magento\InventoryCatalogApi\Model\PartialInventoryTransferValidatorInterface;
-use Magento\InventoryIndexer\Indexer\Source\SourceIndexer;
+use Magento\InventoryIndexer\Indexer\SourceItem\ReindexSkusInSources;
 
 class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterface
 {
@@ -28,23 +28,23 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
     private $transferCommand;
 
     /**
-     * @var SourceIndexer
+     * @var ReindexSkusInSources
      */
-    private $sourceIndexer;
+    private $reindexSkusInSources;
 
     /**
      * @param PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator
      * @param TransferInventoryPartially $transferInventoryPartiallyCommand
-     * @param SourceIndexer $sourceIndexer
+     * @param ReindexSkusInSources $reindexSkusInSources
      */
     public function __construct(
         PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator,
         TransferInventoryPartially $transferInventoryPartiallyCommand,
-        SourceIndexer $sourceIndexer
+        ReindexSkusInSources $reindexSkusInSources
     ) {
         $this->transferValidator = $partialInventoryTransferValidator;
         $this->transferCommand = $transferInventoryPartiallyCommand;
-        $this->sourceIndexer = $sourceIndexer;
+        $this->reindexSkusInSources = $reindexSkusInSources;
     }
 
     /**
@@ -77,10 +77,12 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
      */
     private function processTransfer(string $originSourceCode, string $destinationSourceCode, array $items): void
     {
+        $skus = [];
         foreach ($items as $item) {
             $this->transferCommand->execute($item, $originSourceCode, $destinationSourceCode);
+            $skus[] = $item->getSku();
         }
 
-        $this->sourceIndexer->executeList(array_unique([$originSourceCode, $destinationSourceCode]));
+        $this->reindexSkusInSources->execute($skus, [$originSourceCode, $destinationSourceCode]);
     }
 }

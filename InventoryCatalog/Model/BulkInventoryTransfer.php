@@ -11,7 +11,7 @@ use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalog\Model\ResourceModel\BulkInventoryTransfer as BulkInventoryTransferResource;
 use Magento\InventoryCatalogApi\Api\BulkInventoryTransferInterface;
 use Magento\InventoryCatalogApi\Model\BulkInventoryTransferValidatorInterface;
-use Magento\InventoryIndexer\Indexer\Source\SourceIndexer;
+use Magento\InventoryIndexer\Indexer\SourceItem\ReindexSkusInSources;
 
 /**
  * @inheritdoc
@@ -29,23 +29,23 @@ class BulkInventoryTransfer implements BulkInventoryTransferInterface
     private $bulkInventoryTransfer;
 
     /**
-     * @var SourceIndexer
+     * @var ReindexSkusInSources
      */
-    private $sourceIndexer;
+    private $reindexSkusInSources;
 
     /**
      * @param BulkInventoryTransferValidatorInterface $inventoryTransferValidator
      * @param BulkInventoryTransferResource $bulkInventoryTransfer
-     * @param SourceIndexer $sourceIndexer
+     * @param ReindexSkusInSources $reindexSkusInSources
      */
     public function __construct(
         BulkInventoryTransferValidatorInterface $inventoryTransferValidator,
         BulkInventoryTransferResource $bulkInventoryTransfer,
-        SourceIndexer $sourceIndexer
+        ReindexSkusInSources $reindexSkusInSources
     ) {
         $this->bulkInventoryTransferValidator = $inventoryTransferValidator;
         $this->bulkInventoryTransfer = $bulkInventoryTransfer;
-        $this->sourceIndexer = $sourceIndexer;
+        $this->reindexSkusInSources = $reindexSkusInSources;
     }
 
     /**
@@ -79,7 +79,7 @@ class BulkInventoryTransfer implements BulkInventoryTransferInterface
             $unassignFromOrigin
         );
 
-        $this->sourceIndexer->executeList([$originSource, $destinationSource]);
+        $this->reindexSkusInSources->execute($skus, [$originSource, $destinationSource]);
 
         return true;
     }
