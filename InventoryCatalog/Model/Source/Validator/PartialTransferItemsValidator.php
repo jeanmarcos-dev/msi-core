@@ -40,20 +40,31 @@ class PartialTransferItemsValidator implements PartialInventoryTransferValidator
     public function validate(string $originSourceCode, string $destinationSourceCode, array $items): ValidationResult
     {
         $errors = [];
+        $requestedQuantities = [];
 
         foreach ($items as $item) {
+            $sku = $item->getSku();
+            if ($item->getQty() <= 0) {
+                $errors[] = __('Transfer quantity for sku %sku must be greater than zero', ['sku' => $sku]);
+                continue;
+            }
+            $requestedQuantities[$sku] = ($requestedQuantities[$sku] ?? 0) + $item->getQty();
+        }
+
+        foreach ($requestedQuantities as $sku => $qty) {
+            $sku = (string)$sku;
             try {
-                $originSourceItem = $this->getSourceItemBySkuAndSource($item->getSku(), $originSourceCode);
-                if ($originSourceItem->getQuantity() < $item->getQty()) {
+                $originSourceItem = $this->getSourceItemBySkuAndSource($sku, $originSourceCode);
+                if ($originSourceItem->getQuantity() < $qty) {
                     $errors[] = __(
                         'Requested transfer amount for sku %sku is not available',
                         [
-                            'sku' => $item->getSku()
+                            'sku' => $sku
                         ]
                     );
                 }
 
-                $this->getSourceItemBySkuAndSource($item->getSku(), $destinationSourceCode);
+                $this->getSourceItemBySkuAndSource($sku, $destinationSourceCode);
             } catch (NoSuchEntityException $e) {
                 $errors[] = __('%message', ['message' => $e->getMessage()]);
             }

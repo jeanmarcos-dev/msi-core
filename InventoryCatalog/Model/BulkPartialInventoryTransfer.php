@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Model;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially;
@@ -33,18 +34,26 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
     private $reindexSkusInSources;
 
     /**
+     * @var ResourceConnection
+     */
+    private $resourceConnection;
+
+    /**
      * @param PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator
      * @param TransferInventoryPartially $transferInventoryPartiallyCommand
      * @param ReindexSkusInSources $reindexSkusInSources
+     * @param ResourceConnection $resourceConnection
      */
     public function __construct(
         PartialInventoryTransferValidatorInterface $partialInventoryTransferValidator,
         TransferInventoryPartially $transferInventoryPartiallyCommand,
-        ReindexSkusInSources $reindexSkusInSources
+        ReindexSkusInSources $reindexSkusInSources,
+        ResourceConnection $resourceConnection
     ) {
         $this->transferValidator = $partialInventoryTransferValidator;
         $this->transferCommand = $transferInventoryPartiallyCommand;
         $this->reindexSkusInSources = $reindexSkusInSources;
+        $this->resourceConnection = $resourceConnection;
     }
 
     /**
@@ -68,19 +77,28 @@ class BulkPartialInventoryTransfer implements BulkPartialInventoryTransferInterf
     }
 
     /**
-     * Transfer source items.
+     * Transfer source items, all of them or none.
      *
      * @param string $originSourceCode
      * @param string $destinationSourceCode
      * @param PartialInventoryTransferItemInterface[] $items
+     * @throws ValidationException
      * @throws NoSuchEntityException
      */
     private function processTransfer(string $originSourceCode, string $destinationSourceCode, array $items): void
     {
+        $connection = $this->resourceConnection->getConnection();
         $skus = [];
-        foreach ($items as $item) {
-            $this->transferCommand->execute($item, $originSourceCode, $destinationSourceCode);
-            $skus[] = $item->getSku();
+        $connection->beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $this->transferCommand->execute($item, $originSourceCode, $destinationSourceCode);
+                $skus[] = $item->getSku();
+            }
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
         }
 
         $this->reindexSkusInSources->execute($skus, [$originSourceCode, $destinationSourceCode]);
