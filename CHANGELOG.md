@@ -17,6 +17,31 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.1 — unreleased
+
+Upstream `magento/inventory` `develop` merged up to `dea64c0`. No schema, configuration or API
+change.
+
+### Fixes taken from upstream
+
+- **ACP2E-5162** — a `catalogsearch_fulltext` reindex could halt part-way through the catalog
+  (reported at 16,500 documents). `GetStockItemsData` now binds each SKU as its own placeholder
+  instead of quoting the list into the SQL. Upstream fixed both of its query branches; this line
+  has only the index-table one, so it takes the binding and drops the Default Stock branch and the
+  `cataloginventory_stock_item` fallback again, as in 1.0.0.
+- **AC-10942** — `IsSalableOptionPlugin` no longer keeps a per-instance salability cache across
+  `getUsedProducts()` calls, which grew without bound and could answer for the wrong stock.
+- **ACP2E-5231** — In-Store Pickup: a shipping method left over from a previous address is no
+  longer re-applied to a quote already in the pickup-location state.
+
+### Not taken
+
+- Upstream's fix to `AdminBundleProductDisabledManageStockOnConfigurationPageCustomStockTest`: this
+  line removed that test in 1.0.0 as a duplicate of the configuration page test, and keeps it
+  removed.
+
+---
+
 # msi-core 1.0.0 — 2026-08-13
 
 The first release in which MSI is the only inventory system. Exclusive to this line: it changes the
