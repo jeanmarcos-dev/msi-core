@@ -17,6 +17,19 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.6 — unreleased
+
+### Salable quantity table headers out of line with their values
+
+In the per-source salable quantity table, the **On Hand**, **Reservations** and **Salable** headers
+were left-aligned while their values were right-aligned. Each number looked as if it belonged to
+the next column. The admin grid rule `.data-grid th { text-align: left }` outranked the table's own
+alignment class on the headers. The alignment is now scoped to the table, so headers and values
+share the right edge. This applies to both the product form and the product grid cell, with source
+reservations on or off.
+
+---
+
 # msi-core 1.0.5 — 2026-10-07
 
 ### Shipments ignored the source the order reserved at
