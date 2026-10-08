@@ -23,4 +23,11 @@
     <type name="Magento\InventoryShipping\Observer\SourceDeductionProcessor">
         <plugin name="inventory_adjustment_shipment_context" type="Magento\InventoryAdjustment\Plugin\InventoryShipping\ShipmentContextPlugin"/>
     </type>
+    <type name="Magento\Framework\Console\CommandList">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="inventoryAdjustmentVerify" xsi:type="object">Magento\InventoryAdjustment\Console\Command\VerifyAdjustmentsCommand</item>
+            </argument>
+        </arguments>
+    </type>
 </config>
