@@ -45,14 +45,16 @@ class AdjustmentContextTest extends TestCase
         $context = new AdjustmentContext();
 
         try {
-            $context->run(
-                new AdjustmentMetadata(AdjustmentReason::Other),
-                fn () => throw new RuntimeException('write failed')
-            );
+            $context->run(new AdjustmentMetadata(AdjustmentReason::Other), [$this, 'failWrite']);
         } catch (RuntimeException) {
         }
 
         self::assertNull($context->getCurrent());
+    }
+
+    public function failWrite(): void
+    {
+        throw new RuntimeException('write failed');
     }
 
     public function testResetClearsAnyLeftoverMetadata(): void

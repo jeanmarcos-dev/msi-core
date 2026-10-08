@@ -17,12 +17,24 @@ use Throwable;
 
 class AdjustmentRecorder implements ResetAfterRequestInterface
 {
+    /**
+     * @var int
+     */
     private int $depth = 0;
 
+    /**
+     * @var array
+     */
     private array $seen = [];
 
+    /**
+     * @var array
+     */
     private array $before = [];
 
+    /**
+     * @var AdjustmentMetadataInterface|null
+     */
     private ?AdjustmentMetadataInterface $metadata = null;
 
     /**

@@ -20,6 +20,9 @@ use PHPUnit\Framework\TestCase;
 
 class RecordSourceItemWritesPluginTest extends TestCase
 {
+    /**
+     * @var array
+     */
     private array $recordedKeys = [];
 
     public function testSaveRecordsEveryItemItWrites(): void

@@ -27,11 +27,34 @@ use RuntimeException;
 
 class AdjustmentRecorderTest extends TestCase
 {
-    private AdapterInterface&MockObject $connection;
-    private SourceItemSnapshot&MockObject $snapshot;
+    /**
+     * @var AdapterInterface|MockObject
+     */
+    private $connection;
+
+    /**
+     * @var SourceItemSnapshot|MockObject
+     */
+    private $snapshot;
+
+    /**
+     * @var bool
+     */
     private bool $enabled = true;
+
+    /**
+     * @var array
+     */
     private array $stored = [];
+
+    /**
+     * @var array
+     */
     private array $written = [];
+
+    /**
+     * @var AdjustmentRecorder
+     */
     private AdjustmentRecorder $recorder;
 
     protected function setUp(): void
@@ -136,7 +159,7 @@ class AdjustmentRecorderTest extends TestCase
         $this->recorder->record($this->keys('SKU-1'), function (): void {
             $this->stored['src']['SKU-1']['quantity'] = 8.0;
             try {
-                $this->recorder->record($this->keys('SKU-2'), fn () => throw new RuntimeException('bad row'));
+                $this->recorder->record($this->keys('SKU-2'), [$this, 'failWrite']);
             } catch (RuntimeException) {
             }
         });
@@ -156,6 +179,11 @@ class AdjustmentRecorderTest extends TestCase
         );
 
         self::assertCount(1, $this->written[0]);
+    }
+
+    public function failWrite(): void
+    {
+        throw new RuntimeException('bad row');
     }
 
     private function keys(string $sku): array

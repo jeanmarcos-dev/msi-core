@@ -57,7 +57,11 @@ class ActorResolverTest extends TestCase
 
     public function testNoUserIsTheSystem(): void
     {
-        $cases = [[null, null], [UserContextInterface::USER_TYPE_GUEST, null], [UserContextInterface::USER_TYPE_ADMIN, null]];
+        $cases = [
+            [null, null],
+            [UserContextInterface::USER_TYPE_GUEST, null],
+            [UserContextInterface::USER_TYPE_ADMIN, null],
+        ];
         foreach ($cases as [$type, $id]) {
             $actor = $this->resolver($type, $id)->resolve();
             self::assertSame(ActorType::System, $actor->type);
