@@ -123,6 +123,30 @@ class RejectOversellingReservationsPluginTest extends TestCase
         self::assertSame([5.0], $this->requestedQties);
     }
 
+    public function testIgnoresABatchThatMovesReservationsBetweenSources(): void
+    {
+        $this->areProductsSalableForRequestedQty->expects(self::never())->method('execute');
+
+        $this->invokePlugin([
+            $this->reservation(3.0, 'sku-1'),
+            $this->reservation(-3.0, 'sku-1'),
+        ]);
+
+        self::assertTrue($this->proceedCalled);
+    }
+
+    public function testChecksOnlyTheNetDemandOfTheBatch(): void
+    {
+        $this->givenSalability(['sku-1' => true]);
+
+        $this->invokePlugin([
+            $this->reservation(-5.0, 'sku-1'),
+            $this->reservation(2.0, 'sku-1'),
+        ]);
+
+        self::assertSame([3.0], $this->requestedQties);
+    }
+
     public function testChecksEachStockSeparately(): void
     {
         $this->areProductsSalableForRequestedQty->expects(self::exactly(2))

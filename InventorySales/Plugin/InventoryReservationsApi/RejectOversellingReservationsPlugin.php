@@ -22,6 +22,8 @@ use Magento\InventorySalesApi\Api\Data\IsProductSalableForRequestedQtyRequestInt
  */
 class RejectOversellingReservationsPlugin
 {
+    private const EPSILON = 0.000001;
+
     /**
      * @param AreProductsSalableForRequestedQtyInterface $areProductsSalableForRequestedQty
      * @param IsProductSalableForRequestedQtyRequestInterfaceFactory $requestFactory
@@ -43,19 +45,23 @@ class RejectOversellingReservationsPlugin
      */
     public function aroundExecute(AppendReservationsInterface $subject, callable $proceed, array $reservations)
     {
-        $demandByStock = [];
+        $netByStock = [];
         foreach ($reservations as $reservation) {
-            $quantity = $reservation->getQuantity();
-            if ($quantity >= 0) {
-                continue;
-            }
             $stockId = $reservation->getStockId();
             $sku = $reservation->getSku();
-            $demandByStock[$stockId][$sku] = ($demandByStock[$stockId][$sku] ?? 0.0) - $quantity;
+            $netByStock[$stockId][$sku] = ($netByStock[$stockId][$sku] ?? 0.0) + $reservation->getQuantity();
         }
 
-        foreach ($demandByStock as $stockId => $demandBySku) {
-            $this->assertSalable((int)$stockId, $demandBySku);
+        foreach ($netByStock as $stockId => $netBySku) {
+            $demandBySku = [];
+            foreach ($netBySku as $sku => $net) {
+                if ($net < -self::EPSILON) {
+                    $demandBySku[$sku] = -$net;
+                }
+            }
+            if ($demandBySku) {
+                $this->assertSalable((int)$stockId, $demandBySku);
+            }
         }
 
         return $proceed($reservations);

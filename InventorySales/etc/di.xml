@@ -41,6 +41,7 @@
     </type>
     <type name="Magento\InventoryCatalog\Model\ResourceModel\BulkInventoryTransfer">
         <plugin name="detect_oversell_on_bulk_inventory_transfer" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnBulkInventoryTransferPlugin"/>
+        <plugin name="move_reservations_on_bulk_inventory_transfer" type="Magento\InventorySales\Plugin\InventoryCatalog\MoveReservationsOnBulkInventoryTransferPlugin"/>
     </type>
     <type name="Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially">
         <plugin name="detect_oversell_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnTransferInventoryPartiallyPlugin"/>
