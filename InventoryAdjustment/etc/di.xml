@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <preference for="Magento\InventoryAdjustmentApi\Api\AdjustmentContextInterface" type="Magento\InventoryAdjustment\Model\AdjustmentContext"/>
+    <preference for="Magento\InventoryAdjustmentApi\Api\Data\AdjustmentMetadataInterface" type="Magento\InventoryAdjustment\Model\AdjustmentMetadata"/>
+</config>

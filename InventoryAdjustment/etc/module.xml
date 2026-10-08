@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Magento_InventoryAdjustment">
+        <sequence>
+            <module name="Magento_InventoryAdjustmentApi"/>
+            <module name="Magento_Inventory"/>
+            <module name="Magento_InventoryApi"/>
+            <module name="Magento_InventorySalesApi"/>
+            <module name="Magento_InventorySourceDeductionApi"/>
+            <module name="Magento_InventoryShipping"/>
+            <module name="Magento_Authorization"/>
+            <module name="Magento_User"/>
+            <module name="Magento_Integration"/>
+        </sequence>
+    </module>
+</config>

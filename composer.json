@@ -22,6 +22,7 @@
         "magento/framework": ">=103.0.9 <103.0.10",
         "magento/framework-message-queue": "*",
         "magento/module-asynchronous-operations": "*",
+        "magento/module-authorization": "*",
         "magento/module-backend": "*",
         "magento/module-bundle": "*",
         "magento/module-bundle-import-export": "*",
@@ -39,6 +40,7 @@
         "magento/module-graph-ql": "*",
         "magento/module-grouped-product": "*",
         "magento/module-import-export": "*",
+        "magento/module-integration": "*",
         "magento/module-page-cache": "*",
         "magento/module-product-alert": "*",
         "magento/module-quote": "*",
@@ -49,6 +51,7 @@
         "magento/module-shipping": "*",
         "magento/module-store": "*",
         "magento/module-ui": "*",
+        "magento/module-user": "*",
         "magento/module-webapi": "*"
     },
     "replace": {
@@ -207,6 +210,8 @@
     "autoload": {
         "files": [
             "Inventory/registration.php",
+            "InventoryAdjustment/registration.php",
+            "InventoryAdjustmentApi/registration.php",
             "InventoryAdminUi/registration.php",
             "InventoryAdvancedCheckout/registration.php",
             "InventoryApi/registration.php",
@@ -282,6 +287,8 @@
             "InventoryWishlist/registration.php"
         ],
         "psr-4": {
+            "Magento\\InventoryAdjustmentApi\\": "InventoryAdjustmentApi/",
+            "Magento\\InventoryAdjustment\\": "InventoryAdjustment/",
             "Magento\\InventoryAdminUi\\": "InventoryAdminUi/",
             "Magento\\InventoryAdvancedCheckout\\": "InventoryAdvancedCheckout/",
             "Magento\\InventoryApi\\": "InventoryApi/",

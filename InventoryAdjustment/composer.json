@@ -1,0 +1,32 @@
+{
+    "name": "magento/module-inventory-adjustment",
+    "description": "Append-only history of every source item quantity and status change in Multi-Source Inventory.",
+    "type": "magento2-module",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "version": "1.0.0",
+    "require": {
+        "php": "~8.3.0||~8.4.0||~8.5.0",
+        "magento/framework": "103.0.*",
+        "magento/module-authorization": "100.4.*",
+        "magento/module-integration": "100.4.*",
+        "magento/module-inventory": "1.2.*",
+        "magento/module-inventory-adjustment-api": "1.0.*",
+        "magento/module-inventory-api": "1.2.*",
+        "magento/module-inventory-sales-api": "1.2.*",
+        "magento/module-inventory-shipping": "1.2.*",
+        "magento/module-inventory-source-deduction-api": "1.2.*",
+        "magento/module-sales": "103.0.*",
+        "magento/module-user": "101.2.*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magento\\InventoryAdjustment\\": ""
+        }
+    }
+}
