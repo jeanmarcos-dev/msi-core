@@ -1,0 +1,81 @@
+<?php
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+declare(strict_types=1);
+
+namespace Magento\InventoryAdjustment\Model\ResourceModel;
+
+use Magento\Framework\App\ResourceConnection;
+use Magento\Inventory\Model\ResourceModel\SourceItem as SourceItemResourceModel;
+
+class SourceItemSnapshot
+{
+    /**
+     * @param ResourceConnection $resourceConnection
+     */
+    public function __construct(private readonly ResourceConnection $resourceConnection)
+    {
+    }
+
+    /**
+     * Read and lock the current quantity and status of the given source items
+     *
+     * @param array $keys
+     * @return array
+     */
+    public function lock(array $keys): array
+    {
+        return $this->fetch($keys, true);
+    }
+
+    /**
+     * Read the current quantity and status of the given source items
+     *
+     * @param array $keys
+     * @return array
+     */
+    public function read(array $keys): array
+    {
+        return $this->fetch($keys, false);
+    }
+
+    /**
+     * Fetch the source items keyed by source code and SKU
+     *
+     * @param array $keys
+     * @param bool $forUpdate
+     * @return array
+     */
+    private function fetch(array $keys, bool $forUpdate): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+        $connection = $this->resourceConnection->getConnection();
+        $conditions = [];
+        foreach ($keys as $key) {
+            $conditions[] = '(' . $connection->quoteInto('source_code = ?', $key['source_code'])
+                . ' AND ' . $connection->quoteInto('sku = ?', $key['sku']) . ')';
+        }
+        $select = $connection->select()
+            ->from(
+                $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM),
+                ['source_code', 'sku', 'quantity', 'status']
+            )
+            ->where(implode(' OR ', $conditions))
+            ->order(['source_code', 'sku'])
+            ->forUpdate($forUpdate);
+
+        $snapshot = [];
+        foreach ($connection->fetchAll($select) as $row) {
+            $snapshot[$row['source_code']][$row['sku']] = [
+                'quantity' => (float)$row['quantity'],
+                'status' => (int)$row['status'],
+            ];
+        }
+
+        return $snapshot;
+    }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
+    <table name="inventory_source_item_adjustment" resource="default" engine="innodb">
+        <column xsi:type="bigint" name="adjustment_id" unsigned="true" nullable="false" identity="true"/>
+        <column xsi:type="varchar" name="source_code" nullable="false" length="255"/>
+        <column xsi:type="varchar" name="sku" nullable="false" length="64"/>
+        <column xsi:type="varchar" name="state" nullable="false" length="32" default="available"/>
+        <column xsi:type="decimal" name="delta" scale="4" precision="12" unsigned="false" nullable="false"/>
+        <column xsi:type="decimal" name="quantity_after" scale="4" precision="12" unsigned="false" nullable="false"/>
+        <column xsi:type="smallint" name="status_before" unsigned="true" nullable="true" identity="false"/>
+        <column xsi:type="smallint" name="status_after" unsigned="true" nullable="true" identity="false"/>
+        <column xsi:type="varchar" name="reason" nullable="false" length="32"/>
+        <column xsi:type="varchar" name="actor_type" nullable="false" length="16"/>
+        <column xsi:type="varchar" name="actor_id" nullable="true" length="64"/>
+        <column xsi:type="varchar" name="actor_label" nullable="true" length="255"/>
+        <column xsi:type="varchar" name="reference_type" nullable="true" length="32"/>
+        <column xsi:type="varchar" name="reference_id" nullable="true" length="64"/>
+        <column xsi:type="varchar" name="request_id" nullable="true" length="64"/>
+        <column xsi:type="varchar" name="note" nullable="true" length="255"/>
+        <column xsi:type="timestamp" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="adjustment_id"/>
+        </constraint>
+        <index referenceId="INVENTORY_SOURCE_ITEM_ADJUSTMENT_SOURCE_CODE_SKU_ADJUSTMENT_ID" indexType="btree">
+            <column name="source_code"/>
+            <column name="sku"/>
+            <column name="adjustment_id"/>
+        </index>
+        <index referenceId="INVENTORY_SOURCE_ITEM_ADJUSTMENT_CREATED_AT" indexType="btree">
+            <column name="created_at"/>
+        </index>
+        <index referenceId="INVENTORY_SOURCE_ITEM_ADJUSTMENT_REFERENCE_TYPE_REFERENCE_ID" indexType="btree">
+            <column name="reference_type"/>
+            <column name="reference_id"/>
+        </index>
+    </table>
+</schema>

@@ -1,0 +1,31 @@
+{
+    "inventory_source_item_adjustment": {
+        "column": {
+            "adjustment_id": true,
+            "source_code": true,
+            "sku": true,
+            "state": true,
+            "delta": true,
+            "quantity_after": true,
+            "status_before": true,
+            "status_after": true,
+            "reason": true,
+            "actor_type": true,
+            "actor_id": true,
+            "actor_label": true,
+            "reference_type": true,
+            "reference_id": true,
+            "request_id": true,
+            "note": true,
+            "created_at": true
+        },
+        "index": {
+            "INVENTORY_SOURCE_ITEM_ADJUSTMENT_SOURCE_CODE_SKU_ADJUSTMENT_ID": true,
+            "INVENTORY_SOURCE_ITEM_ADJUSTMENT_CREATED_AT": true,
+            "INVENTORY_SOURCE_ITEM_ADJUSTMENT_REFERENCE_TYPE_REFERENCE_ID": true
+        },
+        "constraint": {
+            "PRIMARY": true
+        }
+    }
+}
