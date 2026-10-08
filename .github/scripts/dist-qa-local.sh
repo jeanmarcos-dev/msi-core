@@ -44,7 +44,9 @@ CHANGED=$(
 # is uncommitted, and the tools cannot open what is no longer on disk. CI never sees this because
 # there the deletion is part of the commit range.
 CHANGED=$(printf '%s\n' "$CHANGED" | while IFS= read -r file; do
-    [ -n "$file" ] && [ -f "$file" ] && printf '%s\n' "$file"
+    if [ -n "$file" ] && [ -f "$file" ]; then
+        printf '%s\n' "$file"
+    fi
 done)
 
 if [ -z "$CHANGED" ]; then
