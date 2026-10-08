@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <fieldset name="source_selection">
+        <container name="allocation_warning" component="Magento_InventorySalesAdminUi/js/shipment/allocation-warning" sortOrder="20">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="provider" xsi:type="string">inventory_shipping_source_selection_form.inventory_shipping_source_selection_form_data_source</item>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+</form>
