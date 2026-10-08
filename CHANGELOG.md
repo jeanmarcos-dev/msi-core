@@ -17,6 +17,21 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### Every source item change now leaves a history row
+
+Saving or deleting source items (admin product form, REST, imports), shipment and virtual invoice
+deductions, and returns to stock from credit memos now write an append-only row to
+`inventory_source_item_adjustment`, in the same transaction as the change. The row records the delta,
+the resulting quantity, the status change if any, the reason, who made the change, and the shipment
+or order behind it. `bin/magento inventory:adjustment:verify` lists source items whose quantity no
+longer matches their last row and exits non-zero when there is any. History starts at the upgrade;
+nothing is backfilled. Set `cataloginventory/source_item_adjustment/enabled` to `0` to stop
+recording.
+
+---
+
 # msi-core 1.0.8 — 2026-10-08
 
 ### Source selection page warns when shipping from a source the order did not reserve at
