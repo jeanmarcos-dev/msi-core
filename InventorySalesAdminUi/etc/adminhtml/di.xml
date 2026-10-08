@@ -46,4 +46,7 @@
             <argument name="maximumStocksToShow" xsi:type="number">15</argument>
         </arguments>
     </type>
+    <type name="Magento\InventoryShippingAdminUi\Ui\DataProvider\SourceSelectionDataProvider">
+        <plugin name="add_allocated_sources_to_source_selection" type="Magento\InventorySalesAdminUi\Plugin\InventoryShippingAdminUi\AddAllocatedSourcesToSourceSelectionPlugin"/>
+    </type>
 </config>

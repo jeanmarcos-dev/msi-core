@@ -14,11 +14,14 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;
 use Magento\Sales\Model\Order\Validation\ShipOrderInterface;
 use Magento\Sales\Model\ValidatorResult;
+use Magento\Framework\TestFramework\Unit\Helper\MockCreationTrait;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class ValidateSourceOnShipOrderPluginTest extends TestCase
 {
+    use MockCreationTrait;
+
     /**
      * @var ResolveShipmentSourceCode|MockObject
      */
@@ -57,7 +60,10 @@ class ValidateSourceOnShipOrderPluginTest extends TestCase
 
     public function testAcceptsAShipmentWithAnExplicitSource(): void
     {
-        $extension = $this->createMock(ShipmentExtensionInterface::class);
+        $extension = $this->createPartialMockWithReflection(
+            ShipmentExtensionInterface::class,
+            ['getSourceCode', 'setSourceCode']
+        );
         $extension->method('getSourceCode')->willReturn('slr_b');
         $this->resolveShipmentSourceCode->expects(self::never())->method('execute');
 

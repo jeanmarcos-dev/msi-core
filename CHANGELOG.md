@@ -17,6 +17,19 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.8 — unreleased
+
+### Source selection page warns when shipping from a source the order did not reserve at
+
+With source reservations enabled, the admin source selection page (**Ship** on a multi-source order)
+now shows a warning under the **Source** selector when the selected source is not one the order
+reserved an item at. The warning names the SKU and its reserved sources with quantities. Shipping
+from that source still works: the warning explains that it takes the stock from the selected source
+and releases the reservation at the other one. Nothing changes when source reservations are
+disabled.
+
+---
+
 # msi-core 1.0.7 — 2026-10-08
 
 ### Full source transfer left open orders reserved at an empty source

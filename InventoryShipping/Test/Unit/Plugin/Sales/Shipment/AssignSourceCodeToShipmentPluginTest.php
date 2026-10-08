@@ -15,11 +15,14 @@ use Magento\Sales\Api\Data\ShipmentExtensionInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;
 use Magento\Sales\Model\Order\ShipmentFactory;
+use Magento\Framework\TestFramework\Unit\Helper\MockCreationTrait;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class AssignSourceCodeToShipmentPluginTest extends TestCase
 {
+    use MockCreationTrait;
+
     /**
      * @var RequestInterface|MockObject
      */
@@ -44,7 +47,10 @@ class AssignSourceCodeToShipmentPluginTest extends TestCase
     {
         $this->request = $this->createMock(RequestInterface::class);
         $this->resolveShipmentSourceCode = $this->createMock(ResolveShipmentSourceCode::class);
-        $this->extension = $this->createMock(ShipmentExtensionInterface::class);
+        $this->extension = $this->createPartialMockWithReflection(
+            ShipmentExtensionInterface::class,
+            ['getSourceCode', 'setSourceCode']
+        );
         $extensionFactory = $this->createMock(ShipmentExtensionFactory::class);
         $extensionFactory->method('create')->willReturn($this->extension);
 
