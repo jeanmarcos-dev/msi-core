@@ -72,12 +72,8 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
         if ($keys === [] || !$this->config->isEnabled()) {
             return $write();
         }
-        $connection = $this->resourceConnection->getConnection();
         $outermost = $this->depth === 0;
-        if ($outermost) {
-            $connection->beginTransaction();
-            $this->metadata = $this->context->getCurrent() ?? $this->defaultMetadataProvider->get();
-        }
+        $ownsTransaction = $outermost && $this->start();
         $this->depth++;
         try {
             $this->lockUnseen($keys);
@@ -90,9 +86,12 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
                     $this->actorResolver->resolve()
                 ));
             }
+            if ($ownsTransaction) {
+                $this->resourceConnection->getConnection()->commit();
+            }
         } catch (Throwable $exception) {
-            if ($outermost) {
-                $connection->rollBack();
+            if ($ownsTransaction) {
+                $this->rollBackQuietly();
             }
             throw $exception;
         } finally {
@@ -100,9 +99,6 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
             if ($outermost) {
                 $this->_resetState();
             }
-        }
-        if ($outermost) {
-            $connection->commit();
         }
 
         return $result;
@@ -117,6 +113,37 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
         $this->seen = [];
         $this->before = [];
         $this->metadata = null;
+    }
+
+    /**
+     * Take the metadata of a new recording and open a transaction when none is running
+     *
+     * @return bool
+     */
+    private function start(): bool
+    {
+        $this->metadata = $this->context->getCurrent() ?? $this->defaultMetadataProvider->get();
+        $connection = $this->resourceConnection->getConnection();
+        if ($connection->getTransactionLevel() !== 0) {
+            return false;
+        }
+        $connection->beginTransaction();
+
+        return true;
+    }
+
+    /**
+     * Roll back the transaction this recording opened without hiding the failure that caused it
+     *
+     * @return void
+     */
+    private function rollBackQuietly(): void
+    {
+        try {
+            $this->resourceConnection->getConnection()->rollBack();
+        } catch (Throwable) {
+            return;
+        }
     }
 
     /**

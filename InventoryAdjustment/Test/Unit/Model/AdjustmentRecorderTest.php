@@ -43,6 +43,11 @@ class AdjustmentRecorderTest extends TestCase
     private bool $enabled = true;
 
     /**
+     * @var int
+     */
+    private int $transactionLevel = 0;
+
+    /**
      * @var array
      */
     private array $stored = [];
@@ -60,6 +65,7 @@ class AdjustmentRecorderTest extends TestCase
     protected function setUp(): void
     {
         $this->connection = $this->createMock(AdapterInterface::class);
+        $this->connection->method('getTransactionLevel')->willReturnCallback(fn () => $this->transactionLevel);
         $resource = $this->createMock(ResourceConnection::class);
         $resource->method('getConnection')->willReturn($this->connection);
         $config = $this->createMock(Config::class);
@@ -179,6 +185,42 @@ class AdjustmentRecorderTest extends TestCase
         );
 
         self::assertCount(1, $this->written[0]);
+    }
+
+    public function testInsideAnOuterTransactionItNeitherOpensNorEndsOne(): void
+    {
+        $this->transactionLevel = 1;
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 10.0, 'status' => 1]]];
+        $this->connection->expects(self::never())->method('beginTransaction');
+        $this->connection->expects(self::never())->method('commit');
+
+        $this->recorder->record($this->keys('SKU-1'), function (): void {
+            $this->stored['src']['SKU-1']['quantity'] = 9.0;
+        });
+
+        self::assertSame([-1.0], array_column($this->written[0], 'delta'));
+    }
+
+    public function testAFailureInsideAnOuterTransactionIsLeftToItsOwner(): void
+    {
+        $this->transactionLevel = 1;
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 10.0, 'status' => 1]]];
+        $this->connection->expects(self::never())->method('rollBack');
+        $this->expectException(RuntimeException::class);
+
+        $this->recorder->record($this->keys('SKU-1'), [$this, 'failWrite']);
+    }
+
+    public function testAFailedCommitRollsBack(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 10.0, 'status' => 1]]];
+        $this->connection->method('commit')->willThrowException(new RuntimeException('commit failed'));
+        $this->connection->expects(self::once())->method('rollBack');
+        $this->expectException(RuntimeException::class);
+
+        $this->recorder->record($this->keys('SKU-1'), function (): void {
+            $this->stored['src']['SKU-1']['quantity'] = 9.0;
+        });
     }
 
     public function failWrite(): void

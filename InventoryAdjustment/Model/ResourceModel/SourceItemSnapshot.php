@@ -42,7 +42,7 @@ class SourceItemSnapshot
     }
 
     /**
-     * Fetch the source items keyed by source code and SKU
+     * Fetch the source items keyed by source code and SKU, locking only rows that exist
      *
      * @param array $keys
      * @param bool $forUpdate
@@ -50,22 +50,18 @@ class SourceItemSnapshot
      */
     private function fetch(array $keys, bool $forUpdate): array
     {
-        if ($keys === []) {
+        $ids = $this->getSourceItemIds($keys);
+        if ($ids === []) {
             return [];
         }
         $connection = $this->resourceConnection->getConnection();
-        $conditions = [];
-        foreach ($keys as $key) {
-            $conditions[] = '(' . $connection->quoteInto('source_code = ?', $key['source_code'])
-                . ' AND ' . $connection->quoteInto('sku = ?', $key['sku']) . ')';
-        }
         $select = $connection->select()
             ->from(
                 $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM),
                 ['source_code', 'sku', 'quantity', 'status']
             )
-            ->where(implode(' OR ', $conditions))
-            ->order(['source_code', 'sku'])
+            ->where('source_item_id IN (?)', $ids)
+            ->order('source_item_id')
             ->forUpdate($forUpdate);
 
         $snapshot = [];
@@ -77,5 +73,33 @@ class SourceItemSnapshot
         }
 
         return $snapshot;
+    }
+
+    /**
+     * Ids of the given source items that exist, read without locking
+     *
+     * @param array $keys
+     * @return array
+     */
+    private function getSourceItemIds(array $keys): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+        $connection = $this->resourceConnection->getConnection();
+        $conditions = [];
+        foreach ($keys as $key) {
+            $conditions[] = '(' . $connection->quoteInto('source_code = ?', $key['source_code'])
+                . ' AND ' . $connection->quoteInto('sku = ?', $key['sku']) . ')';
+        }
+
+        return $connection->fetchCol(
+            $connection->select()
+                ->from(
+                    $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM),
+                    ['source_item_id']
+                )
+                ->where(implode(' OR ', $conditions))
+        );
     }
 }
