@@ -17,6 +17,26 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.0.7 — unreleased
+
+### Full source transfer left open orders reserved at an empty source
+
+With source reservations enabled, `POST /V1/inventory/bulk-product-source-transfer` moved all the
+origin's stock to the destination but left the reservations of open orders at the origin. The origin
+ended at zero with orders still allocated to it. The destination showed their units as free.
+
+- **The transfer now moves those reservations with the stock.** For every open order, it releases
+  the origin's pending balance and places the same quantity at the destination. Each order's ledger
+  stays balanced, and its shipment then comes from the destination. The move runs under the same
+  `(sku, source)` locks as checkout, in the same transaction as the stock.
+- **The transfer is refused** when the destination is not assigned to the stock of an order that
+  holds reservations at the origin. The error names the order.
+- **The oversell guard on new reservations now checks a batch's net demand** per stock and SKU.
+  It used to sum only the negative rows. A balanced move between sources asks the stock for nothing,
+  and checkout batches are checked exactly as before.
+
+---
+
 # msi-core 1.0.6 — 2026-10-07
 
 ### Salable quantity table headers out of line with their values
