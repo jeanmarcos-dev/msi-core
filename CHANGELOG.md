@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core 1.0.7 — unreleased
+# msi-core 1.0.7 — 2026-10-08
 
 ### Full source transfer left open orders reserved at an empty source
 
