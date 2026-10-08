@@ -1,0 +1,32 @@
+<?php
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+declare(strict_types=1);
+
+namespace Magento\InventoryAdjustment\Model;
+
+use Magento\InventoryApi\Api\Data\SourceItemInterface;
+
+class SourceItemKeys
+{
+    /**
+     * Source code and SKU of every given source item
+     *
+     * @param SourceItemInterface[] $sourceItems
+     * @return array
+     */
+    public function fromSourceItems(array $sourceItems): array
+    {
+        $keys = [];
+        foreach ($sourceItems as $sourceItem) {
+            $keys[] = [
+                'source_code' => (string)$sourceItem->getSourceCode(),
+                'sku' => (string)$sourceItem->getSku(),
+            ];
+        }
+
+        return $keys;
+    }
+}

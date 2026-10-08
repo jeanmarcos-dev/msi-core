@@ -8,4 +8,13 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <preference for="Magento\InventoryAdjustmentApi\Api\AdjustmentContextInterface" type="Magento\InventoryAdjustment\Model\AdjustmentContext"/>
     <preference for="Magento\InventoryAdjustmentApi\Api\Data\AdjustmentMetadataInterface" type="Magento\InventoryAdjustment\Model\AdjustmentMetadata"/>
+    <type name="Magento\Inventory\Model\ResourceModel\SourceItem\SaveMultiple">
+        <plugin name="inventory_adjustment_record_save" type="Magento\InventoryAdjustment\Plugin\Inventory\RecordSaveMultiplePlugin"/>
+    </type>
+    <type name="Magento\Inventory\Model\ResourceModel\SourceItem\DeleteMultiple">
+        <plugin name="inventory_adjustment_record_delete" type="Magento\InventoryAdjustment\Plugin\Inventory\RecordDeleteMultiplePlugin"/>
+    </type>
+    <type name="Magento\Inventory\Model\ResourceModel\SourceItem\DecrementQtyForMultipleSourceItem">
+        <plugin name="inventory_adjustment_record_decrement" type="Magento\InventoryAdjustment\Plugin\Inventory\RecordDecrementPlugin"/>
+    </type>
 </config>
