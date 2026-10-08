@@ -17,4 +17,10 @@
     <type name="Magento\Inventory\Model\ResourceModel\SourceItem\DecrementQtyForMultipleSourceItem">
         <plugin name="inventory_adjustment_record_decrement" type="Magento\InventoryAdjustment\Plugin\Inventory\RecordDecrementPlugin"/>
     </type>
+    <type name="Magento\InventorySourceDeductionApi\Model\SourceDeductionServiceInterface">
+        <plugin name="inventory_adjustment_sales_event_context" type="Magento\InventoryAdjustment\Plugin\InventorySourceDeductionApi\SalesEventContextPlugin"/>
+    </type>
+    <type name="Magento\InventoryShipping\Observer\SourceDeductionProcessor">
+        <plugin name="inventory_adjustment_shipment_context" type="Magento\InventoryAdjustment\Plugin\InventoryShipping\ShipmentContextPlugin"/>
+    </type>
 </config>
