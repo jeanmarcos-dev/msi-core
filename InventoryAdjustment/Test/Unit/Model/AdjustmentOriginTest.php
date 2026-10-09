@@ -44,12 +44,17 @@ class AdjustmentOriginTest extends TestCase
         $origin = new AdjustmentOrigin();
 
         try {
-            $origin->run(new Actor(ActorType::Import), 'run', fn () => throw new RuntimeException('failed'));
+            $origin->run(new Actor(ActorType::Import), 'run', [$this, 'failOperation']);
+            self::fail('The failure was swallowed');
         } catch (RuntimeException) {
-            self::assertNull($origin->getRequestId());
-            return;
         }
-        self::fail('The failure was swallowed');
+
+        self::assertNull($origin->getRequestId());
+    }
+
+    public function failOperation(): void
+    {
+        throw new RuntimeException('failed');
     }
 
     public function testResetDropsEveryOrigin(): void

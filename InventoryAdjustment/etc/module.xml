@@ -22,6 +22,8 @@
             <module name="Magento_InventoryCatalog"/>
             <module name="Magento_InventoryCatalogApi"/>
             <module name="Magento_AsynchronousOperations"/>
+            <module name="Magento_ImportExport"/>
+            <module name="Magento_InventoryImportExport"/>
         </sequence>
     </module>
 </config>

@@ -31,6 +31,25 @@ class SourceItemKeys
     }
 
     /**
+     * Source code and SKU of every row
+     *
+     * @param array $rows
+     * @return array
+     */
+    public function fromRows(array $rows): array
+    {
+        $keys = [];
+        foreach ($rows as $row) {
+            $keys[] = [
+                'source_code' => (string)$row[SourceItemInterface::SOURCE_CODE],
+                'sku' => (string)$row[SourceItemInterface::SKU],
+            ];
+        }
+
+        return $keys;
+    }
+
+    /**
      * Source code and SKU of every SKU in every given source
      *
      * @param array $skus

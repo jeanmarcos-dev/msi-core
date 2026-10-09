@@ -50,6 +50,12 @@
     <type name="Magento\AsynchronousOperations\Model\OperationProcessor">
         <plugin name="inventory_adjustment_bulk_operation_origin" type="Magento\InventoryAdjustment\Plugin\AsynchronousOperations\BulkOperationOriginPlugin"/>
     </type>
+    <type name="Magento\ImportExport\Model\Import">
+        <plugin name="inventory_adjustment_import_origin" type="Magento\InventoryAdjustment\Plugin\ImportExport\ImportOriginPlugin"/>
+    </type>
+    <type name="Magento\InventoryImportExport\Model\Import\Command\Replace">
+        <plugin name="inventory_adjustment_record_replace" type="Magento\InventoryAdjustment\Plugin\InventoryImportExport\RecordReplacePlugin"/>
+    </type>
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
