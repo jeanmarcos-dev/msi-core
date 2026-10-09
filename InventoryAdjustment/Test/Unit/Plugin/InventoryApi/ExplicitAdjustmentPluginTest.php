@@ -102,7 +102,10 @@ class ExplicitAdjustmentPluginTest extends TestCase
     {
         $item = $this->createMock(SourceItemInterface::class);
         if ($withExtension) {
-            $extension = $this->createPartialMockWithReflection(SourceItemExtensionInterface::class, ['getAdjustment']);
+            $extension = $this->createPartialMockWithReflection(
+                SourceItemExtensionInterface::class,
+                ['getAdjustment', 'setAdjustment']
+            );
             $extension->method('getAdjustment')->willReturn($adjustment);
             $item->method('getExtensionAttributes')->willReturn($extension);
         }
