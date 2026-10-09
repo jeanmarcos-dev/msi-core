@@ -12,6 +12,8 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 class Config
 {
     private const XML_PATH_ENABLED = 'cataloginventory/source_item_adjustment/enabled';
+    private const XML_PATH_MAX_PAGE_SIZE = 'cataloginventory/source_item_adjustment/max_page_size';
+    private const DEFAULT_MAX_PAGE_SIZE = 500;
 
     /**
      * @param ScopeConfigInterface $scopeConfig
@@ -28,5 +30,17 @@ class Config
     public function isEnabled(): bool
     {
         return $this->scopeConfig->isSetFlag(self::XML_PATH_ENABLED);
+    }
+
+    /**
+     * Largest page of history rows one read may ask for
+     *
+     * @return int
+     */
+    public function getMaxPageSize(): int
+    {
+        $value = $this->scopeConfig->getValue(self::XML_PATH_MAX_PAGE_SIZE);
+        $maxPageSize = is_numeric($value) ? (int)$value : 0;
+        return $maxPageSize > 0 ? $maxPageSize : self::DEFAULT_MAX_PAGE_SIZE;
     }
 }

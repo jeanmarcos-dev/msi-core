@@ -10,6 +10,7 @@
         <cataloginventory>
             <source_item_adjustment>
                 <enabled>1</enabled>
+                <max_page_size>500</max_page_size>
             </source_item_adjustment>
         </cataloginventory>
     </default>

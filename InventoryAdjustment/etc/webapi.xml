@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Webapi:etc/webapi.xsd">
+    <route url="/V1/inventory/source-item-adjustments" method="GET">
+        <service class="Magento\InventoryAdjustmentApi\Api\AdjustmentRepositoryInterface" method="getList"/>
+        <resources>
+            <resource ref="Magento_InventoryAdjustment::view"/>
+        </resources>
+    </route>
+</routes>

@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="cataloginventory">
+            <group id="source_item_adjustment" translate="label" type="text" sortOrder="200" showInDefault="1">
+                <label>Source Item Adjustment History</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" canRestore="1">
+                    <label>Record Adjustments</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Turning this off leaves gaps that inventory:adjustment:verify reports as drift.</comment>
+                </field>
+                <field id="max_page_size" translate="label comment" type="text" sortOrder="20" showInDefault="1" canRestore="1">
+                    <label>Maximum Page Size for the REST API</label>
+                    <validate>required-entry validate-digits validate-greater-than-zero</validate>
+                    <comment>Largest number of history rows one request to /V1/inventory/source-item-adjustments may ask for.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
