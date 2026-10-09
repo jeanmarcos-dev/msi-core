@@ -48,8 +48,9 @@ gains a collapsed **Stock History** section with the same list for that product,
 is opened. All three require the new `Magento_InventoryAdjustment::view` permission. REST writes to
 `POST /V1/inventory/source-items`, and its async variant, can say why the stock changed with the
 `adjustment` extension attribute (`reason`, `note`, `reference_type`, `reference_id`); a reason
-outside the list, a note or reference that is too long, or items of one request carrying different
-values are rejected with a 400 and nothing is written.
+outside the list, a note or reference that is too long, a reference type of `order`, `shipment`,
+`invoice` or `creditmemo` (Magento records those itself, by entity id), or items of one request
+carrying different values are rejected with a 400 and nothing is written.
 
 ---
 

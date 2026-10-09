@@ -40,6 +40,22 @@ class ExplicitAdjustmentResolverTest extends TestCase
         (new ExplicitAdjustmentResolver())->resolve([$this->input('lost_in_war')]);
     }
 
+    /**
+     * @dataProvider salesDocumentTypes
+     */
+    public function testASalesDocumentReferenceIsRejected(string $referenceType): void
+    {
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage($referenceType);
+
+        (new ExplicitAdjustmentResolver())->resolve([$this->input('count', $referenceType, '000000042')]);
+    }
+
+    public static function salesDocumentTypes(): array
+    {
+        return [['order'], ['shipment'], ['invoice'], ['creditmemo']];
+    }
+
     public function testAMissingReasonIsRejected(): void
     {
         $this->expectException(InputException::class);
