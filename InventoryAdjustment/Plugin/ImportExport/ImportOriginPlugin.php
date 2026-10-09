@@ -38,10 +38,10 @@ class ImportOriginPlugin
      *
      * @param Import $subject
      * @param callable $proceed
-     * @return bool
+     * @return mixed
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function aroundImportSource(Import $subject, callable $proceed): bool
+    public function aroundImportSource(Import $subject, callable $proceed): mixed
     {
         $user = $this->actorResolver->resolve();
         return $this->origin->run(

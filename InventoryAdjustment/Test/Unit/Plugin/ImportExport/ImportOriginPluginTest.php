@@ -29,6 +29,21 @@ class ImportOriginPluginTest extends TestCase
         $this->assertImportRun(new Actor(ActorType::System), null, null);
     }
 
+    public function testWhatTheImportReturnsIsPassedOnUntouched(): void
+    {
+        $actorResolver = $this->createMock(ActorResolver::class);
+        $actorResolver->method('resolve')->willReturn(new Actor(ActorType::System));
+
+        $result = (new ImportOriginPlugin(
+            new AdjustmentContext(),
+            new AdjustmentOrigin(),
+            $actorResolver,
+            $this->createMock(IdentityGeneratorInterface::class)
+        ))->aroundImportSource($this->createMock(Import::class), fn () => null);
+
+        self::assertNull($result);
+    }
+
     private function assertImportRun(Actor $current, ?string $id, ?string $label): void
     {
         $context = new AdjustmentContext();
