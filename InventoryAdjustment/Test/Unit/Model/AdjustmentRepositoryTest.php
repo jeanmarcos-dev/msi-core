@@ -102,6 +102,23 @@ class AdjustmentRepositoryTest extends TestCase
         $this->repository->getList($this->criteria(501, []));
     }
 
+    /**
+     * @dataProvider pageSizesBelowOne
+     */
+    public function testAPageSmallerThanOneIsRejected(int $pageSize): void
+    {
+        $this->collectionProcessor->expects(self::never())->method('process');
+        $this->expectException(InputException::class);
+        $this->expectExceptionMessage('between 1 and 500');
+
+        $this->repository->getList($this->criteria($pageSize, []));
+    }
+
+    public static function pageSizesBelowOne(): array
+    {
+        return ['zero' => [0], 'negative' => [-5]];
+    }
+
     public function testTheResultsCarryTheItemsAndTheWholeCount(): void
     {
         $item = $this->createMock(Adjustment::class);

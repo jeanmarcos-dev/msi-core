@@ -40,9 +40,9 @@ class AdjustmentRepository implements AdjustmentRepositoryInterface
     {
         $maxPageSize = $this->config->getMaxPageSize();
         $pageSize = $searchCriteria->getPageSize();
-        if ($pageSize !== null && $pageSize > $maxPageSize) {
+        if ($pageSize !== null && ($pageSize < 1 || $pageSize > $maxPageSize)) {
             throw new InputException(
-                __('The page size can be at most %1 adjustment history rows.', $maxPageSize)
+                __('The page size must be between 1 and %1 adjustment history rows.', $maxPageSize)
             );
         }
         $collection = $this->collectionFactory->create();
