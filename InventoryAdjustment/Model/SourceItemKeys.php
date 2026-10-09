@@ -29,4 +29,23 @@ class SourceItemKeys
 
         return $keys;
     }
+
+    /**
+     * Source code and SKU of every SKU in every given source
+     *
+     * @param array $skus
+     * @param array $sourceCodes
+     * @return array
+     */
+    public function forSkusInSources(array $skus, array $sourceCodes): array
+    {
+        $keys = [];
+        foreach ($skus as $sku) {
+            foreach ($sourceCodes as $sourceCode) {
+                $keys[] = ['source_code' => (string)$sourceCode, 'sku' => (string)$sku];
+            }
+        }
+
+        return $keys;
+    }
 }

@@ -38,6 +38,15 @@
     <type name="Magento\InventoryCatalog\Model\DeleteSourceItemsBySkus">
         <plugin name="inventory_adjustment_product_cleanup_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\ProductCleanupContextPlugin"/>
     </type>
+    <type name="Magento\InventoryCatalog\Model\ResourceModel\BulkSourceUnassign">
+        <plugin name="inventory_adjustment_record_bulk_unassign" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\RecordBulkSourceUnassignPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Model\ResourceModel\BulkInventoryTransfer">
+        <plugin name="inventory_adjustment_record_bulk_transfer" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\RecordBulkInventoryTransferPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially">
+        <plugin name="inventory_adjustment_record_partial_transfer" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\RecordPartialTransferPlugin"/>
+    </type>
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
