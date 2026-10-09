@@ -1,0 +1,138 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">inventory_adjustment_product_listing.inventory_adjustment_product_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>inventory_adjustment_product_listing_columns</spinner>
+        <deps>
+            <dep>inventory_adjustment_product_listing.inventory_adjustment_product_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="inventory_adjustment_product_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">adjustment_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Magento_InventoryAdjustment::view</aclResource>
+        <dataProvider class="Magento\InventoryAdjustmentAdminUi\Ui\DataProvider\ProductAdjustmentDataProvider" name="inventory_adjustment_product_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>adjustment_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="inventory_adjustment_product_listing_columns">
+        <column name="adjustment_id" sortOrder="10">
+            <settings>
+                <filter>textRange</filter>
+                <sorting>desc</sorting>
+                <label translate="true">ID</label>
+            </settings>
+        </column>
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
+            <settings>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+                <label translate="true">Date</label>
+            </settings>
+        </column>
+        <column name="source_code" component="Magento_Ui/js/grid/columns/select" sortOrder="30">
+            <settings>
+                <filter>select</filter>
+                <options class="Magento\InventoryAdjustmentAdminUi\Model\OptionSource\SourceOptions"/>
+                <dataType>select</dataType>
+                <label translate="true">Source</label>
+            </settings>
+        </column>
+        <column name="sku" sortOrder="40">
+            <settings>
+                <filter>text</filter>
+                <visible>false</visible>
+                <label translate="true">SKU</label>
+            </settings>
+        </column>
+        <column name="delta" class="Magento\InventoryAdjustmentAdminUi\Ui\Component\Listing\Column\Quantity" sortOrder="50">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="signed" xsi:type="boolean">true</item>
+                </item>
+            </argument>
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Change</label>
+            </settings>
+        </column>
+        <column name="quantity_after" class="Magento\InventoryAdjustmentAdminUi\Ui\Component\Listing\Column\Quantity" sortOrder="60">
+            <settings>
+                <filter>textRange</filter>
+                <label translate="true">Quantity After</label>
+            </settings>
+        </column>
+        <column name="status_change" class="Magento\InventoryAdjustmentAdminUi\Ui\Component\Listing\Column\StatusChange" sortOrder="70">
+            <settings>
+                <sortable>false</sortable>
+                <label translate="true">Stock Status</label>
+            </settings>
+        </column>
+        <column name="reason" component="Magento_Ui/js/grid/columns/select" sortOrder="80">
+            <settings>
+                <filter>select</filter>
+                <options class="Magento\InventoryAdjustmentAdminUi\Model\OptionSource\ReasonOptions"/>
+                <dataType>select</dataType>
+                <label translate="true">Reason</label>
+            </settings>
+        </column>
+        <column name="actor_type" class="Magento\InventoryAdjustmentAdminUi\Ui\Component\Listing\Column\Actor" component="Magento_Ui/js/grid/columns/column" sortOrder="90">
+            <settings>
+                <filter>select</filter>
+                <options class="Magento\InventoryAdjustmentAdminUi\Model\OptionSource\ActorTypeOptions"/>
+                <dataType>select</dataType>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <label translate="true">Actor</label>
+            </settings>
+        </column>
+        <column name="reference_type" sortOrder="100">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Reference Type</label>
+            </settings>
+        </column>
+        <column name="reference_id" class="Magento\InventoryAdjustmentAdminUi\Ui\Component\Listing\Column\Reference" sortOrder="110">
+            <settings>
+                <filter>text</filter>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <label translate="true">Reference</label>
+            </settings>
+        </column>
+        <column name="request_id" sortOrder="120">
+            <settings>
+                <filter>text</filter>
+                <visible>false</visible>
+                <label translate="true">Request</label>
+            </settings>
+        </column>
+        <column name="note" sortOrder="130">
+            <settings>
+                <filter>text</filter>
+                <label translate="true">Note</label>
+            </settings>
+        </column>
+    </columns>
+</listing>

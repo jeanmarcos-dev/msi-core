@@ -16,7 +16,18 @@
         <arguments>
             <argument name="collections" xsi:type="array">
                 <item name="inventory_adjustment_listing_data_source" xsi:type="string">Magento\InventoryAdjustmentAdminUi\Model\ResourceModel\Adjustment\Grid\Collection</item>
+                <item name="inventory_adjustment_product_listing_data_source" xsi:type="string">Magento\InventoryAdjustmentAdminUi\Model\ResourceModel\Adjustment\Grid\Collection</item>
             </argument>
         </arguments>
     </type>
+    <virtualType name="Magento\Catalog\Ui\DataProvider\Product\Form\Modifier\Pool">
+        <arguments>
+            <argument name="modifiers" xsi:type="array">
+                <item name="adjustment_history" xsi:type="array">
+                    <item name="class" xsi:type="string">Magento\InventoryAdjustmentAdminUi\Ui\DataProvider\Product\Form\Modifier\AdjustmentHistory</item>
+                    <item name="sortOrder" xsi:type="number">210</item>
+                </item>
+            </argument>
+        </arguments>
+    </virtualType>
 </config>
