@@ -69,6 +69,21 @@ class ActorResolverTest extends TestCase
         }
     }
 
+    public function testForUserResolvesAUserThatIsNotTheCurrentOne(): void
+    {
+        $actor = $this->resolver(null, null)->forUser(UserContextInterface::USER_TYPE_ADMIN, 3);
+
+        self::assertSame(ActorType::Admin, $actor->type);
+        self::assertSame('jane', $actor->label);
+    }
+
+    public function testForUserWithoutAUserIsTheSystem(): void
+    {
+        $actor = $this->resolver(null, null)->forUser(null, 0);
+
+        self::assertSame(ActorType::System, $actor->type);
+    }
+
     private function resolver(?int $userType, ?int $userId): ActorResolver
     {
         $userContext = $this->createMock(UserContextInterface::class);

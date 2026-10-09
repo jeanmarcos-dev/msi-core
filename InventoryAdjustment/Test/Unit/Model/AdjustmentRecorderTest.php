@@ -12,6 +12,7 @@ use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\InventoryAdjustment\Model\Actor;
 use Magento\InventoryAdjustment\Model\ActorResolver;
 use Magento\InventoryAdjustment\Model\AdjustmentMetadata;
+use Magento\InventoryAdjustment\Model\AdjustmentOrigin;
 use Magento\InventoryAdjustment\Model\AdjustmentRecorder;
 use Magento\InventoryAdjustment\Model\AdjustmentRowsBuilder;
 use Magento\InventoryAdjustment\Model\Config;
@@ -58,6 +59,11 @@ class AdjustmentRecorderTest extends TestCase
     private array $written = [];
 
     /**
+     * @var AdjustmentOrigin
+     */
+    private AdjustmentOrigin $origin;
+
+    /**
      * @var AdjustmentRecorder
      */
     private AdjustmentRecorder $recorder;
@@ -81,6 +87,7 @@ class AdjustmentRecorderTest extends TestCase
         $context->method('getCurrent')->willReturn(new AdjustmentMetadata(AdjustmentReason::Count, 'order', '7'));
         $actorResolver = $this->createMock(ActorResolver::class);
         $actorResolver->method('resolve')->willReturn(new Actor(ActorType::System));
+        $this->origin = new AdjustmentOrigin();
 
         $this->recorder = new AdjustmentRecorder(
             $resource,
@@ -90,7 +97,8 @@ class AdjustmentRecorderTest extends TestCase
             $writer,
             $context,
             $this->createMock(DefaultMetadataProvider::class),
-            $actorResolver
+            $actorResolver,
+            $this->origin
         );
     }
 
@@ -226,6 +234,25 @@ class AdjustmentRecorderTest extends TestCase
     public function failWrite(): void
     {
         throw new RuntimeException('bad row');
+    }
+
+    public function testTheOriginGivesTheActorAndTheRequestId(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 10.0, 'status' => 1]]];
+
+        $this->origin->run(
+            new Actor(ActorType::Import, '3', 'jane'),
+            'run-1',
+            fn () => $this->recorder->record($this->keys('SKU-1'), function (): void {
+                $this->stored['src']['SKU-1']['quantity'] = 12.0;
+            })
+        );
+
+        $row = $this->written[0][0];
+        self::assertSame('import', $row['actor_type']);
+        self::assertSame('3', $row['actor_id']);
+        self::assertSame('jane', $row['actor_label']);
+        self::assertSame('run-1', $row['request_id']);
     }
 
     private function keys(string $sku): array

@@ -46,6 +46,7 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
      * @param AdjustmentContextInterface $context
      * @param DefaultMetadataProvider $defaultMetadataProvider
      * @param ActorResolver $actorResolver
+     * @param AdjustmentOrigin $origin
      */
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
@@ -55,7 +56,8 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
         private readonly AdjustmentWriter $writer,
         private readonly AdjustmentContextInterface $context,
         private readonly DefaultMetadataProvider $defaultMetadataProvider,
-        private readonly ActorResolver $actorResolver
+        private readonly ActorResolver $actorResolver,
+        private readonly AdjustmentOrigin $origin
     ) {
     }
 
@@ -83,7 +85,8 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
                     $this->before,
                     $this->snapshot->read($this->getSeenKeys()),
                     $this->metadata,
-                    $this->actorResolver->resolve()
+                    $this->origin->getActor() ?? $this->actorResolver->resolve(),
+                    $this->origin->getRequestId()
                 ));
             }
             if ($ownsTransaction) {

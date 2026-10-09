@@ -38,21 +38,36 @@ class ActorResolver
      */
     public function resolve(): Actor
     {
-        $userId = $this->userContext->getUserId();
-        if (!$userId) {
+        $userType = $this->userContext->getUserType();
+        return $this->forUser(
+            $userType === null ? null : (int)$userType,
+            (int)$this->userContext->getUserId()
+        );
+    }
+
+    /**
+     * Actor for a given user
+     *
+     * @param int|null $userType
+     * @param int $userId
+     * @return Actor
+     */
+    public function forUser(?int $userType, int $userId): Actor
+    {
+        if ($userId === 0) {
             return new Actor(ActorType::System);
         }
 
-        return match ($this->userContext->getUserType()) {
+        return match ($userType) {
             UserContextInterface::USER_TYPE_ADMIN => new Actor(
                 ActorType::Admin,
                 (string)$userId,
-                $this->getAdminUsername((int)$userId)
+                $this->getAdminUsername($userId)
             ),
             UserContextInterface::USER_TYPE_INTEGRATION => new Actor(
                 ActorType::Integration,
                 (string)$userId,
-                $this->getIntegrationName((int)$userId)
+                $this->getIntegrationName($userId)
             ),
             UserContextInterface::USER_TYPE_CUSTOMER => new Actor(ActorType::Customer, (string)$userId),
             default => new Actor(ActorType::System),
