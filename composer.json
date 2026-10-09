@@ -217,6 +217,7 @@
         "files": [
             "Inventory/registration.php",
             "InventoryAdjustment/registration.php",
+            "InventoryAdjustmentAdminUi/registration.php",
             "InventoryAdjustmentApi/registration.php",
             "InventoryAdminUi/registration.php",
             "InventoryAdvancedCheckout/registration.php",
@@ -293,6 +294,7 @@
             "InventoryWishlist/registration.php"
         ],
         "psr-4": {
+            "Magento\\InventoryAdjustmentAdminUi\\": "InventoryAdjustmentAdminUi/",
             "Magento\\InventoryAdjustmentApi\\": "InventoryAdjustmentApi/",
             "Magento\\InventoryAdjustment\\": "InventoryAdjustment/",
             "Magento\\InventoryAdminUi\\": "InventoryAdminUi/",
