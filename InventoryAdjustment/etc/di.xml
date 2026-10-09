@@ -47,6 +47,9 @@
     <type name="Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially">
         <plugin name="inventory_adjustment_record_partial_transfer" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\RecordPartialTransferPlugin"/>
     </type>
+    <type name="Magento\AsynchronousOperations\Model\OperationProcessor">
+        <plugin name="inventory_adjustment_bulk_operation_origin" type="Magento\InventoryAdjustment\Plugin\AsynchronousOperations\BulkOperationOriginPlugin"/>
+    </type>
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
