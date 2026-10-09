@@ -11,6 +11,10 @@
     <preference for="Magento\InventoryAdjustmentApi\Api\Data\AdjustmentInterface" type="Magento\InventoryAdjustment\Model\Adjustment"/>
     <preference for="Magento\InventoryAdjustmentApi\Api\Data\AdjustmentSearchResultsInterface" type="Magento\InventoryAdjustment\Model\AdjustmentSearchResults"/>
     <preference for="Magento\InventoryAdjustmentApi\Api\AdjustmentRepositoryInterface" type="Magento\InventoryAdjustment\Model\AdjustmentRepository"/>
+    <preference for="Magento\InventoryAdjustmentApi\Api\Data\AdjustmentInputInterface" type="Magento\InventoryAdjustment\Model\AdjustmentInput"/>
+    <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
+        <plugin name="inventory_adjustment_explicit_adjustment" type="Magento\InventoryAdjustment\Plugin\InventoryApi\ExplicitAdjustmentPlugin"/>
+    </type>
     <type name="Magento\Inventory\Model\ResourceModel\SourceItem\SaveMultiple">
         <plugin name="inventory_adjustment_record_save" type="Magento\InventoryAdjustment\Plugin\Inventory\RecordSaveMultiplePlugin"/>
     </type>
