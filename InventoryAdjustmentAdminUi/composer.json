@@ -1,0 +1,28 @@
+{
+    "name": "magento/module-inventory-adjustment-admin-ui",
+    "description": "Admin grid and product form panel for the source item adjustment history in Multi-Source Inventory.",
+    "type": "magento2-module",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "version": "1.0.0",
+    "require": {
+        "php": "~8.3.0||~8.4.0||~8.5.0",
+        "magento/framework": "103.0.*",
+        "magento/module-backend": "102.0.*",
+        "magento/module-inventory-admin-ui": "1.2.*",
+        "magento/module-inventory-adjustment": "1.0.*",
+        "magento/module-inventory-adjustment-api": "1.0.*",
+        "magento/module-inventory-catalog-admin-ui": "1.2.*",
+        "magento/module-ui": "101.2.*"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magento\\InventoryAdjustmentAdminUi\\": ""
+        }
+    }
+}
