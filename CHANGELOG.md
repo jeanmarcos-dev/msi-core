@@ -30,6 +30,12 @@ longer matches their last row and exits non-zero when there is any. History star
 nothing is backfilled. Set `cataloginventory/source_item_adjustment/enabled` to `0` to stop
 recording.
 
+Bulk unassigns, full and partial transfers (one `transfer_out` and one `transfer_in` row), imports
+(one import id per run; a replaced row records its net change), the legacy stock item bridges, mass
+attribute updates, SKU renames through the API and the cleanup after a product is deleted now
+record their own reason. Async bulk operations are attributed to the user that scheduled them and
+carry the bulk uuid as `request_id`.
+
 ---
 
 # msi-core 1.0.8 — 2026-10-08
