@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventoryAdjustment\Model;
 
 use Magento\InventoryAdjustmentApi\Api\Data\AdjustmentMetadataInterface;
+use Magento\InventoryAdjustmentApi\Model\AdjustmentReason;
 
 class AdjustmentRowsBuilder
 {
@@ -20,10 +21,16 @@ class AdjustmentRowsBuilder
      * @param array $after
      * @param AdjustmentMetadataInterface $metadata
      * @param Actor $actor
+     * @param string|null $requestId
      * @return array
      */
-    public function build(array $before, array $after, AdjustmentMetadataInterface $metadata, Actor $actor): array
-    {
+    public function build(
+        array $before,
+        array $after,
+        AdjustmentMetadataInterface $metadata,
+        Actor $actor,
+        ?string $requestId = null
+    ): array {
         $rows = [];
         foreach (array_keys($before + $after) as $sourceCode) {
             $skus = ($before[$sourceCode] ?? []) + ($after[$sourceCode] ?? []);
@@ -40,19 +47,32 @@ class AdjustmentRowsBuilder
                     'sku' => (string)$sku,
                     'state' => 'available',
                 ] + $change + [
-                    'reason' => $metadata->getReason()->value,
+                    'reason' => $this->getReason($metadata, $change['delta'])->value,
                     'actor_type' => $actor->type->value,
                     'actor_id' => $actor->id,
                     'actor_label' => $actor->label,
                     'reference_type' => $metadata->getReferenceType(),
                     'reference_id' => $metadata->getReferenceId(),
-                    'request_id' => $metadata->getRequestId(),
+                    'request_id' => $metadata->getRequestId() ?? $requestId,
                     'note' => $metadata->getNote(),
                 ];
             }
         }
 
         return $rows;
+    }
+
+    /**
+     * Reason of one row, taking the inbound reason when the stock goes up
+     *
+     * @param AdjustmentMetadataInterface $metadata
+     * @param float $delta
+     * @return AdjustmentReason
+     */
+    private function getReason(AdjustmentMetadataInterface $metadata, float $delta): AdjustmentReason
+    {
+        $inboundReason = $metadata->getInboundReason();
+        return $delta > 0 && $inboundReason !== null ? $inboundReason : $metadata->getReason();
     }
 
     /**

@@ -18,13 +18,15 @@ class AdjustmentMetadata implements AdjustmentMetadataInterface
      * @param string|null $referenceId
      * @param string|null $requestId
      * @param string|null $note
+     * @param AdjustmentReason|null $inboundReason
      */
     public function __construct(
         private readonly AdjustmentReason $reason,
         private readonly ?string $referenceType = null,
         private readonly ?string $referenceId = null,
         private readonly ?string $requestId = null,
-        private readonly ?string $note = null
+        private readonly ?string $note = null,
+        private readonly ?AdjustmentReason $inboundReason = null
     ) {
     }
 
@@ -66,5 +68,13 @@ class AdjustmentMetadata implements AdjustmentMetadataInterface
     public function getNote(): ?string
     {
         return $this->note;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getInboundReason(): ?AdjustmentReason
+    {
+        return $this->inboundReason;
     }
 }

@@ -48,4 +48,11 @@ interface AdjustmentMetadataInterface
      * @return string|null
      */
     public function getNote(): ?string;
+
+    /**
+     * Reason recorded for increases when it differs from the main reason
+     *
+     * @return AdjustmentReason|null
+     */
+    public function getInboundReason(): ?AdjustmentReason;
 }

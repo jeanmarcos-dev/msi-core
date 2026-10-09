@@ -121,6 +121,65 @@ class AdjustmentRowsBuilderTest extends TestCase
         );
     }
 
+    public function testATransferTakesTheInboundReasonWhereStockGoesUp(): void
+    {
+        $rows = (new AdjustmentRowsBuilder())->build(
+            ['origin' => ['SKU-1' => ['quantity' => 6.0, 'status' => 1]]],
+            ['destination' => ['SKU-1' => ['quantity' => 6.0, 'status' => 1]]],
+            new AdjustmentMetadata(
+                AdjustmentReason::TransferOut,
+                'transfer',
+                null,
+                null,
+                null,
+                AdjustmentReason::TransferIn
+            ),
+            new Actor(ActorType::System)
+        );
+
+        $bySource = array_column($rows, null, 'source_code');
+        self::assertSame(-6.0, $bySource['origin']['delta']);
+        self::assertSame('transfer_out', $bySource['origin']['reason']);
+        self::assertSame(6.0, $bySource['destination']['delta']);
+        self::assertSame('transfer_in', $bySource['destination']['reason']);
+    }
+
+    public function testAStatusOnlyChangeKeepsTheMainReason(): void
+    {
+        $rows = (new AdjustmentRowsBuilder())->build(
+            $this->item(0.0, 1),
+            $this->item(0.0, 0),
+            new AdjustmentMetadata(AdjustmentReason::TransferOut, inboundReason: AdjustmentReason::TransferIn),
+            new Actor(ActorType::System)
+        );
+
+        self::assertSame('transfer_out', $rows[0]['reason']);
+    }
+
+    public function testTheGivenRequestIdFillsAMetadataWithoutOne(): void
+    {
+        $builder = new AdjustmentRowsBuilder();
+        $actor = new Actor(ActorType::System);
+
+        $fallback = $builder->build(
+            $this->item(1.0, 1),
+            $this->item(2.0, 1),
+            new AdjustmentMetadata(AdjustmentReason::Other),
+            $actor,
+            'bulk-1'
+        );
+        $own = $builder->build(
+            $this->item(1.0, 1),
+            $this->item(2.0, 1),
+            new AdjustmentMetadata(AdjustmentReason::Other, requestId: 'own'),
+            $actor,
+            'bulk-1'
+        );
+
+        self::assertSame('bulk-1', $fallback[0]['request_id']);
+        self::assertSame('own', $own[0]['request_id']);
+    }
+
     private function build(array $before, array $after): array
     {
         return (new AdjustmentRowsBuilder())->build(
