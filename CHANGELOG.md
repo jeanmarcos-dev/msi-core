@@ -36,6 +36,21 @@ attribute updates, SKU renames through the API and the cleanup after a product i
 record their own reason. Async bulk operations are attributed to the user that scheduled them and
 carry the bulk uuid as `request_id`.
 
+### Reading the adjustment history
+
+The history can now be read without going to the database. `GET /V1/inventory/source-item-adjustments`
+takes `searchCriteria` and returns rows from newest to oldest; it always pages, at most
+`cataloginventory/source_item_adjustment/max_page_size` rows per page (500 by default), and rejects a
+larger `pageSize` with a 400 that names the limit. In the admin, **Stores › Inventory › Adjustment
+History** lists every row read-only, with filters by date, source, SKU, reason, actor type and
+reference, and links to the order, shipment, invoice or credit memo behind a row. The product form
+gains a collapsed **Stock History** section with the same list for that product, loaded only when it
+is opened. All three require the new `Magento_InventoryAdjustment::view` permission. REST writes to
+`POST /V1/inventory/source-items`, and its async variant, can say why the stock changed with the
+`adjustment` extension attribute (`reason`, `note`, `reference_type`, `reference_id`); a reason
+outside the list, a note or reference that is too long, or items of one request carrying different
+values are rejected with a 400 and nothing is written.
+
 ---
 
 # msi-core 1.0.8 — 2026-10-08

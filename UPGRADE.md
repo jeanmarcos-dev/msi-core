@@ -197,6 +197,14 @@ If you enable the storefront stock visualizer with the queue purge strategy, als
 `inventory.stockvisualizer.purge`. The existing MSI consumers (`inventory.indexer.*`,
 `inventory.reservations.*`) are unchanged by this upgrade.
 
+### Grant access to the adjustment history
+
+Reading the adjustment history, over REST, in the admin grid or in the product form, requires the
+`Magento_InventoryAdjustment::view` permission, listed as **Stores › Inventory › Adjustment History**
+in the role resources. Roles with access to all resources get it automatically. Custom admin roles
+and integrations do not: an existing role keeps exactly the resources it was saved with, so grant
+the permission to the ones that should see the history.
+
 ## Not a drop-in replacement
 
 The `dist-2.4.x` branches of this fork replace `magento/inventory-*` transparently through
