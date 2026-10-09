@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Magento_InventoryAdjustmentAdminUi::adjustment"
+             title="Adjustment History"
+             translate="title"
+             module="Magento_InventoryAdjustmentAdminUi"
+             sortOrder="30"
+             parent="Magento_InventoryAdminUi::inventory"
+             action="inventory_adjustment/adjustment/index"
+             resource="Magento_InventoryAdjustment::view"/>
+    </menu>
+</config>
