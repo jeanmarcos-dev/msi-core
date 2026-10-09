@@ -23,6 +23,21 @@
     <type name="Magento\InventoryShipping\Observer\SourceDeductionProcessor">
         <plugin name="inventory_adjustment_shipment_context" type="Magento\InventoryAdjustment\Plugin\InventoryShipping\ShipmentContextPlugin"/>
     </type>
+    <type name="Magento\InventoryCatalog\Model\UpdateSourceItemBasedOnLegacyStockItem">
+        <plugin name="inventory_adjustment_legacy_stock_item_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\LegacyStockItemContextPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Plugin\CatalogInventory\UpdateSourceItemAtLegacyQtyCounterPlugin">
+        <plugin name="inventory_adjustment_legacy_qty_counter_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\LegacyQtyCounterContextPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Model\UpdateInventory">
+        <plugin name="inventory_adjustment_mass_update_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\MassUpdateContextPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Plugin\Catalog\Model\ResourceModel\Product\CreateSourceItemsPlugin">
+        <plugin name="inventory_adjustment_sku_rename_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\SkuRenameContextPlugin"/>
+    </type>
+    <type name="Magento\InventoryCatalog\Model\DeleteSourceItemsBySkus">
+        <plugin name="inventory_adjustment_product_cleanup_context" type="Magento\InventoryAdjustment\Plugin\InventoryCatalog\ProductCleanupContextPlugin"/>
+    </type>
     <type name="Magento\Framework\Console\CommandList">
         <arguments>
             <argument name="commands" xsi:type="array">
