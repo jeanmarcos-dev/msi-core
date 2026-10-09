@@ -15,12 +15,12 @@ use PHPUnit\Framework\TestCase;
 
 class RecordReplacePluginTest extends TestCase
 {
-    public function testTheDeleteAndTheSaveOfABunchAreOneRecording(): void
+    public function testTheDeleteAndTheSaveOfABunchAreOneNetRecording(): void
     {
         $bunch = [['source_code' => 'a', 'sku' => 'X', 'quantity' => '4', 'status' => '1']];
         $recorder = $this->createMock(AdjustmentRecorder::class);
         $recorder->expects(self::once())
-            ->method('record')
+            ->method('recordNet')
             ->with([['source_code' => 'a', 'sku' => 'X']])
             ->willReturnCallback(fn (array $keys, callable $write) => $write());
         $calls = 0;

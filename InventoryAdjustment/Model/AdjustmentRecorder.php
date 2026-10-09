@@ -71,31 +71,50 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
      */
     public function record(array $keys, callable $write): mixed
     {
+        return $this->run($keys, $write, true);
+    }
+
+    /**
+     * Run writes that commit on their own and record their net change once
+     *
+     * @param array $keys
+     * @param callable $write
+     * @return mixed
+     * @throws Throwable
+     */
+    public function recordNet(array $keys, callable $write): mixed
+    {
+        return $this->run($keys, $write, false);
+    }
+
+    /**
+     * Run a write, inside a transaction of its own when asked and none is running, and record its change
+     *
+     * @param array $keys
+     * @param callable $write
+     * @param bool $transactional
+     * @return mixed
+     * @throws Throwable
+     */
+    private function run(array $keys, callable $write, bool $transactional): mixed
+    {
         if ($keys === [] || !$this->config->isEnabled()) {
             return $write();
         }
         $outermost = $this->depth === 0;
-        $ownsTransaction = $outermost && $this->start();
+        $ownsTransaction = $outermost && $this->start($transactional);
         $this->depth++;
         try {
             $this->lockUnseen($keys);
             $result = $write();
             if ($outermost) {
-                $this->writer->write($this->rowsBuilder->build(
-                    $this->before,
-                    $this->snapshot->read($this->getSeenKeys()),
-                    $this->metadata,
-                    $this->origin->getActor() ?? $this->actorResolver->resolve(),
-                    $this->origin->getRequestId()
-                ));
+                $this->writeRows();
             }
             if ($ownsTransaction) {
                 $this->resourceConnection->getConnection()->commit();
             }
         } catch (Throwable $exception) {
-            if ($ownsTransaction) {
-                $this->rollBackQuietly();
-            }
+            $this->recoverFromFailure($ownsTransaction, $outermost && !$transactional);
             throw $exception;
         } finally {
             $this->depth--;
@@ -119,15 +138,64 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
     }
 
     /**
-     * Take the metadata of a new recording and open a transaction when none is running
+     * Write the rows of what changed since the recording started
      *
+     * @return void
+     */
+    private function writeRows(): void
+    {
+        $this->writer->write($this->rowsBuilder->build(
+            $this->before,
+            $this->snapshot->read($this->getSeenKeys()),
+            $this->metadata,
+            $this->origin->getActor() ?? $this->actorResolver->resolve(),
+            $this->origin->getRequestId()
+        ));
+    }
+
+    /**
+     * Undo a failed recording that owns its transaction, or keep what a net recording already committed
+     *
+     * @param bool $ownsTransaction
+     * @param bool $keepCommitted
+     * @return void
+     */
+    private function recoverFromFailure(bool $ownsTransaction, bool $keepCommitted): void
+    {
+        if ($ownsTransaction) {
+            $this->rollBackQuietly();
+            return;
+        }
+        if ($keepCommitted) {
+            $this->writeRowsQuietly();
+        }
+    }
+
+    /**
+     * Write the rows of what was committed before a failure without hiding that failure
+     *
+     * @return void
+     */
+    private function writeRowsQuietly(): void
+    {
+        try {
+            $this->writeRows();
+        } catch (Throwable) {
+            return;
+        }
+    }
+
+    /**
+     * Take the metadata of a new recording and open a transaction when asked and none is running
+     *
+     * @param bool $transactional
      * @return bool
      */
-    private function start(): bool
+    private function start(bool $transactional): bool
     {
         $this->metadata = $this->context->getCurrent() ?? $this->defaultMetadataProvider->get();
         $connection = $this->resourceConnection->getConnection();
-        if ($connection->getTransactionLevel() !== 0) {
+        if (!$transactional || $connection->getTransactionLevel() !== 0) {
             return false;
         }
         $connection->beginTransaction();

@@ -34,6 +34,6 @@ class RecordReplacePlugin
      */
     public function aroundExecute(Replace $subject, callable $proceed, array $bunch): void
     {
-        $this->recorder->record($this->sourceItemKeys->fromRows($bunch), fn () => $proceed($bunch));
+        $this->recorder->recordNet($this->sourceItemKeys->fromRows($bunch), fn () => $proceed($bunch));
     }
 }

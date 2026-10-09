@@ -255,6 +255,59 @@ class AdjustmentRecorderTest extends TestCase
         self::assertSame('run-1', $row['request_id']);
     }
 
+    public function testANetRecordingLetsEveryWriteCommitOnItsOwn(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 7.0, 'status' => 1]]];
+        $this->connection->expects(self::never())->method('beginTransaction');
+        $this->connection->expects(self::never())->method('commit');
+
+        $this->recorder->recordNet($this->keys('SKU-1'), function (): void {
+            $this->recorder->record($this->keys('SKU-1'), function (): void {
+                unset($this->stored['src']['SKU-1']);
+            });
+            $this->recorder->record($this->keys('SKU-1'), function (): void {
+                $this->stored['src']['SKU-1'] = ['quantity' => 4.0, 'status' => 1];
+            });
+        });
+
+        self::assertCount(1, $this->written);
+        self::assertSame([-3.0], array_column($this->written[0], 'delta'));
+    }
+
+    public function testANetRecordingKeepsWhatWasDoneBeforeAFailure(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 7.0, 'status' => 1]]];
+
+        try {
+            $this->recorder->recordNet($this->keys('SKU-1'), [$this, 'deleteThenFail']);
+            self::fail('The failure was swallowed');
+        } catch (RuntimeException) {
+        }
+
+        self::assertSame([-7.0], array_column($this->written[0], 'delta'));
+    }
+
+    public function testANetRecordingInsideAnotherRecordingIsPartOfIt(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 7.0, 'status' => 1]]];
+        $this->connection->expects(self::once())->method('beginTransaction');
+
+        $this->recorder->record($this->keys('SKU-1'), function (): void {
+            $this->recorder->recordNet($this->keys('SKU-1'), function (): void {
+                $this->stored['src']['SKU-1']['quantity'] = 5.0;
+            });
+        });
+
+        self::assertCount(1, $this->written);
+        self::assertSame([-2.0], array_column($this->written[0], 'delta'));
+    }
+
+    public function deleteThenFail(): void
+    {
+        unset($this->stored['src']['SKU-1']);
+        throw new RuntimeException('save failed');
+    }
+
     private function keys(string $sku): array
     {
         return [['source_code' => 'src', 'sku' => $sku]];
