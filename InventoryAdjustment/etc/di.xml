@@ -67,6 +67,7 @@
         <arguments>
             <argument name="commands" xsi:type="array">
                 <item name="inventoryAdjustmentVerify" xsi:type="object">Magento\InventoryAdjustment\Console\Command\VerifyAdjustmentsCommand</item>
+                <item name="inventoryAdjustmentOpeningBalance" xsi:type="object">Magento\InventoryAdjustment\Console\Command\OpeningBalanceCommand</item>
             </argument>
         </arguments>
     </type>

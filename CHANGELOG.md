@@ -61,6 +61,14 @@ sets how many days a row is kept; the default, 0, keeps every row. When it is ab
 deletes the latest row of each source, SKU and state, however old, so `inventory:adjustment:verify`
 always has a row to compare an item's quantity against. It changes no quantity or status.
 
+The history starts at the upgrade, so an item that has not moved since has no row yet.
+`bin/magento inventory:adjustment:opening-balance` gives every source item with a quantity other than
+zero and no history one opening row: its delta and resulting quantity are the current quantity, the
+reason is `other`, the note `opening_balance` and the actor `system`, and every row of one run shares a
+`request_id`, which the command prints with the number of rows it wrote. Items without stock and items
+that already have history are skipped, so running it again writes nothing. It locks the items it
+writes, `--batch-size` at a time (1000 by default), and never runs on its own during `setup:upgrade`.
+
 ---
 
 # msi-core 1.0.8 — 2026-10-08
