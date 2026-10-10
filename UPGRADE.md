@@ -205,6 +205,56 @@ in the role resources. Roles with access to all resources get it automatically. 
 and integrations do not: an existing role keeps exactly the resources it was saved with, so grant
 the permission to the ones that should see the history.
 
+### Adjustment history
+
+**Volume.** Every write that changes a source item's quantity or status adds one row per changed
+source item: a 10-line shipment from one source writes 10 rows, a `POST /V1/inventory/source-items`
+with 1000 changed items writes 1000, and an import writes one per row that changed. Plan for
+
+```
+rows per year ≈ source items changed per day × 365
+```
+
+at about 350 bytes per row on disk, indexes included (measured on MariaDB 11.4 with shipment-like
+rows). A store shipping 10 000 lines a day adds about 3.65 million rows, or 1.3 GB, a year.
+
+**Retention.** Nothing is deleted by default. Set
+`cataloginventory/source_item_adjustment/retention_days` to bound the table: the
+`inventory_adjustment_prune` cron job (02:30 every night, `default` group) then deletes older rows in
+batches of `cataloginventory/source_item_adjustment/prune_batch_size` (5000 by default). It always
+keeps the latest row of each source, SKU and state, so `inventory:adjustment:verify` keeps working
+for items that have not moved in a long time. On a large table the first run works through the
+backlog batch by batch; a run that is interrupted continues the next night.
+
+**Opening balance.** The history starts at the upgrade. To give items that have not moved since a
+baseline row, run once after the upgrade, preferably in a low-traffic window:
+
+```bash
+bin/magento inventory:adjustment:opening-balance
+```
+
+It writes one row per source item with a quantity other than zero and no history, locking
+`--batch-size` items at a time (1000 by default), and prints the number of rows and the `request_id`
+they share. Running it again writes nothing. To undo it, delete the rows with that `request_id`.
+
+**Measured cost.** The same build with the history on and off, in alternating rounds (on, off, on,
+off), calling the service contracts in process, without HTTP. Shipments ship one quantity of every
+line from one source; `source-items` and the import change every item by one.
+
+| Scenario | Samples per mode | Median off | Median on | Δ median | p95 off | p95 on |
+|---|---|---|---|---|---|---|
+| Shipment, 1 line | 30 | 51.6 ms | 53.5 ms | +1.9 ms | 57.6 ms | 58.7 ms |
+| Shipment, 10 lines | 30 | 73.7 ms | 75.2 ms | +1.6 ms | 80.0 ms | 81.8 ms |
+| `source-items`, 1 item | 30 | 7.2 ms | 9.0 ms | +1.8 ms | 8.8 ms | 10.0 ms |
+| `source-items`, 100 items | 30 | 190 ms | 206 ms | +16 ms | 212 ms | 242 ms |
+| `source-items`, 1000 items | 30 | 864 ms | 1853 ms | +989 ms | 895 ms | 2202 ms |
+| Import, 10 000 rows | 6 | 7466 ms | 9241 ms | +1775 ms | 7603 ms | 9298 ms |
+
+Measured on 2026-10-10 at commit `2b58022`: AMD Ryzen 9 5950X, PHP 8.3, MariaDB 11.4.13, developer
+mode, with unrelated load on the host (load average 8–10 on 32 threads). The release budget, at most
+5.7 ms more for a 10-line shipment, is met. Large bulk writes pay more per item: a 1000-item
+`source-items` request roughly doubles, and a 10 000-row import takes about a quarter longer.
+
 ## Not a drop-in replacement
 
 The `dist-2.4.x` branches of this fork replace `magento/inventory-*` transparently through
