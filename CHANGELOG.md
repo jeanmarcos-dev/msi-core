@@ -52,6 +52,15 @@ outside the list, a note or reference that is too long, a reference type of `ord
 `invoice` or `creditmemo` (Magento records those itself, by entity id), or items of one request
 carrying different values are rejected with a 400 and nothing is written.
 
+### Keeping the adjustment history bounded
+
+The history no longer has to grow forever. `cataloginventory/source_item_adjustment/retention_days`
+sets how many days a row is kept; the default, 0, keeps every row. When it is above 0, the
+`inventory_adjustment_prune` cron job deletes older rows every night at 02:30, in batches of
+`cataloginventory/source_item_adjustment/prune_batch_size` rows (5000 by default). Pruning never
+deletes the latest row of each source, SKU and state, however old, so `inventory:adjustment:verify`
+always has a row to compare an item's quantity against. It changes no quantity or status.
+
 ---
 
 # msi-core 1.0.8 — 2026-10-08
