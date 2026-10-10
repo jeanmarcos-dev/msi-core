@@ -20,6 +20,16 @@
                     <validate>required-entry validate-digits validate-greater-than-zero</validate>
                     <comment>Largest number of history rows one request to /V1/inventory/source-item-adjustments may ask for.</comment>
                 </field>
+                <field id="retention_days" translate="label comment" type="text" sortOrder="30" showInDefault="1" canRestore="1">
+                    <label>Keep History For (Days)</label>
+                    <validate>required-entry validate-digits</validate>
+                    <comment>Rows older than this are pruned every night. 0 keeps the history forever. The latest row of each source, SKU and state is always kept.</comment>
+                </field>
+                <field id="prune_batch_size" translate="label comment" type="text" sortOrder="40" showInDefault="1" canRestore="1">
+                    <label>Rows Deleted per Prune Batch</label>
+                    <validate>required-entry validate-digits validate-greater-than-zero</validate>
+                    <comment>Smaller batches hold shorter locks on the history table while pruning.</comment>
+                </field>
             </group>
         </section>
     </system>

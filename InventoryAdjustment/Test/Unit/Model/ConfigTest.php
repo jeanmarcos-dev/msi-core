@@ -36,11 +36,40 @@ class ConfigTest extends TestCase
         }
     }
 
+    public function testReadsTheRetentionDays(): void
+    {
+        self::assertSame(90, $this->configWith('retention_days', '90')->getRetentionDays());
+    }
+
+    public function testAnUnusableRetentionKeepsTheHistoryForever(): void
+    {
+        foreach ([null, '', '-5', 'forever'] as $value) {
+            self::assertSame(0, $this->configWith('retention_days', $value)->getRetentionDays());
+        }
+    }
+
+    public function testReadsThePruneBatchSize(): void
+    {
+        self::assertSame(2, $this->configWith('prune_batch_size', '2')->getPruneBatchSize());
+    }
+
+    public function testAnUnusablePruneBatchSizeFallsBackTo5000(): void
+    {
+        foreach ([null, '0', '-3', 'many'] as $value) {
+            self::assertSame(5000, $this->configWith('prune_batch_size', $value)->getPruneBatchSize());
+        }
+    }
+
     private function configWithPageSize(?string $value): Config
+    {
+        return $this->configWith('max_page_size', $value);
+    }
+
+    private function configWith(string $field, ?string $value): Config
     {
         $scopeConfig = $this->createMock(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')
-            ->with('cataloginventory/source_item_adjustment/max_page_size')
+            ->with('cataloginventory/source_item_adjustment/' . $field)
             ->willReturn($value);
 
         return new Config($scopeConfig);
