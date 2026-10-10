@@ -32,23 +32,26 @@ class AdjustmentPruner
         $connection = $this->resourceConnection->getConnection();
         $table = $this->resourceConnection->getTableName(AdjustmentWriter::TABLE);
         $deleted = 0;
+        $lastId = 0;
         do {
-            $ids = $connection->fetchCol($this->selectExpired($connection, $table, $cutoff, $batchSize));
+            $ids = $connection->fetchCol($this->selectExpired($connection, $table, $cutoff, $lastId, $batchSize));
             if ($ids === []) {
                 break;
             }
             $deleted += $connection->delete($table, ['adjustment_id IN (?)' => $ids]);
+            $lastId = (int)end($ids);
         } while (count($ids) === $batchSize);
 
         return $deleted;
     }
 
     /**
-     * Select one batch of prunable row ids
+     * Select the next batch of prunable row ids after the last one handled
      *
      * @param AdapterInterface $connection
      * @param string $table
      * @param string $cutoff
+     * @param int $lastId
      * @param int $batchSize
      * @return Select
      */
@@ -56,6 +59,7 @@ class AdjustmentPruner
         AdapterInterface $connection,
         string $table,
         string $cutoff,
+        int $lastId,
         int $batchSize
     ): Select {
         $laterRow = $connection->select()
@@ -67,6 +71,7 @@ class AdjustmentPruner
 
         return $connection->select()
             ->from(['adjustment' => $table], ['adjustment_id'])
+            ->where('adjustment.adjustment_id > ?', $lastId)
             ->where('adjustment.created_at < ?', $cutoff)
             ->where('EXISTS (' . $laterRow . ')')
             ->order('adjustment.adjustment_id')

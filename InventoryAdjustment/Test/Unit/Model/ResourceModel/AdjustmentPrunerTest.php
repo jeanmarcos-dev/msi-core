@@ -69,6 +69,28 @@ class AdjustmentPrunerTest extends TestCase
         self::assertSame([2, 2, 2], $this->limits);
     }
 
+    public function testEachBatchStartsAfterTheLastIdOfThePreviousOne(): void
+    {
+        $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['1', '2'], ['7', '9'], ['12']);
+        $this->connection->method('delete')->willReturnCallback(
+            fn (string $table, array $where) => count($where['adjustment_id IN (?)'])
+        );
+
+        $this->pruner()->prune('2026-07-12 02:30:00', 2);
+
+        self::assertSame(
+            [
+                ['adjustment.adjustment_id > ?', 0],
+                ['adjustment.adjustment_id > ?', 2],
+                ['adjustment.adjustment_id > ?', 9],
+            ],
+            array_values(array_filter(
+                $this->conditions,
+                fn (array $condition) => $condition[0] === 'adjustment.adjustment_id > ?'
+            ))
+        );
+    }
+
     public function testRunsNoDeleteWhenNothingExpired(): void
     {
         $this->connection->expects(self::once())->method('fetchCol')->willReturn([]);
