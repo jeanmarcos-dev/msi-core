@@ -79,9 +79,9 @@ class OpeningBalanceTest extends TestCase
 
     public function testWritesOneOpeningRowPerItemWithTheItemQuantity(): void
     {
-        $this->connection->method('fetchAll')->willReturnOnConsecutiveCalls(
-            [$this->item(3, 'src_a', 'SKU-1', '5.0000'), $this->item(8, 'src_b', 'SKU-1', '-2.5000')],
-            []
+        $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['3', '8'], ['3', '8'], []);
+        $this->connection->method('fetchAll')->willReturn(
+            [$this->item(3, 'src_a', 'SKU-1', '5.0000'), $this->item(8, 'src_b', 'SKU-1', '-2.5000')]
         );
         $this->writer->expects(self::once())->method('write')->with([
             $this->openingRow('src_a', 'SKU-1', 5.0),
@@ -91,12 +91,14 @@ class OpeningBalanceTest extends TestCase
         self::assertSame(2, $this->openingBalance()->write('request-1', 1000));
     }
 
-    public function testPagesBySourceItemIdUntilABatchComesBackEmpty(): void
+    public function testPagesBySourceItemIdUntilNoCandidateIsLeft(): void
     {
-        $this->connection->expects(self::exactly(3))->method('fetchAll')->willReturnOnConsecutiveCalls(
+        $this->connection->expects(self::exactly(5))
+            ->method('fetchCol')
+            ->willReturnOnConsecutiveCalls(['3', '8'], ['3', '8'], ['12'], ['12'], []);
+        $this->connection->method('fetchAll')->willReturnOnConsecutiveCalls(
             [$this->item(3, 'src_a', 'SKU-1', '1'), $this->item(8, 'src_a', 'SKU-2', '1')],
-            [$this->item(12, 'src_b', 'SKU-1', '1')],
-            []
+            [$this->item(12, 'src_b', 'SKU-1', '1')]
         );
         $this->writer->expects(self::exactly(2))->method('write');
 
@@ -107,32 +109,48 @@ class OpeningBalanceTest extends TestCase
         );
     }
 
-    public function testEachBatchLocksItsItemsInsideATransaction(): void
+    public function testLocksOnlyTheChosenItemsInsideATransaction(): void
     {
-        $this->connection->method('fetchAll')->willReturnOnConsecutiveCalls(
-            [$this->item(3, 'src_a', 'SKU-1', '1')],
-            []
-        );
+        $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['3', '8'], ['3', '8'], []);
+        $this->connection->method('fetchAll')->willReturn([$this->item(3, 'src_a', 'SKU-1', '1')]);
 
         $this->openingBalance()->write('request-1', 1000);
 
-        self::assertSame(['begin', 'lock', 'commit', 'begin', 'lock', 'commit'], $this->calls);
+        self::assertSame(['begin', 'lock', 'commit'], $this->calls);
+        self::assertContains(['item.source_item_id IN (?)', ['3', '8']], $this->conditions);
+    }
+
+    public function testSkipsItemsThatGotHistoryWhileWaitingForTheLock(): void
+    {
+        $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['3', '8'], ['3', '8'], []);
+        $this->connection->method('fetchAll')->willReturn([$this->item(8, 'src_b', 'SKU-1', '4')]);
+        $this->writer->expects(self::once())->method('write')->with([$this->openingRow('src_b', 'SKU-1', 4.0)]);
+
+        self::assertSame(1, $this->openingBalance()->write('request-1', 1000));
     }
 
     public function testSelectsOnlyItemsWithStockAndNoHistory(): void
     {
+        $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['3'], ['3'], []);
         $this->connection->method('fetchAll')->willReturn([]);
+        $this->writer->expects(self::never())->method('write');
 
-        $this->openingBalance()->write('request-1', 1000);
-
-        self::assertContains(['item.quantity <> 0', null], $this->conditions);
+        self::assertSame(0, $this->openingBalance()->write('request-1', 1000));
+        self::assertSame(
+            3,
+            count(array_filter($this->conditions, fn (array $c) => $c === ['item.quantity <> 0', null]))
+        );
+        self::assertSame(
+            3,
+            count(array_filter($this->conditions, fn (array $c) => $c === ['NOT EXISTS (HISTORY ROW)', null]))
+        );
         self::assertContains(['history.source_code = item.source_code', null], $this->conditions);
         self::assertContains(['history.sku = item.sku', null], $this->conditions);
-        self::assertContains(['NOT EXISTS (HISTORY ROW)', null], $this->conditions);
     }
 
     public function testRollsBackTheBatchWhenWritingFails(): void
     {
+        $this->connection->method('fetchCol')->willReturn(['3']);
         $this->connection->method('fetchAll')->willReturn([$this->item(3, 'src_a', 'SKU-1', '1')]);
         $this->writer->method('write')->willThrowException(new RuntimeException('Deadlock'));
 
