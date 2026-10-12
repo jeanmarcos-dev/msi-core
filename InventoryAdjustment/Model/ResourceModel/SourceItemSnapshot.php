@@ -12,6 +12,8 @@ use Magento\Inventory\Model\ResourceModel\SourceItem as SourceItemResourceModel;
 
 class SourceItemSnapshot
 {
+    private const MAX_SKUS_PER_QUERY = 200;
+
     /**
      * @param ResourceConnection $resourceConnection
      */
@@ -83,23 +85,36 @@ class SourceItemSnapshot
      */
     private function getSourceItemIds(array $keys): array
     {
-        if ($keys === []) {
-            return [];
-        }
         $connection = $this->resourceConnection->getConnection();
-        $conditions = [];
-        foreach ($keys as $key) {
-            $conditions[] = '(' . $connection->quoteInto('source_code = ?', $key['source_code'])
-                . ' AND ' . $connection->quoteInto('sku = ?', $key['sku']) . ')';
+        $table = $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM);
+        $ids = [];
+        foreach ($this->groupSkusBySource($keys) as $sourceCode => $skus) {
+            foreach (array_chunk($skus, self::MAX_SKUS_PER_QUERY) as $batch) {
+                $ids[] = $connection->fetchCol(
+                    $connection->select()
+                        ->from($table, ['source_item_id'])
+                        ->where('source_code = ?', (string)$sourceCode)
+                        ->where('sku IN (?)', $batch)
+                );
+            }
         }
 
-        return $connection->fetchCol(
-            $connection->select()
-                ->from(
-                    $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM),
-                    ['source_item_id']
-                )
-                ->where(implode(' OR ', $conditions))
-        );
+        return array_merge([], ...$ids);
+    }
+
+    /**
+     * Distinct SKUs of the given keys grouped by source code
+     *
+     * @param array $keys
+     * @return array
+     */
+    private function groupSkusBySource(array $keys): array
+    {
+        $skus = [];
+        foreach ($keys as $key) {
+            $skus[$key['source_code']][$key['sku']] = $key['sku'];
+        }
+
+        return array_map('array_values', $skus);
     }
 }
