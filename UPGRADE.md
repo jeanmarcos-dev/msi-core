@@ -243,17 +243,19 @@ line from one source; `source-items` and the import change every item by one.
 
 | Scenario | Samples per mode | Median off | Median on | Δ median | p95 off | p95 on |
 |---|---|---|---|---|---|---|
-| Shipment, 1 line | 30 | 51.6 ms | 53.5 ms | +1.9 ms | 57.6 ms | 58.7 ms |
-| Shipment, 10 lines | 30 | 73.7 ms | 75.2 ms | +1.6 ms | 80.0 ms | 81.8 ms |
-| `source-items`, 1 item | 30 | 7.2 ms | 9.0 ms | +1.8 ms | 8.8 ms | 10.0 ms |
-| `source-items`, 100 items | 30 | 190 ms | 206 ms | +16 ms | 212 ms | 242 ms |
-| `source-items`, 1000 items | 30 | 864 ms | 1853 ms | +989 ms | 895 ms | 2202 ms |
-| Import, 10 000 rows | 6 | 7466 ms | 9241 ms | +1775 ms | 7603 ms | 9298 ms |
+| Shipment, 1 line | 60 | 37.2 ms | 36.0 ms | −1.1 ms | 44.1 ms | 44.1 ms |
+| Shipment, 10 lines | 60 | 59.4 ms | 56.2 ms | −3.2 ms | 75.7 ms | 79.9 ms |
+| `source-items`, 1 item | 60 | 5.4 ms | 6.4 ms | +1.0 ms | 11.1 ms | 9.3 ms |
+| `source-items`, 100 items | 60 | 151 ms | 150 ms | −1.5 ms | 522 ms | 182 ms |
+| `source-items`, 1000 items | 60 | 676 ms | 714 ms | +39 ms | 725 ms | 1933 ms |
+| Import, 10 000 rows | 12 | 5666 ms | 6136 ms | +470 ms | 9054 ms | 10452 ms |
 
-Measured on 2026-10-10 at commit `2b58022`: AMD Ryzen 9 5950X, PHP 8.3, MariaDB 11.4.13, developer
-mode, with unrelated load on the host (load average 8–10 on 32 threads). The release budget, at most
-5.7 ms more for a 10-line shipment, is met. Large bulk writes pay more per item: a 1000-item
-`source-items` request roughly doubles, and a 10 000-row import takes about a quarter longer.
+Measured on 2026-10-12 at commit `1b55e90`: AMD Ryzen 9 5950X, PHP 8.3, MariaDB 11.4.13, developer
+mode, with unrelated load on the host (load average 8–13 on 32 threads). The release budget, at most
+5.7 ms more for a 10-line shipment, is met. Differences of a few milliseconds, including the negative
+ones, are within the noise between rounds, and so are the outlying p95 values. Bulk writes pay a
+small share: about 6 % more for a 1000-item `source-items` request and about 8 % more for a 10 000-row
+import. The cost grows with the number of items written, not with the size of the catalogue.
 
 ## Not a drop-in replacement
 
