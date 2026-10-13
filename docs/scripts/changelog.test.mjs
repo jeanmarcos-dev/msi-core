@@ -42,3 +42,21 @@ test('starts with frontmatter that edits the root changelog', () => {
 	assert.match(page, /^---\ntitle: Changelog\n/);
 	assert.match(page, /\neditUrl: https:\/\/github\.com\/jeanmarcos-dev\/msi-core\/edit\/main\/CHANGELOG\.md\n/);
 });
+
+test('leaves headings and links inside tilde fences untouched', () => {
+	const page = toChangelogPage('# Changelog\n\n~~~md\n# literal\n[x](UPGRADE.md)\n~~~\n\n# After\n');
+
+	assert.match(body(page), /~~~md\n# literal\n\[x\]\(UPGRADE\.md\)\n~~~\n\n## After\n/);
+});
+
+test('a backtick fence is not closed by a tilde line', () => {
+	const page = toChangelogPage('# Changelog\n\n```\n~~~\n# literal\n```\n# After\n');
+
+	assert.match(body(page), /```\n~~~\n# literal\n```\n## After\n/);
+});
+
+test('keeps the anchor of a link to a document that moved', () => {
+	const page = toChangelogPage('# Changelog\n\n[x](UPGRADE.md#downgrading)\n');
+
+	assert.match(body(page), /\[x\]\(\/msi-core\/start\/upgrade\/#downgrading\)/);
+});

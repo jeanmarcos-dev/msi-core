@@ -22,23 +22,31 @@ function rewriteLinks(line) {
 		if (/^[a-z]+:|^#|^\//i.test(target)) {
 			return match;
 		}
-		return `](${MOVED_DOCUMENTS[target] ?? `${REPOSITORY}/blob/main/${target}`})`;
+		const [path, anchor] = target.split('#');
+		const fragment = anchor === undefined ? '' : `#${anchor}`;
+		return MOVED_DOCUMENTS[path]
+			? `](${MOVED_DOCUMENTS[path]}${fragment})`
+			: `](${REPOSITORY}/blob/main/${target})`;
 	});
 }
 
 export function toChangelogPage(markdown) {
 	const lines = markdown.split('\n');
 	const firstHeading = lines.findIndex((line) => line.startsWith('# '));
-	let inFence = false;
+	let fence = null;
 
 	const body = lines
 		.filter((_, index) => index !== firstHeading)
 		.map((line) => {
-			if (line.startsWith('```')) {
-				inFence = !inFence;
+			const marker = line.match(/^(`{3,}|~{3,})/)?.[1];
+			if (fence === null && marker) {
+				fence = marker;
 				return line;
 			}
-			if (inFence) {
+			if (fence !== null) {
+				if (marker && marker[0] === fence[0] && marker.length >= fence.length && line.trim() === marker) {
+					fence = null;
+				}
 				return line;
 			}
 			return rewriteLinks(/^#{1,5} /.test(line) ? `#${line}` : line);
