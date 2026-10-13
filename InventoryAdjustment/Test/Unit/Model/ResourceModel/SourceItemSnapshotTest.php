@@ -89,6 +89,51 @@ class SourceItemSnapshotTest extends TestCase
         self::assertSame('SKU-201', $this->queries[1]['where'][1][1][0]);
     }
 
+    public function testLooksUpASkuHeldBySeveralSourcesInOneQuery(): void
+    {
+        $this->connection->method('fetchCol')->willReturn([]);
+
+        $this->snapshot()->read([$this->key('a', 'X'), $this->key('b', 'X'), $this->key('c', 'X')]);
+
+        self::assertSame(
+            [[['sku = ?', 'X'], ['source_code IN (?)', ['a', 'b', 'c']]]],
+            array_column($this->queries, 'where')
+        );
+    }
+
+    public function testGroupsBySourceWhenSourcesAndSkusAreEqualInNumber(): void
+    {
+        $this->connection->method('fetchCol')->willReturn([]);
+
+        $this->snapshot()->read([$this->key('a', 'X'), $this->key('b', 'Y')]);
+
+        self::assertSame(
+            [
+                [['source_code = ?', 'a'], ['sku IN (?)', ['X']]],
+                [['source_code = ?', 'b'], ['sku IN (?)', ['Y']]],
+            ],
+            array_column($this->queries, 'where')
+        );
+    }
+
+    public function testSplitsTheSourcesOfASkuIntoBatchesOf200(): void
+    {
+        $this->connection->method('fetchCol')->willReturn([]);
+        $keys = [];
+        for ($i = 1; $i <= 450; $i++) {
+            $keys[] = $this->key('source-' . $i, 'X');
+        }
+
+        $this->snapshot()->read($keys);
+
+        self::assertSame(
+            [200, 200, 50],
+            array_map(fn (array $query) => count($query['where'][1][1]), $this->queries)
+        );
+        self::assertSame(['sku = ?', 'X'], $this->queries[1]['where'][0]);
+        self::assertSame('source-201', $this->queries[1]['where'][1][1][0]);
+    }
+
     public function testLockReadsEveryFoundIdForUpdateInIdOrder(): void
     {
         $this->connection->method('fetchCol')->willReturnOnConsecutiveCalls(['8', '3'], ['5']);

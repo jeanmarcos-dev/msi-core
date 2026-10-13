@@ -12,7 +12,7 @@ use Magento\Inventory\Model\ResourceModel\SourceItem as SourceItemResourceModel;
 
 class SourceItemSnapshot
 {
-    private const MAX_SKUS_PER_QUERY = 200;
+    private const MAX_VALUES_PER_QUERY = 200;
 
     /**
      * @param ResourceConnection $resourceConnection
@@ -85,36 +85,44 @@ class SourceItemSnapshot
      */
     private function getSourceItemIds(array $keys): array
     {
+        $sourceCodes = array_unique(array_map('strval', array_column($keys, 'source_code')));
+        $skus = array_unique(array_map('strval', array_column($keys, 'sku')));
+        if (count($sourceCodes) > count($skus)) {
+            return $this->getIdsGroupedBy($keys, 'sku', 'source_code');
+        }
+
+        return $this->getIdsGroupedBy($keys, 'source_code', 'sku');
+    }
+
+    /**
+     * Ids of the given source items, one query per group value and batch of the other column
+     *
+     * @param array $keys
+     * @param string $groupColumn
+     * @param string $otherColumn
+     * @return array
+     */
+    private function getIdsGroupedBy(array $keys, string $groupColumn, string $otherColumn): array
+    {
         $connection = $this->resourceConnection->getConnection();
         $table = $this->resourceConnection->getTableName(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM);
+        $groups = [];
+        foreach ($keys as $key) {
+            $groups[(string)$key[$groupColumn]][(string)$key[$otherColumn]] = (string)$key[$otherColumn];
+        }
+
         $ids = [];
-        foreach ($this->groupSkusBySource($keys) as $sourceCode => $skus) {
-            foreach (array_chunk($skus, self::MAX_SKUS_PER_QUERY) as $batch) {
+        foreach ($groups as $groupValue => $values) {
+            foreach (array_chunk(array_values($values), self::MAX_VALUES_PER_QUERY) as $batch) {
                 $ids[] = $connection->fetchCol(
                     $connection->select()
                         ->from($table, ['source_item_id'])
-                        ->where('source_code = ?', (string)$sourceCode)
-                        ->where('sku IN (?)', $batch)
+                        ->where($groupColumn . ' = ?', (string)$groupValue)
+                        ->where($otherColumn . ' IN (?)', $batch)
                 );
             }
         }
 
         return array_merge([], ...$ids);
-    }
-
-    /**
-     * Distinct SKUs of the given keys grouped by source code
-     *
-     * @param array $keys
-     * @return array
-     */
-    private function groupSkusBySource(array $keys): array
-    {
-        $skus = [];
-        foreach ($keys as $key) {
-            $skus[$key['source_code']][$key['sku']] = $key['sku'];
-        }
-
-        return array_map('array_values', $skus);
     }
 }

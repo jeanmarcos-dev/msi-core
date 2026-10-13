@@ -38,8 +38,10 @@ attribute updates, SKU renames through the API and the cleanup after a product i
 record their own reason. Async bulk operations are attributed to the user that scheduled them and
 carry the bulk uuid as `request_id`.
 
-Recording a write looks its source items up per source, 200 SKUs per query, so the cost grows with
-the number of items written and not with the size of the catalogue. Looking up 5000 items in a
+Recording a write looks its source items up per source with 200 SKUs per query, or per SKU with 200
+sources per query when the write spans more sources than SKUs, so the cost grows with the number of
+items written and not with the size of the catalogue. Saving one product stocked in 150 sources
+makes 2 lookup queries instead of 151 and takes about 7 ms instead of 35. Looking up 5000 items in a
 600 000-row source item table takes about 70 ms; one condition per item, as before, took between 8 s
 and almost three minutes there, and held the items it had locked while it ran.
 
