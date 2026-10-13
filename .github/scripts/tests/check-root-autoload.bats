@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
+    TEST_SH="$(command -v "${TEST_SH:-dash}")" || { echo "dash is required: install it or set TEST_SH" >&2; return 1; }
     REPO="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$REPO/.github/scripts" "$REPO/ModA" "$REPO/ModB"
     [ ! -f "$BATS_TEST_DIRNAME/../check-root-autoload.sh" ] || cp "$BATS_TEST_DIRNAME/../check-root-autoload.sh" "$REPO/.github/scripts/"
@@ -18,7 +19,7 @@ JSON
 }
 
 @test "passes when every module has both entries and none is extra" {
-    run sh .github/scripts/check-root-autoload.sh
+    run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -eq 0 ]
 }
@@ -27,7 +28,7 @@ JSON
     mkdir NewModule
     touch NewModule/registration.php
 
-    run sh .github/scripts/check-root-autoload.sh
+    run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -ne 0 ]
     [[ "$output" == *"NewModule/registration.php"* ]]
@@ -38,7 +39,7 @@ JSON
     jq '.autoload.files += ["Ghost/registration.php"] | .autoload["psr-4"]["Magento\\Ghost\\"] = "Ghost/"' composer.json > c.json
     mv c.json composer.json
 
-    run sh .github/scripts/check-root-autoload.sh
+    run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -ne 0 ]
     [[ "$output" == *"Ghost/registration.php"* ]]
@@ -49,7 +50,7 @@ JSON
     jq 'del(.autoload["psr-4"]["Magento\\ModB\\"])' composer.json > c.json
     mv c.json composer.json
 
-    run sh .github/scripts/check-root-autoload.sh
+    run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -ne 0 ]
     [[ "$output" == *'Magento\\ModB\\'* ]]
@@ -71,7 +72,7 @@ stub_failing_comparators() {
 @test "a failing comparison cannot pass silently" {
     stub_failing_comparators
 
-    PATH="$STUBS" run /bin/sh .github/scripts/check-root-autoload.sh
+    PATH="$STUBS" run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -ne 0 ]
     [[ "$output" != *"root autoload: ok"* ]]
@@ -80,7 +81,7 @@ stub_failing_comparators() {
 @test "an unreadable composer.json cannot pass silently" {
     printf '{ not json' > composer.json
 
-    run sh .github/scripts/check-root-autoload.sh
+    run "$TEST_SH" .github/scripts/check-root-autoload.sh
 
     [ "$status" -ne 0 ]
     [[ "$output" != *"root autoload: ok"* ]]

@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 setup() {
+    TEST_SH="$(command -v "${TEST_SH:-dash}")" || { echo "dash is required: install it or set TEST_SH" >&2; return 1; }
     REPO="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$REPO/.github/scripts"
     cp "$BATS_TEST_DIRNAME/../dist-qa-local.sh" "$BATS_TEST_DIRNAME/../check-root-autoload.sh" "$REPO/.github/scripts/"
@@ -19,7 +20,7 @@ setup() {
     git add README.md
     git commit -qm docs
 
-    run sh .github/scripts/dist-qa-local.sh main
+    run "$TEST_SH" .github/scripts/dist-qa-local.sh main
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"No changed PHP files. Nothing to check."* ]]
@@ -31,7 +32,7 @@ setup() {
     git commit -qm add
     rm Gone.php
 
-    run sh .github/scripts/dist-qa-local.sh main
+    run "$TEST_SH" .github/scripts/dist-qa-local.sh main
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"No changed PHP files. Nothing to check."* ]]
@@ -41,7 +42,7 @@ setup() {
     mkdir NewModule
     touch NewModule/registration.php
 
-    run sh .github/scripts/dist-qa-local.sh main
+    run "$TEST_SH" .github/scripts/dist-qa-local.sh main
 
     [ "$status" -ne 0 ]
     [[ "$output" == *"NewModule/registration.php"* ]]
