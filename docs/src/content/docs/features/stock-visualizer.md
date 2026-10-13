@@ -70,8 +70,8 @@ All settings live under `cataloginventory/stock_visualizer`.
 | `mode` | `on_demand` | `on_demand` (fetch on click) or `instant` (fetch on load) for AJAX availability. |
 | `ttl` | `0` | Public-cache lifetime of the AJAX fragments, in seconds; `0` purges by tag only. |
 | `level_basis` | `quantity` | Compare the salable quantity to absolute thresholds or to a per-product full quantity. |
-| `level_high` | `10` | At or above this the level is high. |
-| `level_low` | `3` | At or above this, and below high, the level is medium; below it is low. |
+| `level_high` | `10` | Above this the level is high. |
+| `level_low` | `3` | Above this, and up to `level_high`, the level is medium; at or below it, low. |
 | `scope` | `aggregate` | Single-SKU breakdown: `aggregate` or `per_source`. |
 | `show_source_labels` | `1` | Show the source name on each per-source row. |
 | `hide_empty_sources` | `1` | Omit out-of-stock sources from the per-source breakdown. |
