@@ -1,5 +1,32 @@
 ---
-title: salable-by-source
+title: Salable quantity by source
+description: The per-source breakdown of quantity on hand, reservations and salable quantity in the product form and grid.
 ---
 
-Draft.
+Upstream MSI shows one salable quantity per stock. When it is lower than the quantity on hand, nothing
+says where the difference sits.
+
+msi-core breaks it down. The *Product Salable Quantity* section of the product form and the *Salable
+Quantity* column of the product grid report, for every source of a stock:
+
+- the quantity on hand;
+- that source's reservation balance;
+- the salable quantity they add up to.
+
+The aggregate Magento already showed becomes the total of that breakdown, so a salable quantity lower
+than the quantity on hand can be traced to the source holding the difference.
+
+Sources that contribute nothing are still listed and labelled, for example a disabled source or a
+source item set out of stock, so a zero reads as a reason rather than a defect.
+
+## Behaviour
+
+- **Single-source mode is untouched.** With one source the breakdown would only repeat the aggregate,
+  so the section renders exactly as upstream.
+- **Without [source-level reservations](/msi-core/features/source-reservations/)** the breakdown
+  degrades to the quantity on hand, because reservations are then held per stock and cannot be
+  attributed to a source.
+- **The grid** resolves a whole page in one pair of queries and keeps the breakdown collapsed until it
+  is expanded, which costs no further request.
+
+There is nothing to configure.

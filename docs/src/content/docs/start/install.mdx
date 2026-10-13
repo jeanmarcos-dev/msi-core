@@ -1,0 +1,97 @@
+---
+title: Install
+description: Requirements and the steps to install msi-core with Composer.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+<Aside type="caution" title="Read the upgrade page first">
+Installing msi-core on a store with data is a schema migration with downtime and no downgrade path.
+Read [Upgrade from Magento MSI](/msi-core/start/upgrade/) before you run these steps on anything but
+a fresh installation, and back up the database.
+</Aside>
+
+## Requirements
+
+| | Supported |
+|---|---|
+| Magento Open Source | 2.4.9 (`magento/framework` `>=103.0.9 <103.0.10`) |
+| Mage-OS | 3.x, which tracks Magento 2.4.9 |
+| PHP | 8.3 – 8.5 |
+
+The `magento/framework` constraint gates the install: Composer will not place msi-core on a Magento
+version it was not built for.
+
+The upgrade installs database triggers to [detect writes to the legacy
+tables](/msi-core/features/legacy-write-detection/). They need the `TRIGGER` privilege. Without it the
+upgrade only warns and carries on, and detection stays off.
+
+## Install
+
+Add the repository to the `composer.json` of your project:
+
+```jsonc
+// composer.json
+{
+    "repositories": [
+        { "type": "vcs", "url": "https://github.com/jeanmarcos-dev/msi-core" }
+    ]
+}
+```
+
+Then:
+
+<Steps>
+
+1. Require the package:
+
+   ```bash
+   composer require "jeanmarcos/msi-core:^1.0"
+   ```
+
+2. Put the store in maintenance mode:
+
+   ```bash
+   bin/magento maintenance:enable
+   ```
+
+3. Run the schema and data patches. On a large catalog the configuration migration is the slow step.
+
+   ```bash
+   bin/magento setup:upgrade
+   ```
+
+4. Build the stock index. Stock 1 has no index rows until this runs, and the price and search
+   indexes read salability from it:
+
+   ```bash
+   bin/magento indexer:reindex inventory catalog_product_price catalogsearch_fulltext
+   ```
+
+5. Flush the cache and leave maintenance mode:
+
+   ```bash
+   bin/magento cache:flush
+   bin/magento maintenance:disable
+   ```
+
+</Steps>
+
+Then make sure the [salability consumer runs](/msi-core/start/production/). It is a requirement, not
+a tuning recommendation.
+
+## Coming from `jeanmarcos/inventory`
+
+The two packages provide the same modules and cannot coexist. Remove the drop-in package first:
+
+```bash
+composer remove jeanmarcos/inventory
+composer require "jeanmarcos/msi-core:^1.0"
+```
+
+The upgrade steps above apply unchanged.
+
+## Choosing a version constraint
+
+`^1.0` takes fixes and features and never a breaking change. [Versioning](/msi-core/reference/versioning/)
+explains what each part of the version number promises.

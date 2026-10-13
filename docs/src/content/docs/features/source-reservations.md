@@ -1,5 +1,115 @@
 ---
-title: source-reservations
+title: Source-level reservations
+description: Reservations held per source instead of per stock, the locks that serialise orders sharing a source, and the sweeps that keep the ledger honest.
 ---
 
-Draft.
+Opt-in, off by default.
+
+**Enable:** `cataloginventory/source_reservations/enabled`, in **Stores › Configuration › Catalog ›
+Inventory › Source-Level Reservations**.
+
+In upstream MSI a reservation belongs to a stock. Two stocks that share a source each see the full
+physical quantity of that source and can both sell it. With source-level reservations, each sales
+reservation is split into one row per source, allocated across the enabled sources of the stock in
+priority order. Reservations then affect the salable quantity of **every** stock sharing the source,
+which closes the cross-stock oversell gap, and compensations (shipment, cancellation, credit memo)
+always land on the sources the demand was originally allocated to, whichever source ships.
+
+## Turning it on or off
+
+- Toggling the flag requires a full `bin/magento indexer:reindex inventory`.
+- Orders placed while the flag was off are compensated stock-scoped, exactly as before; mixed states
+  are safe.
+- `inventory:reservation:create-compensations` still creates stock-scoped compensations. Per-source
+  residues of such orders are kept, not deleted by the cleanup cron, and remain visible until
+  compensated per source.
+
+## Locks per source
+
+Concurrent orders that could draw from the same source are serialised against each other. The lock is
+taken per `(sku, source)` rather than per `(sku, stock)`, so two orders on different stocks sharing a
+source can no longer race on it. Orders with no source in common run fully in parallel.
+
+Measured: disjoint orders show no contention; orders on a shared sku and source serialise at roughly
+687 ms of hold each. On 2.4.9 this upgrades the per-stock lock introduced upstream by ACP2E-4509.
+
+The lock is taken around order submission, not around place-order, so admin-created orders and
+anything else that submits a quote directly are serialised too.
+
+## Shipping from the reserved sources
+
+An order reserves each item at specific sources when it is placed, and shipping reads that allocation.
+
+- **The admin shipment form** suggests the sources the order reserved at, with those quantities. The
+  source selection only places the rest.
+- **A shipment created without a source** in a stock with several sources (REST `ShipOrder` without
+  `extension_attributes.source_code`, or a programmatic shipment) resolves the source in this order:
+  1. the only source of the stock;
+  2. the source the order reserved every item at;
+  3. the default source selection, when it ships everything from one source.
+
+  When none applies, the shipment is rejected with a validation message asking for a source.
+- **Shipping from a source the order did not reserve at** still works. The source selection page shows
+  a warning under the **Source** selector naming the SKU and its reserved sources with quantities, and
+  explaining that it takes the stock from the selected source and releases the reservation at the
+  other one.
+
+A source chosen explicitly, in the admin or through `extension_attributes.source_code`, is used as
+given.
+
+## Transfers respect reservations
+
+- **Full transfer** (`POST /V1/inventory/bulk-product-source-transfer`) moves the reservations of open
+  orders with the stock. For every open order it releases the origin's pending balance and places the
+  same quantity at the destination, under the same `(sku, source)` locks as checkout and in the same
+  transaction as the stock. It is refused when the destination is not assigned to the stock of an
+  order holding reservations at the origin; the error names the order.
+- **Partial transfer** (`POST /V1/inventory/bulk-partial-source-transfer`) holds the same locks and
+  refuses to move more than the origin quantity net of its source reservations.
+- The oversell guard on new reservations checks a batch's net demand per stock and SKU, so a balanced
+  move between sources asks the stock for nothing.
+
+## Reconciliation
+
+Guards on the reservation path clamp and reject reservations that would break the ledger. When a
+ledger has already drifted, reconciliation repairs it by appending the compensations that terminal
+orders are missing.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `cataloginventory/source_reservations/reconcile_cancel_refund` | `0` | When an order reaches a final state, append any release its cancel or credit memo observer failed to write. Bounded so it can never over-release. |
+| `cataloginventory/source_reservations/reconcile_sweep_enabled` | `0` | Periodically reconcile terminal orders whose reservations were never released, including drift from direct database edits or third-party state changes. |
+| `cataloginventory/source_reservations/reconcile_sweep_cron` | `0 * * * *` | Schedule of the sweep. |
+
+The same pass runs on demand:
+
+```bash
+bin/magento inventory:reservation:reconcile --dry-run   # report the residues, write nothing
+bin/magento inventory:reservation:reconcile --limit=500
+```
+
+It processes at most `--limit` orders (500 by default), reindexes the stocks it touched and says when
+the limit was reached, so it can be run again for the rest.
+
+## Oversell detection
+
+Detection only: it never blocks a sale. Physical stock stays authoritative; an oversold position is
+logged and raised in the admin inbox for reconciliation.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `cataloginventory/source_reservations/oversell_detection_enabled` | `0` | Alert when a stock change leaves a source below the reservations already committed against it. |
+| `cataloginventory/source_reservations/oversell_sweep_enabled` | `0` | Periodically scan every source for positions below their committed reservations, including drift from direct database edits that no stock write can observe. |
+| `cataloginventory/source_reservations/oversell_sweep_cron` | `0 * * * *` | Schedule of the sweep. |
+
+On demand:
+
+```bash
+bin/magento inventory:reservation:detect-oversell [--source=<code>] [--sku=<sku>] [--limit=1000]
+```
+
+It lists each oversold source position with its physical quantity, its committed reservations and
+the difference, and exits non-zero when it finds any.
+
+Both sweeps and both commands work on per-source reservations, so they find nothing while the feature
+is off.

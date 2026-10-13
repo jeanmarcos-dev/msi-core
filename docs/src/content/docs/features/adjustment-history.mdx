@@ -1,0 +1,223 @@
+---
+title: Adjustment history
+description: An append-only record of every change to a source item, who made it and why, readable over REST and in the admin.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Since 1.1.0, every write that changes a source item's quantity or status adds a row to
+`inventory_source_item_adjustment`, in the same transaction as the change. The history is
+append-only: nothing edits a row once it is written.
+
+Each row records:
+
+| Field | Meaning |
+|---|---|
+| `source_code`, `sku` | the source item that changed |
+| `delta`, `quantity_after` | how much the quantity moved, and where it ended |
+| `status_before`, `status_after` | the stock status change, if any |
+| `reason` | why it changed, from a closed list |
+| `actor_type`, `actor_id`, `actor_label` | who made the change |
+| `reference_type`, `reference_id` | the document behind it, such as a shipment or a credit memo |
+| `request_id` | shared by every row written by one request, bulk operation or command run |
+| `note` | free text |
+| `created_at` | when |
+
+History starts at the upgrade; nothing is backfilled. An [opening balance](#opening-balance) gives
+items that have not moved since a baseline row.
+
+## What records a row
+
+| Write | Reason | Reference |
+|---|---|---|
+| Admin saves of source items, such as the product form with several sources | `correction` | |
+| Admin product form in single-source mode, which saves through the legacy stock item | `legacy_bridge` | |
+| REST `POST /V1/inventory/source-items` without an [explicit reason](#saying-why-over-rest) | `other` | |
+| Shipment deductions | `shipment` | the shipment |
+| Virtual invoice deductions | `shipment` | the order |
+| Return to stock from a credit memo | `return_restock` | the credit memo |
+| Deduction made when a credit memo is saved for items never shipped | `return_restock` | the order |
+| Full and partial source transfers | one `transfer_out` and one `transfer_in` row | |
+| Imports, with actor `import` and one `request_id` per run; a replaced row records its net change | `import` | |
+| Legacy stock item bridges | `legacy_bridge` | |
+| Mass attribute update | `correction` | |
+| SKU rename through the API | `other`, note `sku_rename` | |
+| Cleanup after a product is deleted | `other`, note `product_deleted` | |
+| Bulk unassign | `other` | |
+| [Opening balance](#opening-balance) | `other`, note `opening_balance` | |
+
+The full list of reasons is `correction`, `count`, `received`, `return_restock`, `damaged`,
+`theft_or_loss`, `promotion_or_donation`, `shipment`, `transfer_out`, `transfer_in`, `transit_loss`,
+`incoming_declared`, `state_move`, `import`, `legacy_bridge` and `other`.
+
+**Actors** are `admin`, `integration`, `import`, `system` or `customer`. The name of the admin user or
+integration behind a write is looked up once per request. Async bulk operations are attributed to the
+user that scheduled them and carry the bulk uuid as `request_id`.
+
+## Saying why over REST
+
+`POST /V1/inventory/source-items`, and its async variant, accept an `adjustment` extension attribute
+on each source item:
+
+```json
+{
+  "sourceItems": [
+    {
+      "sku": "24-MB01",
+      "source_code": "warehouse_a",
+      "quantity": 40,
+      "status": 1,
+      "extension_attributes": {
+        "adjustment": {
+          "reason": "count",
+          "note": "Cycle count, aisle 4",
+          "reference_type": "stocktake",
+          "reference_id": "ST-9"
+        }
+      }
+    }
+  ]
+}
+```
+
+The request is rejected with a 400, and nothing is written, when:
+
+- the reason is not in the list above;
+- some items carry an adjustment and others do not, or items of one request carry different values;
+- `note` is longer than 255 characters, `reference_type` than 32 or `reference_id` than 64;
+- `reference_type` is `order`, `shipment`, `invoice` or `creditmemo`. Magento records those itself,
+  with the entity id of the document, and the admin links them, so an external document number would
+  link to another document.
+
+The attribute is never returned when source items are read.
+
+## Reading the history
+
+<Aside type="note" title="Permission">
+All three ways of reading the history require the `Magento_InventoryAdjustment::view` permission. See
+[Permission](#permission).
+</Aside>
+
+**REST.** `GET /V1/inventory/source-item-adjustments` takes `searchCriteria` and returns rows from
+newest to oldest. It always pages, at most `cataloginventory/source_item_adjustment/max_page_size`
+rows per page (500 by default), and rejects a larger `pageSize` with a 400 that names the limit.
+
+```http
+GET /rest/V1/inventory/source-item-adjustments?searchCriteria[pageSize]=50&searchCriteria[currentPage]=1&searchCriteria[filterGroups][0][filters][0][field]=sku&searchCriteria[filterGroups][0][filters][0][value]=24-MB01
+```
+
+**Admin grid.** **Stores › Inventory › Adjustment History** lists every row read-only, with filters by
+date, source, SKU, reason, actor type and reference. A row that points to an order, shipment, invoice
+or credit memo links to it.
+
+**Product form.** A collapsed **Stock History** section shows the same list for that product. It is
+loaded only when it is opened.
+
+## Permission
+
+`Magento_InventoryAdjustment::view` is listed as **Stores › Inventory › Adjustment History** in the
+role resources. Roles with access to all resources get it automatically. Custom admin roles and
+integrations do not: an existing role keeps exactly the resources it was saved with, so grant the
+permission to the ones that should see the history.
+
+## Checking for drift
+
+```bash
+bin/magento inventory:adjustment:verify [--limit=1000]
+```
+
+Lists source items whose quantity no longer matches their last row, and exits non-zero when there is
+any. A mismatch means something changed the table without going through MSI, such as a direct SQL
+update. When more items drift than `--limit`, it says it is showing the first ones and that there may
+be more.
+
+## Retention
+
+Nothing is deleted by default.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `cataloginventory/source_item_adjustment/retention_days` | `0` | Days a row is kept. `0` keeps every row. At most 36 500. |
+| `cataloginventory/source_item_adjustment/prune_batch_size` | `5000` | Rows deleted per batch. At most 100 000. |
+
+When retention is above 0, the `inventory_adjustment_prune` cron job (02:30 every night, `default`
+group) deletes older rows in batches. It never deletes the latest row of each source, SKU and state,
+however old, so `inventory:adjustment:verify` always has a row to compare against. It changes no
+quantity or status. On a large table the first run works through the backlog batch by batch; a run
+that is interrupted continues the next night.
+
+Values above the limits are treated as the limits, and the admin rejects them. An index on state,
+source, SKU and row id serves both the prune and `verify`: on a 600 000-row history, `verify`'s scan
+takes about 130 ms and each prune batch about 14 ms.
+
+## Opening balance
+
+The history starts at the upgrade, so an item that has not moved since has no row yet. To give those
+items a baseline, run once after the upgrade, preferably in a low-traffic window:
+
+```bash
+bin/magento inventory:adjustment:opening-balance [--batch-size=1000]
+```
+
+It writes one row per source item with a quantity other than zero and no history: its delta and
+resulting quantity are the current quantity, the reason is `other`, the note `opening_balance` and the
+actor `system`. Every row of one run shares a `request_id`, which the command prints with the number of
+rows it wrote. It locks `--batch-size` items at a time and never runs on its own during
+`setup:upgrade`. Running it again writes nothing.
+
+To undo it, delete the rows with that `request_id` in batches, in a low-traffic window, and repeat
+until a statement deletes nothing:
+
+```sql
+DELETE FROM inventory_source_item_adjustment WHERE request_id = '<request_id>' LIMIT 1000;
+```
+
+`request_id` has no index, so every batch scans the history table and locks the rows it reads until it
+commits. Small batches keep each lock short.
+
+## Volume
+
+Every write adds one row per changed source item: a 10-line shipment from one source writes 10 rows, a
+`POST /V1/inventory/source-items` with 1000 changed items writes 1000, and an import writes one per row
+that changed. Plan for
+
+```
+rows per year ≈ source items changed per day × 365
+```
+
+at about 350 bytes per row on disk, indexes included (measured on MariaDB 11.4 with shipment-like
+rows). A store shipping 10 000 lines a day adds about 3.65 million rows, or 1.3 GB, a year.
+[Retention](#retention) bounds it.
+
+## Cost
+
+Recording looks source items up per source with 200 SKUs per query, or per SKU with 200 sources per
+query when the write spans more sources than SKUs, so the cost grows with the number of items written
+and not with the size of the catalogue. Saving one product stocked in 150 sources reads its items
+twice, with 2 queries each, and spends about 3 ms on them. Looking up 5000 items in a 600 000-row
+source item table takes about 70 ms.
+
+Measured with the history on and off, in alternating rounds, calling the service contracts in
+process:
+
+| Scenario | Samples per mode | Median off | Median on | Δ median | p95 off | p95 on |
+|---|---|---|---|---|---|---|
+| Shipment, 1 line | 60 | 37.2 ms | 36.0 ms | −1.1 ms | 44.1 ms | 44.1 ms |
+| Shipment, 10 lines | 60 | 59.4 ms | 56.2 ms | −3.2 ms | 75.7 ms | 79.9 ms |
+| `source-items`, 1 item | 60 | 5.4 ms | 6.4 ms | +1.0 ms | 11.1 ms | 9.3 ms |
+| `source-items`, 100 items | 60 | 151 ms | 150 ms | −1.5 ms | 522 ms | 182 ms |
+| `source-items`, 1000 items | 60 | 676 ms | 714 ms | +39 ms | 725 ms | 1933 ms |
+| Import, 10 000 rows | 12 | 5666 ms | 6136 ms | +470 ms | 9054 ms | 10452 ms |
+
+Measured on 2026-10-12: AMD Ryzen 9 5950X, PHP 8.3, MariaDB 11.4.13, developer mode, with unrelated
+load on the host. Differences of a few milliseconds, including the negative ones, are within the noise
+between rounds, and so are the outlying p95 values. Bulk writes pay a small share: about 6 % more for a
+1000-item `source-items` request and about 8 % more for a 10 000-row import.
+
+## Turning it off
+
+Set `cataloginventory/source_item_adjustment/enabled` to `0` to stop recording. Rows already written
+are kept.
+
+The quantities a row records after a write are read with the same row locks as the ones before it, so
+a transaction that had already read the source item table cannot record a stale quantity as a change.

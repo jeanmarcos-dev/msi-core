@@ -1,6 +1,100 @@
 ---
 title: msi-core
+description: Multi-Source Inventory as the only inventory system in Magento Open Source and Mage-OS.
 template: splash
+hero:
+  title: One inventory system for Magento
+  tagline: msi-core makes Multi-Source Inventory the only inventory system in Magento Open Source and Mage-OS. The Default Stock becomes a stock like any other, and the legacy cataloginventory tables stop being a second source of truth.
+  image:
+    file: ../../assets/logo.svg
+  actions:
+    - text: Get started
+      link: /msi-core/start/install/
+      icon: right-arrow
+    - text: Why msi-core
+      link: /msi-core/start/why/
+      variant: minimal
+    - text: GitHub
+      link: https://github.com/jeanmarcos-dev/msi-core
+      icon: github
+      variant: secondary
 ---
 
-Draft.
+import { Aside, Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
+
+## Two systems, one catalog
+
+In upstream MSI the Default Stock is not a stock: `inventory_stock_1` is a MySQL view over a legacy
+table, the MSI indexer skips it, and composite salability for it comes from the old CatalogInventory
+indexer. Around fifty `if (default stock)` branches across twenty modules keep the two worlds apart,
+so a defect fixed on one side stays open on the other.
+
+msi-core removes the split. Every stock, stock 1 included, goes through the same MSI code path.
+
+## What you get
+
+<CardGrid>
+	<Card title="Default Stock as a regular stock" icon="setting">
+		Stock 1 is indexed, configured, edited and deleted like any other. Stock item configuration
+		moves into MSI. [Read more](/msi-core/features/default-stock/)
+	</Card>
+	<Card title="Source-level reservations" icon="random">
+		Reservations held per source close the cross-stock oversell gap, with locks per source and
+		sweeps that repair a drifted ledger. [Read more](/msi-core/features/source-reservations/)
+	</Card>
+	<Card title="Adjustment history" icon="document">
+		Every change to a source item is recorded with who made it, why and the document behind it,
+		readable over REST and in the admin. [Read more](/msi-core/features/adjustment-history/)
+	</Card>
+	<Card title="Salable quantity by source" icon="list-format">
+		The product form and grid break the salable quantity down per source, so a gap can be traced
+		to the source holding it. [Read more](/msi-core/features/salable-by-source/)
+	</Card>
+	<Card title="Storefront stock visualizer" icon="analytics">
+		An opt-in Availability panel on the product page: a traffic light or the exact quantity,
+		per source and per composite type. [Read more](/msi-core/features/stock-visualizer/)
+	</Card>
+	<Card title="Legacy write detection" icon="warning">
+		Triggers count third-party writes that still target the frozen legacy tables, so a silent
+		failure becomes a report. [Read more](/msi-core/features/legacy-write-detection/)
+	</Card>
+</CardGrid>
+
+## Compared with Adobe's MSI
+
+| | Adobe's MSI | msi-core |
+|---|---|---|
+| Default Stock | a view over `cataloginventory_stock_status` | a real index table built by MSI |
+| Composite salability in stock 1 | legacy CatalogInventory indexer | MSI composite indexers |
+| Stock item configuration | `cataloginventory_stock_item` | `inventory_stock_item_configuration` |
+| Reservations | per stock | per source, opt-in |
+| Place-order lock | per stock | per source, covering admin orders too |
+| Stock change history | none | every source item change |
+| Upgrade | — | schema migration with downtime, no downgrade |
+| Breaks | — | raw SQL reads of `cataloginventory_stock_item` and `_stock_status` |
+
+The module names, namespaces and service contracts stay the same, so code that goes through the MSI
+and CatalogInventory APIs keeps working. [Differences from
+upstream](/msi-core/reference/upstream-differences/) lists everything that changes.
+
+## Compatibility
+
+| Magento Open Source | Mage-OS | PHP |
+|---|---|---|
+| 2.4.9 | 3.x | 8.3 – 8.5 |
+
+Composer only installs msi-core on the Magento version it was built for.
+
+## Install
+
+```bash
+composer config repositories.msi-core vcs https://github.com/jeanmarcos-dev/msi-core
+composer require "jeanmarcos/msi-core:^1.0"
+```
+
+<Aside type="caution">
+On a store with data this is a schema migration with no downgrade path. Read [Upgrade from Magento
+MSI](/msi-core/start/upgrade/) first.
+</Aside>
+
+<LinkButton href="/msi-core/start/install/" icon="right-arrow">Full installation steps</LinkButton>

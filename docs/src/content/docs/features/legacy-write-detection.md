@@ -1,5 +1,50 @@
 ---
-title: legacy-write-detection
+title: Legacy write detection
+description: Triggers that count writes still made against the frozen cataloginventory tables, and how to read them.
 ---
 
-Draft.
+After the upgrade, `cataloginventory_stock_item` and `cataloginventory_stock_status` are
+[frozen](/msi-core/start/upgrade/#the-legacy-tables-are-kept-empty-and-frozen): MSI neither reads nor
+writes them. A third-party extension that sets a quantity by writing them directly appears to succeed
+and changes nothing.
+
+Because that failure is silent, the upgrade installs four database triggers that count such writes
+into `inventory_legacy_stock_write`. An admin notification names the table and the number of ignored
+writes, and the same record is available from the console.
+
+## Reading the record
+
+```bash
+bin/magento inventory:legacy-stock:writes            # report; exits non-zero while any write is on record
+bin/magento inventory:legacy-stock:writes --clear    # acknowledge and forget them
+bin/magento inventory:legacy-stock:writes --disable  # drop the triggers
+bin/magento inventory:legacy-stock:writes --enable   # install them again
+```
+
+The report lists, per table and operation, the number of writes, a sample product id and when the
+first and last writes were seen. It also says when the triggers are not installed.
+
+## Fixing the writer
+
+Point the code that made the writes at `SourceItemsSaveInterface`, or at
+`StockRegistryInterface::updateStockItemBySku()`, which MSI projects onto the default source item.
+
+## What the triggers can and cannot see
+
+The report is a starting point, not an audit. A trigger fires per row, so it catches every `INSERT`
+and every `UPDATE` that matches at least one row. An `UPDATE` matching nothing is invisible to the
+database, and no trigger can see it.
+
+**That is a reason not to truncate the tables.** While they still hold their pre-upgrade rows, an
+extension updating a product by id still hits a row and gets counted; on an empty table the same
+statement passes unnoticed.
+
+The triggers need the `TRIGGER` privilege. Without it, `setup:upgrade` logs a warning and continues,
+and detection stays off until the privilege is granted and `--enable` is run.
+
+## Magento itself no longer writes there
+
+CatalogInventory used to be the loudest writer: saving the inventory configuration section made it
+rewrite every `cataloginventory_stock_item` row through `UpdateItemsStockUponConfigChangeObserver`,
+2464 discarded writes on a 2.5k product catalog. That observer is disabled, so what the detector
+reports is third-party code and not Magento talking to itself.

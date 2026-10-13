@@ -1,5 +1,154 @@
 ---
-title: stock-visualizer
+title: Storefront stock visualizer
+description: An opt-in Availability panel on the product page, driven by MSI, with level or exact quantity, per source and per composite type.
 ---
 
-Draft.
+Opt-in, off by default.
+
+**Enable:** `cataloginventory/stock_visualizer/enabled`, in **Stores › Configuration › Catalog ›
+Inventory › Storefront Stock Visualizer**.
+
+The visualizer renders an **Availability** panel on the product page, driven by MSI. It ships as the
+additive `Magento_InventoryStockVisualizer` module and does not replace or alter any core inventory
+module.
+
+## What it shows
+
+The general settings sit at the top level of the configuration group; two subsections group the rest,
+**Per-source breakdown** and **Composite product types**. The display type and the level thresholds
+can be overridden per product through a dedicated *Stock Visualizer* attribute group.
+
+- **Display type.** `level` renders a traffic-light state (high, medium, low, out) with **no exact
+  quantity exposed**; `quantity` renders the exact salable number. The display type applies to every
+  product type: in level mode no type ever reveals a number, while the per-type mode below still
+  defines the structure (aggregate, per component or selected variant). Level per-component rows render
+  a colour-coded availability bar instead of a count.
+- **Scope**, for single-SKU products. `aggregate` shows a single availability; `per_source` breaks it
+  down per source. It applies to simple, virtual and downloadable products and to the selected
+  configurable variant; composite aggregate and per-component displays are always aggregated.
+  Per-source availability nets the physical source quantity against that source's reservation balance,
+  and degrades to the physical quantity when [source-level
+  reservations](/msi-core/features/source-reservations/) are off.
+- **Delivery mode**, for availability fetched over AJAX (exact quantity, and the interactive composite
+  types). `on_demand` fetches on a button click and `instant` fetches on page load. Server-rendered
+  availability always shows on load.
+
+Availability is computed server-side against the current website's stock, resolved through the sales
+channel, so one website's cached fragment can never stand in for another's. Out-of-stock products
+render the status alone: the panel skips the client component, so no call to action is offered and no
+fragment is requested.
+
+## Composite product types
+
+Simple, virtual and downloadable products use the single-SKU path above. Each composite type has its
+own display mode, because a `GetProductSalableQtyInterface` read is undefined for a type that does not
+manage its own stock.
+
+| Type | Modes (default first) | Interactive | What it shows |
+|---|---|---|---|
+| Configurable | `variant` · `children` · `status` | `variant` | `variant`: the selected option combination's availability, per source when enabled; `children`: every variant's availability; `status`: one in-stock or out-of-stock word. |
+| Bundle | `max` · `children` · `status` | `max` | `max`: how many of the current selection can be ordered, recomputed as options and quantities change; `children`: each selection's stock; `status`: aggregate word. |
+| Grouped | `children` · `status` | no | `children`: each associated product's stock, plus an optional complete-sets calculator; `status`: aggregate word. |
+
+- The interactive modes read the live selection from the native storefront widgets: the swatch or
+  dropdown configurable resolves the chosen child, and the bundle reads the `priceBundle` option
+  config. The client sends the child product id, never a SKU; the server resolves it.
+- The module removes the core availability badges for simple, virtual, grouped, configurable, bundle
+  and downloadable products, so the panel never sits next to a duplicate or contradictory badge.
+  Options, swatches and links are left untouched. The removal lives in the `inventory_stockviz_panel`
+  layout handle with the panel, which is applied only while the module is enabled, so switching it off
+  gives the product page its core badge back.
+
+## Configuration
+
+All settings live under `cataloginventory/stock_visualizer`.
+
+| Setting | Default | Purpose |
+|---|---|---|
+| `enabled` | `0` | Show the panel on the product page. |
+| `display_type` | `level` | `level` (traffic light) or `quantity` (exact number). |
+| `mode` | `on_demand` | `on_demand` (fetch on click) or `instant` (fetch on load) for AJAX availability. |
+| `ttl` | `0` | Public-cache lifetime of the AJAX fragments, in seconds; `0` purges by tag only. |
+| `level_basis` | `quantity` | Compare the salable quantity to absolute thresholds or to a per-product full quantity. |
+| `level_high` | `10` | At or above this the level is high. |
+| `level_low` | `3` | At or above this, and below high, the level is medium; below it is low. |
+| `scope` | `aggregate` | Single-SKU breakdown: `aggregate` or `per_source`. |
+| `show_source_labels` | `1` | Show the source name on each per-source row. |
+| `hide_empty_sources` | `1` | Omit out-of-stock sources from the per-source breakdown. |
+| `composite_configurable_mode` | `variant` | `variant`, `children` or `status`. |
+| `composite_bundle_mode` | `max` | `max`, `children` or `status`. |
+| `composite_grouped_mode` | `children` | `children` or `status`. |
+| `composite_grouped_sets_calculator` | `0` | Show the complete-sets calculator (grouped `children` only). |
+
+Per-product overrides, in the *Stock Visualizer* attribute group, cover the display type and the level
+thresholds: `stockviz_display_type`, `stockviz_level_basis`, `stockviz_level_high`,
+`stockviz_level_low` and `stockviz_full_qty` (the percentage reference). Scope, delivery mode and the
+composite modes are store-scoped only.
+
+## Keeping the panel fresh
+
+The panel is cached with the page, so the module keeps it fresh with a dedicated cache tag,
+`inv_stockviz_<productId>`, that leaves the surrounding product page cache untouched. The tag is
+purged at three seams, all best-effort: a failure is logged and never breaks checkout or reindex.
+
+- **Demand.** A plugin on `AppendReservationsInterface` catches reservation writes (order, cancel,
+  refund, RMA, import). In level mode it purges only when the level bucket changes; in quantity mode it
+  purges every touched SKU.
+- **Supply.** Plugins on `SourceItemsSaveInterface` and `SourceItemsDeleteInterface` snapshot the old
+  per-source quantity and purge on quantity changes that never flip salability, which the index-driven
+  backstop would miss.
+- **Salability backstop.** A salability-change processor in the inventory indexer purges on flips that
+  arrive through reindex.
+
+All three feed one decider, `ResolveSkusToPurge`, which applies the enabled gate and the display-mode
+rules, and `DispatchPurge`, which either flushes synchronously or offloads to the queue. The async path
+collapses a burst of writes for the same SKU into a single purge through a short-lived cache guard; the
+consumer clears the guard first and then flushes live state, so the last write wins.
+
+The purge strategy follows the inventory indexer: when the *Inventory* index runs **on schedule**,
+purges go to the queue; when it runs **on save**, they flush synchronously. The queue is
+database-backed, so no RabbitMQ is required.
+
+**Configuration changes show immediately.** Every fragment request carries a short config fingerprint
+(`_cv`) derived from the display settings. Changing any display setting mints a fresh cache key, so the
+new output is served on the next load without a manual cache flush.
+
+## Operational requirements
+
+- `bin/magento setup:upgrade` registers the per-product attributes and the message-queue topology.
+- `bin/magento setup:di:compile` for production mode.
+- When the purge strategy resolves to the queue, run the consumer
+  `bin/magento queue:consumers:start inventory.stockvisualizer.purge`, or the standard consumer cron.
+
+### Generating performance-toolkit fixtures
+
+While this module is enabled, `setup:performance:generate-fixtures` aborts with `The entity ID field
+for the "queue_message" table wasn't found`. Saving the generator's template product writes source
+items, which fires the supply seam and publishes a purge message, so `queue_message` ends up among the
+tables the generator treats as part of the product entity. Disable the module while generating the
+catalog:
+
+```bash
+bin/magento module:disable Magento_InventoryStockVisualizer
+bin/magento setup:performance:generate-fixtures <profile>
+bin/magento module:enable Magento_InventoryStockVisualizer
+bin/magento setup:di:compile
+```
+
+This affects fixture generation only, never storefront or admin behaviour.
+
+## Extending it
+
+Public service contracts live in the module's `Api` namespace:
+
+- `GetStockViewInterface` builds the availability view for a SKU in a stock, optionally typed so
+  composite products resolve their aggregate and child breakdown.
+- `Api\Data\StockViewInterface` and `Api\Data\SourceViewInterface` carry the aggregate and per-source
+  availability; `Api\Data\ChildViewInterface` carries one composite child's label and availability.
+
+The AJAX fragments are served by controllers under the `inventory_stockviz` front name:
+`product/view` (single SKU or configurable variant), `product/children` (composite child breakdown and
+the grouped sets calculator) and `product/bundleMax` (sellable count for a bundle selection).
+
+Swap the default `GetStockViewInterface` implementation through a DI `preference` to change how
+availability is computed without touching the panel, the controller or the caching layer.
