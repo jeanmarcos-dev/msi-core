@@ -59,6 +59,18 @@ class PruneAdjustmentsTest extends TestCase
         $this->cron()->execute();
     }
 
+    public function testPrunesWithAValidCutoffWhenTheRetentionIsTheCap(): void
+    {
+        $this->config->method('getRetentionDays')->willReturn(36500);
+        $this->config->method('getPruneBatchSize')->willReturn(100000);
+        $this->pruner->expects(self::once())
+            ->method('prune')
+            ->with('1926-11-04 02:30:00', 100000)
+            ->willReturn(0);
+
+        $this->cron()->execute();
+    }
+
     private function cron(): PruneAdjustments
     {
         return new PruneAdjustments($this->config, $this->pruner, $this->dateTime);

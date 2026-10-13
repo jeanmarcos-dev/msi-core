@@ -60,6 +60,27 @@ class ConfigTest extends TestCase
         }
     }
 
+    public function testCapsTheRetentionAt36500Days(): void
+    {
+        self::assertSame(36500, $this->configWith('retention_days', '36500')->getRetentionDays());
+        self::assertSame(36500, $this->configWith('retention_days', '36501')->getRetentionDays());
+        self::assertSame(36500, $this->configWith('retention_days', '9223372036854775807')->getRetentionDays());
+    }
+
+    public function testATwentyDigitRetentionIsTheCapWithoutOverflow(): void
+    {
+        foreach (['99999999999999999999', '00000000000000000000099999', '1e30', '+99999999999999999999'] as $value) {
+            self::assertSame(36500, $this->configWith('retention_days', $value)->getRetentionDays());
+        }
+    }
+
+    public function testCapsThePruneBatchSizeAt100000(): void
+    {
+        self::assertSame(100000, $this->configWith('prune_batch_size', '100000')->getPruneBatchSize());
+        self::assertSame(100000, $this->configWith('prune_batch_size', '10000000')->getPruneBatchSize());
+        self::assertSame(100000, $this->configWith('prune_batch_size', '99999999999999999999')->getPruneBatchSize());
+    }
+
     private function configWithPageSize(?string $value): Config
     {
         return $this->configWith('max_page_size', $value);
