@@ -3,7 +3,8 @@
 setup() {
     REPO="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$REPO/.github/scripts"
-    cp "$BATS_TEST_DIRNAME/../dist-qa-local.sh" "$REPO/.github/scripts/"
+    cp "$BATS_TEST_DIRNAME/../dist-qa-local.sh" "$BATS_TEST_DIRNAME/../check-root-autoload.sh" "$REPO/.github/scripts/"
+    echo '{}' > "$REPO/composer.json"
     cd "$REPO"
     git init -q -b main
     git config user.email qa@example.com
@@ -34,4 +35,15 @@ setup() {
 
     [ "$status" -eq 0 ]
     [[ "$output" == *"No changed PHP files. Nothing to check."* ]]
+}
+
+@test "fails before checking PHP when a module is missing from the root composer autoload" {
+    mkdir NewModule
+    touch NewModule/registration.php
+
+    run sh .github/scripts/dist-qa-local.sh main
+
+    [ "$status" -ne 0 ]
+    [[ "$output" == *"NewModule/registration.php"* ]]
+    [[ "$output" == *"dist QA (local): FAIL"* ]]
 }

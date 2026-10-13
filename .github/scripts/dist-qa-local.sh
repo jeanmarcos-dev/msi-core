@@ -28,6 +28,15 @@ fi
 
 echo "Base ref: $BASE"
 
+echo
+echo "== root composer autoload =="
+if ! sh .github/scripts/check-root-autoload.sh; then
+    echo
+    echo "dist QA (local): FAIL"
+    exit 1
+fi
+echo
+
 # .github/ is excluded: it carries CI tooling inherited from upstream (CLI scripts that
 # legitimately use echo/exit), which the Magento2 standard rejects and which is not part
 # of the distributed code.

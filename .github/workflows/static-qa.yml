@@ -8,7 +8,7 @@ name: static QA
 on:
   pull_request:
     branches: ['main']
-    paths: ['**.php']
+    paths: ['**.php', 'composer.json', '*/registration.php']
   workflow_dispatch:
 
 concurrency:
@@ -35,6 +35,9 @@ jobs:
           php-version: '8.3'
           coverage: none
           tools: composer:v2
+
+      - name: Root composer autoload
+        run: sh .github/scripts/check-root-autoload.sh
 
       - name: Resolve changed PHP files
         id: changed
