@@ -32,6 +32,12 @@
             <column name="sku"/>
             <column name="adjustment_id"/>
         </index>
+        <index referenceId="INVENTORY_SOURCE_ITEM_ADJUSTMENT_STATE_SOURCE_CODE_SKU_ADJUSTMENT_ID" indexType="btree">
+            <column name="state"/>
+            <column name="source_code"/>
+            <column name="sku"/>
+            <column name="adjustment_id"/>
+        </index>
         <index referenceId="INVENTORY_SOURCE_ITEM_ADJUSTMENT_CREATED_AT" indexType="btree">
             <column name="created_at"/>
         </index>
