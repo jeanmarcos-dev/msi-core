@@ -161,4 +161,71 @@ class GetItemsToDeductFromShipmentTest extends TestCase
         self::assertSame('SKU-7', $result[0]->getSku());
         self::assertEquals(2, $result[0]->getQty());
     }
+
+    public function testStoresResolvedParentOrderItemOnShipmentItemForComplexProcessing(): void
+    {
+        $child = $this->createPartialMockWithReflection(
+            OrderItem::class,
+            ['getIsVirtual', 'getLockedDoShip', 'getProductOptions']
+        );
+        $child->method('getIsVirtual')->willReturn(false);
+        $child->method('getLockedDoShip')->willReturn(false);
+        $child->method('getProductOptions')->willReturn([]);
+
+        $parent = $this->createPartialMockWithReflection(
+            OrderItem::class,
+            [
+                'getItemId',
+                'getProduct',
+                'getProductType',
+                'getHasChildren',
+                'isDummy',
+                'getChildrenItems',
+                'getIsQtyDecimal',
+            ]
+        );
+        $parent->method('getItemId')->willReturn(7);
+        $parent->method('getProduct')->willReturn($this->orderItem->getProduct());
+        $parent->method('getProductType')->willReturn('configurable');
+        $parent->method('getHasChildren')->willReturn(true);
+        $parent->method('isDummy')->with(true)->willReturn(false);
+        $parent->method('getChildrenItems')->willReturn([$child]);
+        $parent->method('getIsQtyDecimal')->willReturn(false);
+
+        $order = $this->createMock(Order::class);
+        $order->method('getAllItems')->willReturn([$parent]);
+
+        $getSkuFromOrderItem = $this->createMock(GetSkuFromOrderItemInterface::class);
+        $getSkuFromOrderItem->method('execute')->with($parent)->willReturn('CONFIGURABLE-SKU');
+
+        $shipmentItem = $this->createMock(ShipmentItem::class);
+        $shipmentItem->method('getOrderItemId')->willReturn(7);
+        $shipmentItem->method('getQty')->willReturn(3);
+        $resolved = null;
+        $shipmentItem->expects(self::once())->method('setOrderItem')->with($parent)->willReturnCallback(
+            function ($orderItem) use (&$resolved, $shipmentItem) {
+                $resolved = $orderItem;
+                return $shipmentItem;
+            }
+        );
+        $shipmentItem->method('getOrderItem')->willReturnCallback(function () use (&$resolved) {
+            return $resolved;
+        });
+
+        $this->shipment->method('getAllItems')->willReturn([$shipmentItem]);
+        $this->shipment->method('getOrder')->willReturn($order);
+
+        $model = new GetItemsToDeductFromShipment(
+            $getSkuFromOrderItem,
+            $this->jsonSerializer,
+            $this->itemToDeductFactory,
+            $this->itemCouldBeDeducted
+        );
+
+        $result = $model->execute($this->shipment);
+
+        self::assertCount(1, $result);
+        self::assertSame('CONFIGURABLE-SKU', $result[0]->getSku());
+        self::assertEquals(3, $result[0]->getQty());
+    }
 }
