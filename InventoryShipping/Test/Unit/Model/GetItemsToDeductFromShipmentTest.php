@@ -228,4 +228,156 @@ class GetItemsToDeductFromShipmentTest extends TestCase
         self::assertSame('CONFIGURABLE-SKU', $result[0]->getSku());
         self::assertEquals(3, $result[0]->getQty());
     }
+
+    public function testDeductsTheBundleSelectionsOfAResolvedBundleItem(): void
+    {
+        $this->jsonSerializer->method('unserialize')->willReturnCallback(fn ($value) => json_decode($value, true));
+        $first = $this->bundleSelection('{"qty":2}');
+        $second = $this->bundleSelection('{"qty":1}');
+        $bundle = $this->parentOrderItem(7, 'bundle', false, [$first, $second]);
+
+        $result = $this->deduct(
+            [$bundle],
+            [$this->shipmentItemResolvedById(7, 3)],
+            [[$first, 'PART-A'], [$second, 'PART-B']]
+        );
+
+        self::assertSame(['PART-A' => 6.0, 'PART-B' => 3.0], $this->quantitiesBySku($result));
+    }
+
+    public function testDeductsTheChildrenOfAResolvedDummyParentThroughTheirOwnShipmentItems(): void
+    {
+        $child = $this->simpleOrderItem(8);
+        $parent = $this->parentOrderItem(7, 'bundle', true, [$child]);
+
+        $result = $this->deduct(
+            [$parent, $child],
+            [$this->shipmentItemResolvedById(7, 1), $this->shipmentItemResolvedById(8, 4)],
+            [[$child, 'PART-A']]
+        );
+
+        self::assertSame(['PART-A' => 4.0], $this->quantitiesBySku($result));
+    }
+
+    /**
+     * @param OrderItem[] $orderItems
+     * @param ShipmentItem[] $shipmentItems
+     * @param array $skuMap
+     * @return array
+     */
+    private function deduct(array $orderItems, array $shipmentItems, array $skuMap): array
+    {
+        $order = $this->createMock(Order::class);
+        $order->method('getAllItems')->willReturn($orderItems);
+        $this->shipment->method('getAllItems')->willReturn($shipmentItems);
+        $this->shipment->method('getOrder')->willReturn($order);
+
+        $getSkuFromOrderItem = $this->createMock(GetSkuFromOrderItemInterface::class);
+        $getSkuFromOrderItem->method('execute')->willReturnMap($skuMap);
+
+        return (new GetItemsToDeductFromShipment(
+            $getSkuFromOrderItem,
+            $this->jsonSerializer,
+            $this->itemToDeductFactory,
+            $this->itemCouldBeDeducted
+        ))->execute($this->shipment);
+    }
+
+    /**
+     * @param array $items
+     * @return array
+     */
+    private function quantitiesBySku(array $items): array
+    {
+        $quantities = [];
+        foreach ($items as $item) {
+            $quantities[$item->getSku()] = $item->getQty();
+        }
+
+        return $quantities;
+    }
+
+    /**
+     * @param int $orderItemId
+     * @param int $qty
+     * @return ShipmentItem|MockObject
+     */
+    private function shipmentItemResolvedById(int $orderItemId, int $qty): ShipmentItem
+    {
+        $resolved = null;
+        $shipmentItem = $this->createMock(ShipmentItem::class);
+        $shipmentItem->method('getOrderItemId')->willReturn($orderItemId);
+        $shipmentItem->method('getQty')->willReturn($qty);
+        $shipmentItem->method('setOrderItem')->willReturnCallback(
+            function ($orderItem) use (&$resolved, $shipmentItem) {
+                $resolved = $orderItem;
+                return $shipmentItem;
+            }
+        );
+        $shipmentItem->method('getOrderItem')->willReturnCallback(function () use (&$resolved) {
+            return $resolved;
+        });
+
+        return $shipmentItem;
+    }
+
+    /**
+     * @param int $itemId
+     * @param string $productType
+     * @param bool $isDummy
+     * @param OrderItem[] $children
+     * @return OrderItem|MockObject
+     */
+    private function parentOrderItem(int $itemId, string $productType, bool $isDummy, array $children): OrderItem
+    {
+        $parent = $this->createPartialMockWithReflection(
+            OrderItem::class,
+            ['getItemId', 'getProduct', 'getProductType', 'getHasChildren', 'isDummy', 'getChildrenItems']
+        );
+        $parent->method('getItemId')->willReturn($itemId);
+        $parent->method('getProduct')->willReturn($this->orderItem->getProduct());
+        $parent->method('getProductType')->willReturn($productType);
+        $parent->method('getHasChildren')->willReturn(true);
+        $parent->method('isDummy')->with(true)->willReturn($isDummy);
+        $parent->method('getChildrenItems')->willReturn($children);
+
+        return $parent;
+    }
+
+    /**
+     * @param string $selectionAttributes
+     * @return OrderItem|MockObject
+     */
+    private function bundleSelection(string $selectionAttributes): OrderItem
+    {
+        $selection = $this->createPartialMockWithReflection(
+            OrderItem::class,
+            ['getIsVirtual', 'getLockedDoShip', 'getProductOptions', 'getIsQtyDecimal']
+        );
+        $selection->method('getIsVirtual')->willReturn(false);
+        $selection->method('getLockedDoShip')->willReturn(false);
+        $selection->method('getProductOptions')->willReturn(['bundle_selection_attributes' => $selectionAttributes]);
+        $selection->method('getIsQtyDecimal')->willReturn(false);
+
+        return $selection;
+    }
+
+    /**
+     * @param int $itemId
+     * @return OrderItem|MockObject
+     */
+    private function simpleOrderItem(int $itemId): OrderItem
+    {
+        $item = $this->createPartialMockWithReflection(
+            OrderItem::class,
+            ['getItemId', 'getProduct', 'getProductType', 'getHasChildren', 'getIsQtyDecimal']
+        );
+        $item->method('getItemId')->willReturn($itemId);
+        $item->method('getProduct')->willReturn($this->orderItem->getProduct());
+        $item->method('getProductType')->willReturn('simple');
+        $item->method('getHasChildren')->willReturn(false);
+        $item->method('getIsQtyDecimal')->willReturn(false);
+
+        return $item;
+    }
 }
