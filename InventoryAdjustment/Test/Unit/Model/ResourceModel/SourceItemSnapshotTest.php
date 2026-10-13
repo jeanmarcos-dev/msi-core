@@ -101,6 +101,21 @@ class SourceItemSnapshotTest extends TestCase
         );
     }
 
+    public function testGroupsBySkuAsksOnlyForTheSourcesOfEachSku(): void
+    {
+        $this->connection->method('fetchCol')->willReturn([]);
+
+        $this->snapshot()->read([$this->key('a', 'X'), $this->key('b', 'X'), $this->key('c', 'Y')]);
+
+        self::assertSame(
+            [
+                [['sku = ?', 'X'], ['source_code IN (?)', ['a', 'b']]],
+                [['sku = ?', 'Y'], ['source_code IN (?)', ['c']]],
+            ],
+            array_column($this->queries, 'where')
+        );
+    }
+
     public function testGroupsBySourceWhenSourcesAndSkusAreEqualInNumber(): void
     {
         $this->connection->method('fetchCol')->willReturn([]);
