@@ -55,3 +55,33 @@ JSON
     [[ "$output" == *'Magento\\ModB\\'* ]]
     [[ "$output" != *"ModB/registration.php"* ]]
 }
+
+stub_failing_comparators() {
+    STUBS="$BATS_TEST_TMPDIR/stubs"
+    mkdir -p "$STUBS"
+    for tool in git php sort tr sed dirname printf mktemp cat rm wc; do
+        ln -s "$(command -v "$tool")" "$STUBS/$tool"
+    done
+    for tool in grep comm; do
+        printf '#!/bin/sh\nexit 2\n' > "$STUBS/$tool"
+        chmod +x "$STUBS/$tool"
+    done
+}
+
+@test "a failing comparison cannot pass silently" {
+    stub_failing_comparators
+
+    PATH="$STUBS" run /bin/sh .github/scripts/check-root-autoload.sh
+
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"root autoload: ok"* ]]
+}
+
+@test "an unreadable composer.json cannot pass silently" {
+    printf '{ not json' > composer.json
+
+    run sh .github/scripts/check-root-autoload.sh
+
+    [ "$status" -ne 0 ]
+    [[ "$output" != *"root autoload: ok"* ]]
+}

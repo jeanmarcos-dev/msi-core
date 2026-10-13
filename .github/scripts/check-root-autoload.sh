@@ -3,46 +3,42 @@ set -eu
 
 cd "$(git rev-parse --show-toplevel)"
 
-MODULES=$(for reg in */registration.php; do [ -f "$reg" ] && dirname "$reg"; done | sort)
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
 
-EXPECTED=$(
-    for dir in $MODULES; do
-        printf 'files\t%s/registration.php\n' "$dir"
-        printf 'psr-4\tMagento\\\\%s\\\\\t%s/\n' "$dir" "$dir"
-    done | sort
-)
+for reg in */registration.php; do
+    [ -f "$reg" ] && dirname "$reg"
+done | sort > "$WORK/modules"
 
-ACTUAL=$(
-    php -r '
-        $autoload = json_decode(file_get_contents("composer.json"), true)["autoload"] ?? [];
-        foreach ($autoload["files"] ?? [] as $file) {
-            echo "files\t", $file, "\n";
-        }
-        foreach ($autoload["psr-4"] ?? [] as $namespace => $path) {
-            echo "psr-4\t", str_replace("\\", "\\\\", $namespace), "\t", $path, "\n";
-        }
-    ' | sort
-)
+while read -r dir; do
+    printf 'files\t%s/registration.php\n' "$dir"
+    printf 'psr-4\tMagento\\\\%s\\\\\t%s/\n' "$dir" "$dir"
+done < "$WORK/modules" | sort > "$WORK/expected"
 
-MISSING=$(printf '%s\n' "$EXPECTED" | grep -vxF -f /dev/fd/3 3<<EOF || true
-$ACTUAL
-EOF
-)
-EXTRA=$(printf '%s\n' "$ACTUAL" | grep -vxF -f /dev/fd/3 3<<EOF || true
-$EXPECTED
-EOF
-)
+php -r '
+    $autoload = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR)["autoload"] ?? [];
+    foreach ($autoload["files"] ?? [] as $file) {
+        echo "files\t", $file, "\n";
+    }
+    foreach ($autoload["psr-4"] ?? [] as $namespace => $path) {
+        echo "psr-4\t", str_replace("\\", "\\\\", $namespace), "\t", $path, "\n";
+    }
+' > "$WORK/actual.unsorted"
+sort "$WORK/actual.unsorted" > "$WORK/actual"
+
+comm -23 "$WORK/expected" "$WORK/actual" > "$WORK/missing"
+comm -13 "$WORK/expected" "$WORK/actual" > "$WORK/extra"
 
 status=0
-if [ -n "$(printf '%s' "$MISSING" | tr -d '[:space:]')" ]; then
+if [ -s "$WORK/missing" ]; then
     echo "composer.json is missing autoload entries for modules that have registration.php:"
-    printf '%s\n' "$MISSING" | sed 's/^/  /' | tr '\t' ' '
+    sed 's/^/  /' "$WORK/missing" | tr '\t' ' '
     status=1
 fi
-if [ -n "$(printf '%s' "$EXTRA" | tr -d '[:space:]')" ]; then
+if [ -s "$WORK/extra" ]; then
     echo "composer.json has autoload entries that do not match a module with registration.php:"
-    printf '%s\n' "$EXTRA" | sed 's/^/  /' | tr '\t' ' '
+    sed 's/^/  /' "$WORK/extra" | tr '\t' ' '
     status=1
 fi
-[ "$status" -eq 0 ] && echo "root autoload: ok ($(printf '%s\n' "$MODULES" | grep -c .) modules)"
+[ "$status" -eq 0 ] && echo "root autoload: ok ($(wc -l < "$WORK/modules" | tr -d ' ') modules)"
 exit "$status"
