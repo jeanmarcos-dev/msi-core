@@ -74,6 +74,16 @@ reason is `other`, the note `opening_balance` and the actor `system`, and every 
 that already have history are skipped, so running it again writes nothing. It locks the items it
 writes, `--batch-size` at a time (1000 by default), and never runs on its own during `setup:upgrade`.
 
+### Returns to stock restored nothing when the order was placed in the same process
+
+A credit memo with **Return to Stock** added nothing back to the source when the order had been
+placed, shipped and refunded by the same PHP process, such as a marketplace import, a long-running
+consumer or an integration script. MSI looks each shipped unit up through the order that the order
+repository cached; when that order is the one checkout has just built, its items are keyed by
+position rather than by id, the lookup came back empty, and the unit was skipped without a warning.
+MSI now finds the order item by id among the order's items when that lookup misses. Credit memos
+from the admin or REST, which load the order afresh, were not affected.
+
 ---
 
 # msi-core 1.0.8 — 2026-10-08

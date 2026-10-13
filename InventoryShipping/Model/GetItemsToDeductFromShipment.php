@@ -76,7 +76,7 @@ class GetItemsToDeductFromShipment
         /** @var \Magento\Sales\Model\Order\Shipment\Item $shipmentItem */
         foreach ($shipment->getAllItems() as $shipmentItem) {
             $shipmentItem->setShipment($shipment);
-            $orderItem = $shipmentItem->getOrderItem();
+            $orderItem = $shipmentItem->getOrderItem() ?? $this->resolveOrderItem($shipment, $shipmentItem);
             // This code was added as quick fix for merge mainline
             // https://github.com/magento-engcom/msi/issues/1586
             if (null === $orderItem || $this->shouldBeExcluded($orderItem)) {
@@ -210,5 +210,25 @@ class GetItemsToDeductFromShipment
                 $orderItem->getProductType(),
                 $orderItem->getProduct()->getTypeId()
             );
+    }
+
+    /**
+     * Order item of a shipment item, looked up by id among the items of the shipment's order
+     *
+     * @param Shipment $shipment
+     * @param Item $shipmentItem
+     * @return OrderItem|null
+     */
+    private function resolveOrderItem(Shipment $shipment, Item $shipmentItem): ?OrderItem
+    {
+        $orderItemId = (int)$shipmentItem->getOrderItemId();
+        foreach ($shipment->getOrder()->getAllItems() as $orderItem) {
+            if ((int)$orderItem->getItemId() === $orderItemId) {
+                $shipmentItem->setOrderItem($orderItem);
+                return $orderItem;
+            }
+        }
+
+        return null;
     }
 }
