@@ -27,6 +27,9 @@
     <type name="Magento\InventorySourceDeductionApi\Model\SourceDeductionServiceInterface">
         <plugin name="inventory_adjustment_sales_event_context" type="Magento\InventoryAdjustment\Plugin\InventorySourceDeductionApi\SalesEventContextPlugin"/>
     </type>
+    <type name="Magento\InventorySales\Plugin\SalesInventory\ProcessReturnQtyOnCreditMemoPlugin">
+        <plugin name="inventory_adjustment_creditmemo_return_context" type="Magento\InventoryAdjustment\Plugin\SalesInventory\CreditmemoReturnContextPlugin"/>
+    </type>
     <type name="Magento\InventoryShipping\Observer\SourceDeductionProcessor">
         <plugin name="inventory_adjustment_shipment_context" type="Magento\InventoryAdjustment\Plugin\InventoryShipping\ShipmentContextPlugin"/>
     </type>

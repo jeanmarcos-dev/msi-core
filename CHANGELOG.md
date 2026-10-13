@@ -25,7 +25,8 @@ Saving or deleting source items (admin product form, REST, imports), shipment an
 deductions, and returns to stock from credit memos now write an append-only row to
 `inventory_source_item_adjustment`, in the same transaction as the change. The row records the delta,
 the resulting quantity, the status change if any, the reason, who made the change, and the shipment
-or order behind it. `bin/magento inventory:adjustment:verify` lists source items whose quantity no
+or credit memo behind it (a deduction made when a credit memo is saved for items never shipped
+names the order). `bin/magento inventory:adjustment:verify` lists source items whose quantity no
 longer matches their last row and exits non-zero when there is any. History starts at the upgrade;
 nothing is backfilled. Set `cataloginventory/source_item_adjustment/enabled` to `0` to stop
 recording.
