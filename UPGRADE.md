@@ -235,7 +235,17 @@ bin/magento inventory:adjustment:opening-balance
 
 It writes one row per source item with a quantity other than zero and no history, locking
 `--batch-size` items at a time (1000 by default), and prints the number of rows and the `request_id`
-they share. Running it again writes nothing. To undo it, delete the rows with that `request_id`.
+they share. Running it again writes nothing.
+
+To undo it, delete the rows with that `request_id` in batches, in a low-traffic window, and repeat until a
+statement deletes nothing:
+
+```sql
+DELETE FROM inventory_source_item_adjustment WHERE request_id = '<request_id>' LIMIT 1000;
+```
+
+`request_id` has no index, so every batch scans the history table and locks the rows it reads until it
+commits. Small batches keep each lock short.
 
 **Measured cost.** The same build with the history on and off, in alternating rounds (on, off, on,
 off), calling the service contracts in process, without HTTP. Shipments ship one quantity of every
