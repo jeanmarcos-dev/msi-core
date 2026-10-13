@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminProductStockHistorySectionShowsTheProductRowsTest">
+        <annotations>
+            <stories value="Adjustment History"/>
+            <title value="The product form lists its own stock history once the section is expanded"/>
+            <description value="The Stock History section is closed by default and only fetches its listing when it is opened. A saved product has to show the row written by its quantity change, with its reason, and a new product has no section at all."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="inventory_adjustment"/>
+        </annotations>
+
+        <before>
+            <createData entity="AdjustmentHistoryProduct" stepKey="product"/>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <actionGroup ref="AdminChangeProductQuantityInFormActionGroup" stepKey="changeTheQuantity">
+            <argument name="productId" value="$$product.id$$"/>
+            <argument name="quantity" value="{{AdjustmentHistoryQuantityChange.newQuantity}}"/>
+        </actionGroup>
+
+        <amOnPage url="{{AdminProductEditPage.url($$product.id$$)}}" stepKey="openTheSavedProduct"/>
+        <waitForPageLoad stepKey="waitForTheSavedProduct"/>
+        <seeElement selector="{{AdminProductStockHistorySection.section}}" stepKey="seeTheSection"/>
+        <dontSeeElement selector="{{AdminProductStockHistorySection.rows}}" stepKey="dontSeeRowsBeforeExpanding"/>
+        <actionGroup ref="AdminExpandProductStockHistoryActionGroup" stepKey="expandTheSection"/>
+        <waitForText selector="{{AdminProductStockHistorySection.rows}}" userInput="{{AdjustmentHistoryQuantityChange.delta}}" time="30" stepKey="waitForTheChange"/>
+        <see selector="{{AdminProductStockHistorySection.rows}}" userInput="{{AdjustmentHistoryQuantityChange.newQuantity}}" stepKey="seeTheQuantityAfter"/>
+        <see selector="{{AdminProductStockHistorySection.rows}}" userInput="{{AdjustmentHistoryQuantityChange.reason}}" stepKey="seeTheReason"/>
+
+        <amOnPage url="{{AdminProductCreatePage.url(AddToDefaultSet.attributeSetId, 'simple')}}" stepKey="openTheNewProductPage"/>
+        <waitForPageLoad stepKey="waitForTheNewProductPage"/>
+        <waitForElementVisible selector="{{AdminProductFormSection.productName}}" stepKey="waitForTheNewProductForm"/>
+        <dontSeeElement selector="{{AdminProductStockHistorySection.section}}" stepKey="dontSeeTheSectionOnANewProduct"/>
+    </test>
+</tests>

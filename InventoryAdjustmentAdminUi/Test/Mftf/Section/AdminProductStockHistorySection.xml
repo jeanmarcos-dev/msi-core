@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<sections xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:Page/etc/SectionObject.xsd">
+    <section name="AdminProductStockHistorySection">
+        <element name="section" type="block" selector="div[data-index='adjustment_history']"/>
+        <element name="title" type="button" selector="div[data-index='adjustment_history'] .admin__collapsible-title" timeout="30"/>
+        <element name="rows" type="text" selector="div[data-index='adjustment_history'] table.data-grid tbody tr.data-row" timeout="30"/>
+    </section>
+</sections>

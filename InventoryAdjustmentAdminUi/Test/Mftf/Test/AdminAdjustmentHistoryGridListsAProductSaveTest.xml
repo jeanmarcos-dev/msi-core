@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminAdjustmentHistoryGridListsAProductSaveTest">
+        <annotations>
+            <stories value="Adjustment History"/>
+            <title value="The adjustment history grid lists a quantity change made in the product form"/>
+            <description value="Saving a product form that changes the default source quantity writes a history row with the reason of the legacy stock bridge. The global grid has to show it once filtered by SKU and by reason, for the product with the signed change and the resulting quantity, and has to leave no saved filters behind."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="inventory_adjustment"/>
+        </annotations>
+
+        <before>
+            <createData entity="AdjustmentHistoryProduct" stepKey="product"/>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+        </before>
+
+        <after>
+            <actionGroup ref="AdminOpenAdjustmentHistoryGridActionGroup" stepKey="clearGridFilters"/>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
+        </after>
+
+        <actionGroup ref="AdminChangeProductQuantityInFormActionGroup" stepKey="changeTheQuantity">
+            <argument name="productId" value="$$product.id$$"/>
+            <argument name="quantity" value="{{AdjustmentHistoryQuantityChange.newQuantity}}"/>
+        </actionGroup>
+
+        <actionGroup ref="AdminOpenAdjustmentHistoryGridActionGroup" stepKey="openTheGrid"/>
+        <actionGroup ref="AdminFilterAdjustmentHistoryActionGroup" stepKey="filterBySkuAndReason">
+            <argument name="productSku" value="$$product.sku$$"/>
+            <argument name="reasonValue" value="{{AdjustmentHistoryQuantityChange.reason}}"/>
+        </actionGroup>
+
+        <waitForElementVisible selector="{{AdminAdjustmentHistoryGridSection.rowBySku($$product.sku$$)}}" stepKey="waitForTheRow"/>
+        <see selector="{{AdminAdjustmentHistoryGridSection.rowBySku($$product.sku$$)}}" userInput="{{AdjustmentHistoryQuantityChange.delta}}" stepKey="seeTheSignedChange"/>
+        <see selector="{{AdminAdjustmentHistoryGridSection.rowBySku($$product.sku$$)}}" userInput="{{AdjustmentHistoryQuantityChange.newQuantity}}" stepKey="seeTheQuantityAfter"/>
+        <see selector="{{AdminAdjustmentHistoryGridSection.rowBySku($$product.sku$$)}}" userInput="{{AdjustmentHistoryQuantityChange.reason}}" stepKey="seeTheReason"/>
+
+        <actionGroup ref="AdminFilterAdjustmentHistoryActionGroup" stepKey="filterByAnotherReason">
+            <argument name="productSku" value="$$product.sku$$"/>
+            <argument name="reasonValue" value="{{AdjustmentHistoryQuantityChange.otherReason}}"/>
+        </actionGroup>
+        <waitForElementVisible selector="{{AdminDataGridTableSection.dataGridEmpty}}" stepKey="seeNoRowsForAnotherReason"/>
+
+        <actionGroup ref="AdminGridFilterResetActionGroup" stepKey="clearTheFilters"/>
+    </test>
+</tests>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="AdminChangeProductQuantityInFormActionGroup">
+        <annotations>
+            <description>Opens a saved product, sets its default source quantity and saves the form.</description>
+        </annotations>
+        <arguments>
+            <argument name="productId" type="string"/>
+            <argument name="quantity" type="string"/>
+        </arguments>
+
+        <amOnPage url="{{AdminProductEditPage.url(productId)}}" stepKey="openProduct"/>
+        <waitForPageLoad stepKey="waitForProductForm"/>
+        <fillField selector="{{AdminProductFormSection.productQuantity}}" userInput="{{quantity}}" stepKey="setQuantity"/>
+        <scrollToTopOfPage stepKey="scrollToTopOfPage"/>
+        <waitForElementVisible selector="{{AdminProductFormActionSection.saveButton}}" stepKey="waitForSaveButton"/>
+        <click selector="{{AdminProductFormActionSection.saveButton}}" stepKey="saveProduct"/>
+        <waitForPageLoad stepKey="waitForProductSaving"/>
+        <see userInput="You saved the product." stepKey="seeProductSaved"/>
+    </actionGroup>
+</actionGroups>

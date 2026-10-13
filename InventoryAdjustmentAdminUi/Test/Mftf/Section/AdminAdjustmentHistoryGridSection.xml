@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<sections xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:Page/etc/SectionObject.xsd">
+    <section name="AdminAdjustmentHistoryGridSection">
+        <element name="table" type="block" selector="div[data-role='grid-wrapper'] table.data-grid" timeout="30"/>
+        <element name="rows" type="text" selector="table.data-grid tbody tr.data-row" timeout="30"/>
+        <element name="rowBySku" type="text" selector="//table[contains(@class, 'data-grid')]//tr[contains(@class, 'data-row')][td[contains(., '{{sku}}')]]" parameterized="true" timeout="30"/>
+        <element name="sourcesMenuEntry" type="button" selector="li[data-ui-id='menu-magento-inventoryadminui-source']"/>
+        <element name="menuEntry" type="button" selector="li[data-ui-id='menu-magento-inventoryadjustmentadminui-adjustment']" timeout="30"/>
+    </section>
+</sections>

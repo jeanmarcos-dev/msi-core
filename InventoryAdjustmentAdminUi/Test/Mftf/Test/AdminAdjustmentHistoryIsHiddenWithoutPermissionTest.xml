@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
+    <test name="AdminAdjustmentHistoryIsHiddenWithoutPermissionTest">
+        <annotations>
+            <stories value="Adjustment History"/>
+            <title value="An admin without the adjustment history permission sees neither the menu entry nor the product section"/>
+            <description value="The history is gated by Magento_InventoryAdjustment::view. A role that can edit products and open Sources but lacks that resource must get no Adjustment History menu entry, no Stock History section on a saved product and an access denied page on the grid URL."/>
+            <severity value="CRITICAL"/>
+            <group value="msi"/>
+            <group value="inventory_adjustment"/>
+        </annotations>
+
+        <before>
+            <createData entity="AdjustmentHistoryProduct" stepKey="product"/>
+            <createData entity="AdjustmentHistoryRestrictedRole" stepKey="createRole">
+                <field key="current_password">{{_CREDS.magento/MAGENTO_ADMIN_PASSWORD}}</field>
+            </createData>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
+            <actionGroup ref="AdminCreateUserWithRoleByNameActionGroup" stepKey="createUser">
+                <argument name="role" value="AdjustmentHistoryRestrictedRole"/>
+                <argument name="user" value="AdjustmentHistoryRestrictedUser"/>
+            </actionGroup>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutAdmin"/>
+        </before>
+
+        <after>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutRestrictedUser"/>
+            <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdminAgain"/>
+            <actionGroup ref="AdminDeleteUserByUsernameActionGroup" stepKey="deleteUser">
+                <argument name="user" value="AdjustmentHistoryRestrictedUser"/>
+            </actionGroup>
+            <actionGroup ref="AdminDeleteRoleByRoleNameActionGroup" stepKey="deleteRole">
+                <argument name="role" value="AdjustmentHistoryRestrictedRole"/>
+            </actionGroup>
+            <deleteData createDataKey="product" stepKey="deleteProduct"/>
+            <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutAdminAgain"/>
+        </after>
+
+        <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsRestrictedUser">
+            <argument name="username" value="{{AdjustmentHistoryRestrictedUser.username}}"/>
+            <argument name="password" value="{{AdjustmentHistoryRestrictedUser.password}}"/>
+        </actionGroup>
+        <seeElementInDOM selector="{{AdminAdjustmentHistoryGridSection.sourcesMenuEntry}}" stepKey="seeTheSourcesMenuEntry"/>
+        <dontSeeElementInDOM selector="{{AdminAdjustmentHistoryGridSection.menuEntry}}" stepKey="dontSeeTheAdjustmentHistoryMenuEntry"/>
+
+        <amOnPage url="{{AdminProductEditPage.url($$product.id$$)}}" stepKey="openTheProduct"/>
+        <waitForPageLoad stepKey="waitForTheProduct"/>
+        <waitForElementVisible selector="{{AdminProductFormSection.productName}}" stepKey="waitForTheProductForm"/>
+        <dontSeeElementInDOM selector="{{AdminProductStockHistorySection.section}}" stepKey="dontSeeTheStockHistorySection"/>
+
+        <amOnPage url="{{AdminAdjustmentHistoryPage.url}}" stepKey="openTheGridDirectly"/>
+        <waitForPageLoad stepKey="waitForTheGridUrl"/>
+        <see userInput="Sorry, you need permissions to view this content." selector="{{AdminMessagesSection.accessDenied}}" stepKey="seeAccessDenied"/>
+    </test>
+</tests>

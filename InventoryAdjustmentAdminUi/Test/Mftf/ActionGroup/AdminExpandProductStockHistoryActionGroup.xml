@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="AdminExpandProductStockHistoryActionGroup">
+        <annotations>
+            <description>Opens the Stock History section of the product form that is already on screen.</description>
+        </annotations>
+
+        <waitForElementVisible selector="{{AdminProductStockHistorySection.title}}" stepKey="waitForSectionTitle"/>
+        <scrollTo selector="{{AdminProductStockHistorySection.title}}" x="0" y="-150" stepKey="scrollToSection"/>
+        <waitForElementClickable selector="{{AdminProductStockHistorySection.title}}" stepKey="waitForSectionToBeClickable"/>
+        <click selector="{{AdminProductStockHistorySection.title}}" stepKey="expandSection"/>
+        <waitForPageLoad stepKey="waitForSectionListing"/>
+    </actionGroup>
+</actionGroups>

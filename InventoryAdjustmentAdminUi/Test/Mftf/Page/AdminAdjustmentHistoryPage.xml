@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<pages xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="urn:magento:mftf:Page/etc/PageObject.xsd">
+    <page name="AdminAdjustmentHistoryPage" url="inventory_adjustment/adjustment/index" area="admin" module="Magento_InventoryAdjustmentAdminUi">
+        <section name="AdminAdjustmentHistoryGridSection"/>
+    </page>
+</pages>

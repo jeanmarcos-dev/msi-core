@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<entities xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:noNamespaceSchemaLocation="urn:magento:mftf:DataGenerator/etc/dataProfileSchema.xsd">
+    <entity name="AdjustmentHistoryInitialQty" type="stock_item">
+        <data key="qty">100</data>
+        <data key="is_in_stock">true</data>
+    </entity>
+    <entity name="AdjustmentHistoryInitialStockItem" type="product_extension_attribute">
+        <requiredEntity type="stock_item">AdjustmentHistoryInitialQty</requiredEntity>
+    </entity>
+    <entity name="AdjustmentHistoryProduct" type="product">
+        <data key="name" unique="suffix">Adjustment History </data>
+        <data key="sku" unique="suffix">AdjustmentHistory</data>
+        <data key="urlKey" unique="suffix">adjustment-history-</data>
+        <data key="type_id">simple</data>
+        <data key="attribute_set_id">4</data>
+        <data key="price">10.00</data>
+        <data key="visibility">4</data>
+        <data key="status">1</data>
+        <data key="weight">1</data>
+        <requiredEntity type="product_extension_attribute">AdjustmentHistoryInitialStockItem</requiredEntity>
+    </entity>
+    <entity name="AdjustmentHistoryQuantityChange" type="adjustment_history_change">
+        <data key="newQuantity">137</data>
+        <data key="delta">+37</data>
+        <data key="reason">legacy_bridge</data>
+        <data key="otherReason">correction</data>
+    </entity>
+    <entity name="AdjustmentHistoryRestrictedRole" type="user_role">
+        <data key="rolename" unique="suffix">AdjustmentHistoryRestricted </data>
+        <data key="name" unique="suffix">AdjustmentHistoryRestricted </data>
+        <data key="all">0</data>
+        <array key="resource">
+            <item>Magento_Backend::dashboard</item>
+            <item>Magento_Catalog::catalog</item>
+            <item>Magento_Catalog::catalog_inventory</item>
+            <item>Magento_Catalog::products</item>
+            <item>Magento_Backend::stores</item>
+            <item>Magento_InventoryApi::inventory</item>
+            <item>Magento_InventoryApi::source</item>
+        </array>
+    </entity>
+    <entity name="AdjustmentHistoryRestrictedUser" type="user">
+        <data key="username" unique="suffix">adjhistory</data>
+        <data key="firstName">Restricted</data>
+        <data key="lastName">Admin</data>
+        <data key="password">123123q</data>
+    </entity>
+</entities>

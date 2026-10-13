@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="AdminFilterAdjustmentHistoryActionGroup">
+        <annotations>
+            <description>Filters the adjustment history grid by SKU and by reason.</description>
+        </annotations>
+        <arguments>
+            <argument name="productSku" type="string"/>
+            <argument name="reasonValue" type="string"/>
+        </arguments>
+
+        <conditionalClick selector="{{AdminDataGridFilterSection.filterExpand}}" dependentSelector="{{AdminDataGridFilterSection.filterForm}}" visible="false" stepKey="openFiltersFormIfNecessary"/>
+        <waitForElementVisible selector="{{AdminDataGridFilterSection.filterForm}}" stepKey="waitForFormVisible"/>
+        <fillField selector="{{AdminDataGridFilterSection.inputFieldByNameAttr('sku')}}" userInput="{{productSku}}" stepKey="fillSku"/>
+        <selectOption selector="{{AdminDataGridFilterSection.filterSelectFieldByName('reason')}}" userInput="{{reasonValue}}" stepKey="selectReason"/>
+        <click selector="{{AdminDataGridFilterSection.apply}}" stepKey="applyFilters"/>
+        <waitForPageLoad stepKey="waitForFilteredGrid"/>
+    </actionGroup>
+</actionGroups>

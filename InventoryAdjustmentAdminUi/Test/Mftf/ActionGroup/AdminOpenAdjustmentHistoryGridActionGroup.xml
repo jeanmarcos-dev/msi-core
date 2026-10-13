@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
+-->
+
+<actionGroups xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/actionGroupSchema.xsd">
+    <actionGroup name="AdminOpenAdjustmentHistoryGridActionGroup">
+        <annotations>
+            <description>Opens the global adjustment history grid with the saved filters cleared.</description>
+        </annotations>
+
+        <amOnPage url="{{AdminAdjustmentHistoryPage.url}}" stepKey="openAdjustmentHistoryGrid"/>
+        <waitForPageLoad stepKey="waitForAdjustmentHistoryGrid"/>
+        <waitForElementVisible selector="{{AdminAdjustmentHistoryGridSection.table}}" stepKey="waitForTheGridToRender"/>
+        <scrollToTopOfPage stepKey="scrollToTop"/>
+        <conditionalClick selector="{{AdminDataGridFilterSection.clear}}" dependentSelector="{{AdminDataGridFilterSection.clear}}" visible="true" stepKey="clearSavedFilters"/>
+        <waitForPageLoad stepKey="waitForFiltersCleared"/>
+    </actionGroup>
+</actionGroups>
