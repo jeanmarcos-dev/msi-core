@@ -52,7 +52,8 @@ class VerifyAdjustmentsCommand extends Command
      */
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $drift = $this->getAdjustmentDrift->execute(max(1, (int)$input->getOption(self::OPTION_LIMIT)));
+        $limit = max(1, (int)$input->getOption(self::OPTION_LIMIT));
+        $drift = $this->getAdjustmentDrift->execute($limit);
         if ($drift === []) {
             $output->writeln('No drift: every source item matches its last adjustment.');
             return Command::SUCCESS;
@@ -64,10 +65,15 @@ class VerifyAdjustmentsCommand extends Command
             $table->addRow([$row['source_code'], $row['sku'], $row['quantity_after'], $row['quantity']]);
         }
         $table->render();
-        $output->writeln(sprintf(
-            '<error>%d source item(s) changed without an adjustment row.</error>',
-            count($drift)
-        ));
+        $output->writeln(
+            count($drift) < $limit
+                ? sprintf('<error>%d source item(s) changed without an adjustment row.</error>', count($drift))
+                : sprintf(
+                    '<error>Showing the first %d source items with drift; there may be more. '
+                    . 'Raise --limit to see them.</error>',
+                    count($drift)
+                )
+        );
 
         return Command::FAILURE;
     }

@@ -29,7 +29,8 @@ or credit memo behind it (a deduction made when a credit memo is saved for items
 names the order). `bin/magento inventory:adjustment:verify` lists source items whose quantity no
 longer matches their last row and exits non-zero when there is any. History starts at the upgrade;
 nothing is backfilled. Set `cataloginventory/source_item_adjustment/enabled` to `0` to stop
-recording.
+recording. When more items drift than `--limit` (1000 by default), `verify` says it is showing the
+first ones and that there may be more, instead of presenting the limit as the total.
 
 Bulk unassigns, full and partial transfers (one `transfer_out` and one `transfer_in` row), imports
 (one import id per run; a replaced row records its net change), the legacy stock item bridges, mass
