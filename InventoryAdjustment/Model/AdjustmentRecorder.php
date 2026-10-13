@@ -146,7 +146,7 @@ class AdjustmentRecorder implements ResetAfterRequestInterface
     {
         $this->writer->write($this->rowsBuilder->build(
             $this->before,
-            $this->snapshot->read($this->getSeenKeys()),
+            $this->snapshot->lock($this->getSeenKeys()),
             $this->metadata,
             $this->origin->getActor() ?? $this->actorResolver->resolve(),
             $this->origin->getRequestId()

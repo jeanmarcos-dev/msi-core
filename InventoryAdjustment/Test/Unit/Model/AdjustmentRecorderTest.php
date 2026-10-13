@@ -22,6 +22,7 @@ use Magento\InventoryAdjustment\Model\ResourceModel\SourceItemSnapshot;
 use Magento\InventoryAdjustmentApi\Api\AdjustmentContextInterface;
 use Magento\InventoryAdjustmentApi\Model\ActorType;
 use Magento\InventoryAdjustmentApi\Model\AdjustmentReason;
+use LogicException;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -78,7 +79,7 @@ class AdjustmentRecorderTest extends TestCase
         $config->method('isEnabled')->willReturnCallback(fn () => $this->enabled);
         $this->snapshot = $this->createMock(SourceItemSnapshot::class);
         $this->snapshot->method('lock')->willReturnCallback(fn (array $keys) => $this->select($keys));
-        $this->snapshot->method('read')->willReturnCallback(fn (array $keys) => $this->select($keys));
+        $this->snapshot->method('read')->willThrowException(new LogicException('read() takes no row lock'));
         $writer = $this->createMock(AdjustmentWriter::class);
         $writer->method('write')->willReturnCallback(function (array $rows): void {
             $this->written[] = $rows;
@@ -119,6 +120,16 @@ class AdjustmentRecorderTest extends TestCase
         self::assertSame(-3.0, $this->written[0][0]['delta']);
         self::assertSame('count', $this->written[0][0]['reason']);
         self::assertSame('7', $this->written[0][0]['reference_id']);
+    }
+
+    public function testTheStateAfterTheWriteIsReadWithALock(): void
+    {
+        $this->stored = ['src' => ['SKU-1' => ['quantity' => 10.0, 'status' => 1]]];
+        $keys = $this->keys('SKU-1');
+        $this->snapshot->expects(self::exactly(2))->method('lock')->with($keys);
+        $this->snapshot->expects(self::never())->method('read');
+
+        $this->recorder->record($keys, fn () => null);
     }
 
     public function testDisabledHistoryOnlyRunsTheWrite(): void

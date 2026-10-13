@@ -41,6 +41,10 @@ the number of items written and not with the size of the catalogue. Looking up 5
 600 000-row source item table takes about 70 ms; one condition per item, as before, took between 8 s
 and almost three minutes there, and held the items it had locked while it ran.
 
+The quantities a row records after a write are read with the same row locks as the ones before it,
+so a transaction that had already read the source item table cannot record a stale quantity as a
+change. The name of the admin user or integration behind a write is looked up once per request.
+
 ### Reading the adjustment history
 
 The history can now be read without going to the database. `GET /V1/inventory/source-item-adjustments`
