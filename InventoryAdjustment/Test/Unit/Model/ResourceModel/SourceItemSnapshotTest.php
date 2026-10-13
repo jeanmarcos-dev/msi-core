@@ -60,6 +60,18 @@ class SourceItemSnapshotTest extends TestCase
         );
     }
 
+    public function testNumericSourceCodesAndSkusReachTheQueryAsStrings(): void
+    {
+        $this->connection->method('fetchCol')->willReturn([]);
+
+        $this->snapshot()->read([$this->key('10', '20')]);
+
+        self::assertSame(
+            [['source_code = ?', '10'], ['sku IN (?)', ['20']]],
+            $this->queries[0]['where']
+        );
+    }
+
     public function testSplitsTheSkusOfASourceIntoBatchesOf200(): void
     {
         $this->connection->method('fetchCol')->willReturn([]);
