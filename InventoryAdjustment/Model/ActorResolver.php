@@ -9,14 +9,25 @@ namespace Magento\InventoryAdjustment\Model;
 
 use Magento\Authorization\Model\UserContextInterface;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Integration\Api\IntegrationServiceInterface;
 use Magento\Integration\Model\Integration;
 use Magento\InventoryAdjustmentApi\Model\ActorType;
 use Magento\User\Model\ResourceModel\User as UserResource;
 use Magento\User\Model\UserFactory;
 
-class ActorResolver
+class ActorResolver implements ResetAfterRequestInterface
 {
+    /**
+     * @var array
+     */
+    private array $adminUsernames = [];
+
+    /**
+     * @var array
+     */
+    private array $integrationNames = [];
+
     /**
      * @param UserContextInterface $userContext
      * @param UserFactory $userFactory
@@ -75,6 +86,15 @@ class ActorResolver
     }
 
     /**
+     * @inheritdoc
+     */
+    public function _resetState(): void
+    {
+        $this->adminUsernames = [];
+        $this->integrationNames = [];
+    }
+
+    /**
      * Username of an admin user
      *
      * @param int $userId
@@ -82,10 +102,13 @@ class ActorResolver
      */
     private function getAdminUsername(int $userId): ?string
     {
-        $user = $this->userFactory->create();
-        $this->userResource->load($user, $userId);
+        if (!array_key_exists($userId, $this->adminUsernames)) {
+            $user = $this->userFactory->create();
+            $this->userResource->load($user, $userId);
+            $this->adminUsernames[$userId] = $user->getUserName() ?: null;
+        }
 
-        return $user->getUserName() ?: null;
+        return $this->adminUsernames[$userId];
     }
 
     /**
@@ -96,10 +119,15 @@ class ActorResolver
      */
     private function getIntegrationName(int $integrationId): ?string
     {
-        try {
-            return $this->integrationService->get($integrationId)->getData(Integration::NAME) ?: null;
-        } catch (LocalizedException) {
-            return null;
+        if (!array_key_exists($integrationId, $this->integrationNames)) {
+            try {
+                $name = $this->integrationService->get($integrationId)->getData(Integration::NAME) ?: null;
+            } catch (LocalizedException) {
+                $name = null;
+            }
+            $this->integrationNames[$integrationId] = $name;
         }
+
+        return $this->integrationNames[$integrationId];
     }
 }
