@@ -1,0 +1,5 @@
+---
+title: default-stock
+---
+
+Draft.

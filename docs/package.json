@@ -1,0 +1,23 @@
+{
+  "name": "msi-core-docs",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "sync-changelog": "node scripts/sync-changelog.mjs",
+    "predev": "npm run sync-changelog",
+    "dev": "astro dev",
+    "prebuild": "npm run sync-changelog",
+    "build": "astro build",
+    "preview": "astro preview",
+    "test": "node --test scripts/"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "0.42.4",
+    "astro": "7.3.5",
+    "sharp": "0.35.5",
+    "starlight-links-validator": "0.26.0"
+  }
+}
