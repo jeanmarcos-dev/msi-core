@@ -1,0 +1,147 @@
+.diagram {
+	margin-block: 2rem;
+}
+
+.diagram-canvas {
+	overflow-x: auto;
+	border: 1px solid var(--sl-color-hairline-light);
+	border-radius: 0.5rem;
+	background: var(--sl-color-bg-nav);
+	padding: 0.75rem;
+}
+
+.diagram svg {
+	display: block;
+	width: 100%;
+	min-width: 34rem;
+	height: auto;
+	font-family: var(--__sl-font);
+	font-size: 14px;
+}
+
+.diagram figcaption {
+	margin-top: 0.5rem;
+	font-size: var(--sl-text-sm);
+	color: var(--sl-color-gray-3);
+}
+
+.diagram .box {
+	fill: var(--sl-color-bg);
+	stroke: var(--sl-color-gray-4);
+	stroke-width: 1;
+}
+
+.diagram .box.accent {
+	fill: var(--sl-color-accent-low);
+	stroke: var(--sl-color-accent);
+}
+
+.diagram .box.warn {
+	fill: var(--sl-color-orange-low);
+	stroke: var(--sl-color-orange);
+}
+
+.diagram .box.ghost {
+	fill: none;
+	stroke-dasharray: 4 3;
+}
+
+.diagram text {
+	fill: var(--sl-color-white);
+}
+
+.diagram text.title {
+	font-weight: 600;
+}
+
+.diagram text.sub,
+.diagram text.label {
+	fill: var(--sl-color-gray-3);
+	font-size: 12.5px;
+}
+
+.diagram text.heading {
+	fill: var(--sl-color-gray-3);
+	font-size: 11.5px;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.diagram text.mono {
+	font-family: var(--__sl-font-mono);
+	font-size: 13px;
+}
+
+.diagram .accent-text {
+	fill: var(--sl-color-accent-high);
+}
+
+.diagram .warn-text {
+	fill: var(--sl-color-orange-high);
+}
+
+.diagram .edge {
+	fill: none;
+	stroke: var(--sl-color-gray-3);
+	stroke-width: 1.5;
+}
+
+.diagram .edge.accent {
+	stroke: var(--sl-color-accent);
+}
+
+.diagram .edge.dashed {
+	stroke-dasharray: 5 4;
+}
+
+.diagram .head {
+	fill: var(--sl-color-gray-3);
+}
+
+.diagram .head.accent {
+	fill: var(--sl-color-accent);
+}
+
+.diagram .bar-salable {
+	fill: var(--sl-color-accent);
+}
+
+.diagram .bar-reserved {
+	fill: var(--sl-color-orange);
+}
+
+.diagram .bar-track {
+	fill: none;
+	stroke: var(--sl-color-gray-4);
+	stroke-dasharray: 4 3;
+}
+
+.diagram .lvl-out {
+	fill: var(--sl-color-red-low);
+	stroke: var(--sl-color-red);
+}
+
+.diagram .lvl-low {
+	fill: var(--sl-color-orange-low);
+	stroke: var(--sl-color-orange);
+}
+
+.diagram .lvl-medium {
+	fill: var(--sl-color-accent-low);
+	stroke: var(--sl-color-accent);
+}
+
+.diagram .lvl-high {
+	fill: var(--sl-color-accent);
+	stroke: var(--sl-color-accent);
+}
+
+.diagram text.on-accent {
+	fill: var(--sl-color-black);
+}
+
+.diagram .tick {
+	stroke: var(--sl-color-gray-3);
+	stroke-width: 1.5;
+}

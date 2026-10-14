@@ -1,0 +1,42 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="One stock with three sources. The breakdown shows where the gap between quantity on hand and salable quantity sits, and why a source contributes nothing.">
+	<svg viewBox="0 0 720 236" role="img" aria-labelledby="sb-title">
+		<title id="sb-title">Salable quantity broken down by source</title>
+
+		<text class="heading" x="10" y="16">Source</text>
+		<text class="heading" x="170" y="16">On hand</text>
+		<text class="heading" x="490" y="16">Salable</text>
+
+		<text class="mono" x="10" y="55">warehouse_a</text>
+		<rect class="bar-track" x="170" y="36" width="250" height="28" rx="4" />
+		<rect class="bar-salable" x="170" y="36" width="175" height="28" rx="4" />
+		<rect class="bar-reserved" x="345" y="36" width="75" height="28" rx="4" />
+		<text x="490" y="55">10 on hand − 3 reserved = 7</text>
+
+		<text class="mono" x="10" y="99">warehouse_b</text>
+		<rect class="bar-track" x="170" y="80" width="125" height="28" rx="4" />
+		<rect class="bar-salable" x="170" y="80" width="125" height="28" rx="4" />
+		<text x="490" y="99">5 on hand − 0 reserved = 5</text>
+
+		<text class="mono" x="10" y="143">outlet</text>
+		<rect class="bar-track" x="170" y="124" width="100" height="28" rx="4" />
+		<text class="sub" x="220" y="142" text-anchor="middle">disabled</text>
+		<text x="490" y="143">listed as disabled: 0</text>
+
+		<line class="edge" x1="10" y1="168" x2="710" y2="168" />
+
+		<text class="title" x="10" y="193">Stock</text>
+		<rect class="bar-salable" x="170" y="176" width="300" height="28" rx="4" />
+		<text class="title" x="490" y="195">7 + 5 = 12 salable</text>
+
+		<rect class="bar-salable" x="170" y="220" width="12" height="12" rx="2" />
+		<text class="label" x="188" y="231">salable</text>
+		<rect class="bar-reserved" x="250" y="220" width="12" height="12" rx="2" />
+		<text class="label" x="268" y="231">reserved at the source</text>
+		<rect class="bar-track" x="410" y="220" width="12" height="12" rx="2" />
+		<text class="label" x="428" y="231">on hand</text>
+	</svg>
+</Diagram>

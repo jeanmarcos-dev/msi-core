@@ -3,6 +3,8 @@ title: Source-level reservations
 description: Reservations held per source instead of per stock, the locks that serialise orders sharing a source, and the sweeps that keep the ledger honest.
 ---
 
+import SourceReservationsDiagram from '../../../components/diagrams/SourceReservationsDiagram.astro';
+
 Opt-in, off by default.
 
 **Enable:** `cataloginventory/source_reservations/enabled`, in **Stores › Configuration › Catalog ›
@@ -14,6 +16,8 @@ reservation is split into one row per source, allocated across the enabled sourc
 priority order. Reservations then affect the salable quantity of **every** stock sharing the source,
 which closes the cross-stock oversell gap, and compensations (shipment, cancellation, credit memo)
 always land on the sources the demand was originally allocated to, whichever source ships.
+
+<SourceReservationsDiagram />
 
 ## Turning it on or off
 

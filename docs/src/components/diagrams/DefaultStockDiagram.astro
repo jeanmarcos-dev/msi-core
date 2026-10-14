@@ -1,0 +1,71 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="Upstream MSI runs stock 1 through the legacy indexer and a view, and branches around it everywhere. msi-core indexes every stock the same way and stops reading or writing the legacy tables.">
+	<svg viewBox="0 0 720 325" role="img" aria-labelledby="ds-title">
+		<title id="ds-title">Stock 1 in upstream MSI and in msi-core</title>
+		<defs>
+			<marker id="ds-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path class="head" d="M0,0 L10,5 L0,10 z" />
+			</marker>
+		</defs>
+
+		<text class="heading" x="175" y="16" text-anchor="middle">Upstream MSI</text>
+		<text class="heading" x="551" y="16" text-anchor="middle">msi-core</text>
+		<line class="edge dashed" x1="362" y1="8" x2="362" y2="318" />
+
+		<rect class="box" x="15" y="32" width="150" height="40" rx="6" />
+		<text class="title" x="90" y="56" text-anchor="middle">Stock 1</text>
+		<rect class="box" x="185" y="32" width="150" height="40" rx="6" />
+		<text class="title" x="260" y="56" text-anchor="middle">Stocks 2…n</text>
+
+		<rect class="box" x="15" y="102" width="150" height="46" rx="6" />
+		<text class="title" x="90" y="122" text-anchor="middle">CatalogInventory</text>
+		<text class="sub" x="90" y="138" text-anchor="middle">legacy indexer</text>
+		<rect class="box" x="185" y="102" width="150" height="46" rx="6" />
+		<text class="title" x="260" y="129" text-anchor="middle">MSI indexer</text>
+
+		<rect class="box" x="15" y="178" width="150" height="46" rx="6" />
+		<text class="mono" x="90" y="198" text-anchor="middle">inventory_stock_1</text>
+		<text class="sub" x="90" y="214" text-anchor="middle">MySQL view</text>
+		<rect class="box" x="185" y="178" width="150" height="46" rx="6" />
+		<text class="mono" x="260" y="198" text-anchor="middle">inventory_stock_n</text>
+		<text class="sub" x="260" y="214" text-anchor="middle">index table</text>
+
+		<rect class="box warn" x="15" y="262" width="320" height="50" rx="6" />
+		<text class="title warn-text" x="175" y="283" text-anchor="middle">~50 if (default stock) branches</text>
+		<text class="sub warn-text" x="175" y="300" text-anchor="middle">in twenty modules keep the two paths apart</text>
+
+		<path class="edge" d="M90,72 V100" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M90,148 V176" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M90,224 V260" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M260,72 V100" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M260,148 V176" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M260,224 V260" marker-end="url(#ds-arrow)" />
+
+		<rect class="box" x="390" y="32" width="190" height="40" rx="6" />
+		<text class="title" x="485" y="56" text-anchor="middle">Stock 1 … Stock n</text>
+
+		<rect class="box accent" x="390" y="102" width="190" height="46" rx="6" />
+		<text class="title accent-text" x="485" y="122" text-anchor="middle">MSI indexer</text>
+		<text class="sub accent-text" x="485" y="138" text-anchor="middle">one code path</text>
+
+		<rect class="box" x="390" y="178" width="190" height="46" rx="6" />
+		<text class="mono" x="485" y="198" text-anchor="middle">inventory_stock_1…n</text>
+		<text class="sub" x="485" y="214" text-anchor="middle">index tables</text>
+
+		<rect class="box accent" x="390" y="262" width="322" height="50" rx="6" />
+		<text class="title accent-text" x="551" y="283" text-anchor="middle">Every reader</text>
+		<text class="sub accent-text" x="551" y="300" text-anchor="middle">salability, admin grids, price index, search</text>
+
+		<rect class="box warn ghost" x="596" y="125" width="120" height="76" rx="6" />
+		<text class="title warn-text" x="656" y="152" text-anchor="middle">Legacy tables</text>
+		<text class="sub warn-text" x="656" y="169" text-anchor="middle">frozen, never</text>
+		<text class="sub warn-text" x="656" y="184" text-anchor="middle">read or written</text>
+
+		<path class="edge" d="M485,72 V100" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M485,148 V176" marker-end="url(#ds-arrow)" />
+		<path class="edge" d="M485,224 V260" marker-end="url(#ds-arrow)" />
+	</svg>
+</Diagram>

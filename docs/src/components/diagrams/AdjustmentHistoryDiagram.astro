@@ -1,0 +1,72 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="Every write that changes a source item appends a row in the same transaction. Rows are read over REST, in the admin and by the drift check, and only the retention cron ever deletes them.">
+	<svg viewBox="0 0 720 290" role="img" aria-labelledby="ah-title">
+		<title id="ah-title">Where adjustment history rows come from and where they are read</title>
+		<defs>
+			<marker id="ah-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path class="head" d="M0,0 L10,5 L0,10 z" />
+			</marker>
+		</defs>
+
+		<text class="heading" x="85" y="14" text-anchor="middle">Writes</text>
+		<rect class="box" x="10" y="24" width="150" height="30" rx="15" />
+		<text x="85" y="43" text-anchor="middle">Admin</text>
+		<rect class="box" x="10" y="62" width="150" height="30" rx="15" />
+		<text x="85" y="81" text-anchor="middle">REST source-items</text>
+		<rect class="box" x="10" y="100" width="150" height="30" rx="15" />
+		<text x="85" y="119" text-anchor="middle">Import</text>
+		<rect class="box" x="10" y="138" width="150" height="30" rx="15" />
+		<text x="85" y="157" text-anchor="middle">Shipments, returns</text>
+		<rect class="box" x="10" y="176" width="150" height="30" rx="15" />
+		<text x="85" y="195" text-anchor="middle">Transfers</text>
+		<rect class="box" x="10" y="214" width="150" height="30" rx="15" />
+		<text x="85" y="233" text-anchor="middle">Legacy bridges</text>
+
+		<path class="edge" d="M160,39 C180,39 172,134 190,134" />
+		<path class="edge" d="M160,77 C180,77 172,134 190,134" />
+		<path class="edge" d="M160,115 C180,115 172,134 190,134" />
+		<path class="edge" d="M160,153 C180,153 172,134 190,134" />
+		<path class="edge" d="M160,191 C180,191 172,134 190,134" />
+		<path class="edge" d="M160,229 C180,229 172,134 190,134" />
+		<path class="edge" d="M189,134 H198" marker-end="url(#ah-arrow)" />
+
+		<rect class="box" x="200" y="106" width="130" height="56" rx="6" />
+		<text class="title" x="265" y="130" text-anchor="middle">Quantity change</text>
+		<text class="sub" x="265" y="147" text-anchor="middle">same transaction</text>
+
+		<path class="edge" d="M330,134 H363" marker-end="url(#ah-arrow)" />
+
+		<rect class="box accent" x="365" y="96" width="170" height="76" rx="6" />
+		<text class="title accent-text" x="450" y="122" text-anchor="middle">Adjustment history</text>
+		<text class="sub accent-text" x="450" y="140" text-anchor="middle">append-only</text>
+		<text class="sub accent-text" x="450" y="156" text-anchor="middle">who, why, delta, result</text>
+
+		<text class="heading" x="640" y="44" text-anchor="middle">Reads</text>
+		<rect class="box" x="570" y="54" width="140" height="30" rx="15" />
+		<text x="640" y="73" text-anchor="middle">REST</text>
+		<rect class="box" x="570" y="92" width="140" height="30" rx="15" />
+		<text x="640" y="111" text-anchor="middle">Admin grid</text>
+		<rect class="box" x="570" y="130" width="140" height="30" rx="15" />
+		<text x="640" y="149" text-anchor="middle">Product form</text>
+		<rect class="box" x="570" y="168" width="140" height="30" rx="15" />
+		<text x="640" y="187" text-anchor="middle">Drift check</text>
+
+		<path class="edge" d="M535,128 C552,128 550,69 568,69" marker-end="url(#ah-arrow)" />
+		<path class="edge" d="M535,132 C552,132 550,107 568,107" marker-end="url(#ah-arrow)" />
+		<path class="edge" d="M535,136 C552,136 550,145 568,145" marker-end="url(#ah-arrow)" />
+		<path class="edge" d="M535,140 C552,140 550,183 568,183" marker-end="url(#ah-arrow)" />
+
+		<rect class="box ghost" x="200" y="232" width="130" height="46" rx="6" />
+		<text class="title" x="265" y="252" text-anchor="middle">Opening balance</text>
+		<text class="sub" x="265" y="268" text-anchor="middle">once, after upgrade</text>
+		<path class="edge dashed" d="M330,255 C395,255 410,225 410,175" marker-end="url(#ah-arrow)" />
+
+		<rect class="box ghost" x="570" y="232" width="140" height="46" rx="6" />
+		<text class="title" x="640" y="252" text-anchor="middle">Prune cron</text>
+		<text class="sub" x="640" y="268" text-anchor="middle">only with retention</text>
+		<path class="edge dashed" d="M570,255 C505,255 490,225 490,175" marker-end="url(#ah-arrow)" />
+	</svg>
+</Diagram>

@@ -3,6 +3,7 @@ title: Adjustment history
 description: An append-only record of every change to a source item, who made it and why, readable over REST and in the admin.
 ---
 
+import AdjustmentHistoryDiagram from '../../../components/diagrams/AdjustmentHistoryDiagram.astro';
 import { Aside } from '@astrojs/starlight/components';
 
 Since 1.1.0, every write that changes a source item's quantity or status adds a row to
@@ -25,6 +26,8 @@ Each row records:
 
 History starts at the upgrade; nothing is backfilled. An [opening balance](#opening-balance) gives
 items that have not moved since a baseline row.
+
+<AdjustmentHistoryDiagram />
 
 ## What records a row
 

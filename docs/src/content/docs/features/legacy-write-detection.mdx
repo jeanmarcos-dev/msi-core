@@ -3,6 +3,8 @@ title: Legacy write detection
 description: Triggers that count writes still made against the frozen cataloginventory tables, and how to read them.
 ---
 
+import LegacyWriteDiagram from '../../../components/diagrams/LegacyWriteDiagram.astro';
+
 After the upgrade, `cataloginventory_stock_item` and `cataloginventory_stock_status` are
 [frozen](/msi-core/start/upgrade/#the-legacy-tables-are-kept-empty-and-frozen): MSI neither reads nor
 writes them. A third-party extension that sets a quantity by writing them directly appears to succeed
@@ -11,6 +13,8 @@ and changes nothing.
 Because that failure is silent, the upgrade installs four database triggers that count such writes
 into `inventory_legacy_stock_write`. An admin notification names the table and the number of ignored
 writes, and the same record is available from the console.
+
+<LegacyWriteDiagram />
 
 ## Reading the record
 

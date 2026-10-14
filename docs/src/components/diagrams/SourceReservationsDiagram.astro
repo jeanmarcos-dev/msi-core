@@ -1,0 +1,55 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="An order locks and reserves per source, so every stock sharing that source sees the reservation. Compensations land on the sources the order reserved at, and the sweeps repair and report drift.">
+	<svg viewBox="0 0 720 222" role="img" aria-labelledby="sr-title">
+		<title id="sr-title">How a source-level reservation flows</title>
+		<defs>
+			<marker id="sr-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path class="head" d="M0,0 L10,5 L0,10 z" />
+			</marker>
+		</defs>
+
+		<rect class="box" x="10" y="30" width="120" height="56" rx="6" />
+		<text class="title" x="70" y="54" text-anchor="middle">Order</text>
+		<text class="sub" x="70" y="71" text-anchor="middle">on stock A</text>
+
+		<rect class="box" x="165" y="30" width="160" height="56" rx="6" />
+		<text class="title" x="245" y="54" text-anchor="middle">Lock</text>
+		<text class="sub" x="245" y="71" text-anchor="middle">per (sku, source)</text>
+
+		<rect class="box accent" x="360" y="30" width="170" height="56" rx="6" />
+		<text class="title accent-text" x="445" y="54" text-anchor="middle">Reservation</text>
+		<text class="mono accent-text" x="445" y="72" text-anchor="middle">warehouse_a −2</text>
+
+		<rect class="box" x="565" y="8" width="150" height="46" rx="6" />
+		<text class="title" x="640" y="28" text-anchor="middle">Stock A</text>
+		<text class="sub" x="640" y="44" text-anchor="middle">salable −2</text>
+
+		<rect class="box" x="565" y="64" width="150" height="46" rx="6" />
+		<text class="title" x="640" y="84" text-anchor="middle">Stock B</text>
+		<text class="sub" x="640" y="100" text-anchor="middle">shares the source: −2</text>
+
+		<path class="edge" d="M130,58 H163" marker-end="url(#sr-arrow)" />
+		<path class="edge" d="M325,58 H358" marker-end="url(#sr-arrow)" />
+		<path class="edge" d="M530,50 C548,50 546,31 563,31" marker-end="url(#sr-arrow)" />
+		<path class="edge" d="M530,66 C548,66 546,87 563,87" marker-end="url(#sr-arrow)" />
+
+		<rect class="box" x="10" y="150" width="200" height="56" rx="6" />
+		<text class="title" x="110" y="174" text-anchor="middle">Shipment, cancel</text>
+		<text class="sub" x="110" y="191" text-anchor="middle">or credit memo</text>
+
+		<rect class="box" x="360" y="150" width="170" height="56" rx="6" />
+		<text class="title" x="445" y="174" text-anchor="middle">Compensation</text>
+		<text class="sub" x="445" y="191" text-anchor="middle">at the reserved sources</text>
+
+		<rect class="box ghost" x="565" y="150" width="150" height="56" rx="6" />
+		<text class="title" x="640" y="174" text-anchor="middle">Sweeps</text>
+		<text class="sub" x="640" y="191" text-anchor="middle">reconcile, oversell</text>
+
+		<path class="edge" d="M210,178 H358" marker-end="url(#sr-arrow)" />
+		<path class="edge" d="M445,150 V88" marker-end="url(#sr-arrow)" />
+		<path class="edge dashed" d="M565,170 C548,170 548,80 532,80" marker-end="url(#sr-arrow)" />
+	</svg>
+</Diagram>

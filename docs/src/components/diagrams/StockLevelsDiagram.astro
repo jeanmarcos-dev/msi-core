@@ -1,0 +1,28 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="Level mode with the default thresholds. Both thresholds are strict: a quantity of exactly 10 is medium and exactly 3 is low.">
+	<svg viewBox="0 0 720 100" role="img" aria-labelledby="sl-title">
+		<title id="sl-title">Availability levels for the default thresholds</title>
+
+		<rect class="lvl-out" x="20" y="14" width="80" height="34" rx="4" />
+		<text x="60" y="36" text-anchor="middle">out</text>
+		<rect class="lvl-low" x="100" y="14" width="120" height="34" />
+		<text x="160" y="36" text-anchor="middle">low</text>
+		<rect class="lvl-medium" x="220" y="14" width="280" height="34" />
+		<text x="360" y="36" text-anchor="middle">medium</text>
+		<rect class="lvl-high" x="500" y="14" width="200" height="34" rx="4" />
+		<text class="on-accent title" x="600" y="36" text-anchor="middle">high</text>
+
+		<line class="tick" x1="100" y1="48" x2="100" y2="60" />
+		<text class="label" x="100" y="76" text-anchor="middle">0</text>
+		<line class="tick" x1="220" y1="48" x2="220" y2="60" />
+		<text class="label" x="220" y="76" text-anchor="middle">3</text>
+		<text class="label mono" x="220" y="92" text-anchor="middle">level_low</text>
+		<line class="tick" x1="500" y1="48" x2="500" y2="60" />
+		<text class="label" x="500" y="76" text-anchor="middle">10</text>
+		<text class="label mono" x="500" y="92" text-anchor="middle">level_high</text>
+		<text class="label" x="700" y="76" text-anchor="end">salable quantity →</text>
+	</svg>
+</Diagram>

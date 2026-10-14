@@ -1,0 +1,52 @@
+---
+import Diagram from '../Diagram.astro';
+---
+
+<Diagram caption="A direct write to a frozen table changes nothing MSI reads, so triggers count it and the admin and the console report it. The fix is to write through MSI.">
+	<svg viewBox="0 0 720 210" role="img" aria-labelledby="lw-title">
+		<title id="lw-title">How legacy stock writes are detected and fixed</title>
+		<defs>
+			<marker id="lw-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path class="head" d="M0,0 L10,5 L0,10 z" />
+			</marker>
+			<marker id="lw-arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+				<path class="head accent" d="M0,0 L10,5 L0,10 z" />
+			</marker>
+		</defs>
+
+		<rect class="box" x="10" y="30" width="140" height="56" rx="6" />
+		<text class="title" x="80" y="54" text-anchor="middle">Extension</text>
+		<text class="sub" x="80" y="71" text-anchor="middle">writes qty directly</text>
+
+		<rect class="box warn" x="185" y="30" width="180" height="56" rx="6" />
+		<text class="mono warn-text" x="275" y="54" text-anchor="middle">cataloginventory_*</text>
+		<text class="sub warn-text" x="275" y="71" text-anchor="middle">frozen: the write is ignored</text>
+
+		<rect class="box" x="420" y="30" width="140" height="56" rx="6" />
+		<text class="title" x="490" y="54" text-anchor="middle">Write counter</text>
+		<text class="sub" x="490" y="71" text-anchor="middle">per table, operation</text>
+
+		<rect class="box" x="595" y="10" width="115" height="40" rx="6" />
+		<text x="652" y="35" text-anchor="middle">Admin notice</text>
+		<rect class="box" x="595" y="66" width="115" height="40" rx="6" />
+		<text x="652" y="91" text-anchor="middle">CLI report</text>
+
+		<path class="edge" d="M150,58 H183" marker-end="url(#lw-arrow)" />
+		<path class="edge" d="M365,58 H418" marker-end="url(#lw-arrow)" />
+		<text class="label" x="391" y="48" text-anchor="middle">trigger</text>
+		<path class="edge" d="M560,52 C578,52 576,30 593,30" marker-end="url(#lw-arrow)" />
+		<path class="edge" d="M560,64 C578,64 576,86 593,86" marker-end="url(#lw-arrow)" />
+
+		<rect class="box accent" x="170" y="140" width="210" height="56" rx="6" />
+		<text class="mono accent-text" x="275" y="164" text-anchor="middle">SourceItemsSaveInterface</text>
+		<text class="sub accent-text" x="275" y="181" text-anchor="middle">or updateStockItemBySku()</text>
+
+		<rect class="box" x="420" y="140" width="140" height="56" rx="6" />
+		<text class="title" x="490" y="164" text-anchor="middle">MSI</text>
+		<text class="sub" x="490" y="181" text-anchor="middle">source items, index</text>
+
+		<path class="edge accent dashed" d="M80,86 V168 H168" marker-end="url(#lw-arrow-accent)" />
+		<text class="label" x="88" y="130">the fix</text>
+		<path class="edge accent" d="M380,168 H418" marker-end="url(#lw-arrow-accent)" />
+	</svg>
+</Diagram>

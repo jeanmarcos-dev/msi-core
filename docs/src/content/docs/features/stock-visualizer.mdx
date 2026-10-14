@@ -3,6 +3,9 @@ title: Storefront stock visualizer
 description: An opt-in Availability panel on the product page, driven by MSI, with level or exact quantity, per source and per composite type.
 ---
 
+import StockLevelsDiagram from '../../../components/diagrams/StockLevelsDiagram.astro';
+import StockVisualizerPurgeDiagram from '../../../components/diagrams/StockVisualizerPurgeDiagram.astro';
+
 Opt-in, off by default.
 
 **Enable:** `cataloginventory/stock_visualizer/enabled`, in **Stores › Configuration › Catalog ›
@@ -32,6 +35,8 @@ can be overridden per product through a dedicated *Stock Visualizer* attribute g
 - **Delivery mode**, for availability fetched over AJAX (exact quantity, and the interactive composite
   types). `on_demand` fetches on a button click and `instant` fetches on page load. Server-rendered
   availability always shows on load.
+
+<StockLevelsDiagram />
 
 Availability is computed server-side against the current website's stock, resolved through the sales
 channel, so one website's cached fragment can never stand in for another's. Out-of-stock products
@@ -99,6 +104,8 @@ purged at three seams, all best-effort: a failure is logged and never breaks che
   backstop would miss.
 - **Salability backstop.** A salability-change processor in the inventory indexer purges on flips that
   arrive through reindex.
+
+<StockVisualizerPurgeDiagram />
 
 All three feed one decider, `ResolveSkusToPurge`, which applies the enabled gate and the display-mode
 rules, and `DispatchPurge`, which either flushes synchronously or offloads to the queue. The async path

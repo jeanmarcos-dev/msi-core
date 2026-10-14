@@ -3,6 +3,8 @@ title: Default Stock as a regular stock
 description: How msi-core turns stock 1 into an ordinary MSI stock and moves stock item configuration into MSI.
 ---
 
+import DefaultStockDiagram from '../../../components/diagrams/DefaultStockDiagram.astro';
+
 In upstream MSI, `inventory_stock_1` is a MySQL view over `cataloginventory_stock_status`. In msi-core
 it is a real index table built by the MSI indexer, and stock 1 is indexed, read, edited and deleted
 like any stock you create yourself.
@@ -11,6 +13,8 @@ like any stock you create yourself.
 This is the breaking change of msi-core. [Upgrade from Magento MSI](/msi-core/start/upgrade/)
 describes what it breaks and how to migrate.
 :::
+
+<DefaultStockDiagram />
 
 ## One code path for every stock
 

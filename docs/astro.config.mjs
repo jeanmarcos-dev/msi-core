@@ -13,7 +13,7 @@ export default defineConfig({
 			favicon: '/favicon.svg',
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/jeanmarcos-dev/msi-core' }],
 			editLink: { baseUrl: 'https://github.com/jeanmarcos-dev/msi-core/edit/main/docs/' },
-			customCss: ['./src/styles/theme.css'],
+			customCss: ['./src/styles/theme.css', './src/styles/diagrams.css'],
 			lastUpdated: true,
 			plugins: [starlightLinksValidator()],
 			sidebar: [
