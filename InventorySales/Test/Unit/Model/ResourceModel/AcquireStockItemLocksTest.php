@@ -9,6 +9,7 @@ namespace Magento\InventorySales\Test\Unit\Model\ResourceModel;
 
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
 use Magento\InventorySales\Model\ResourceModel\AcquireStockItemLocks;
@@ -29,6 +30,16 @@ class AcquireStockItemLocksTest extends TestCase
      * @var GetSourcesAssignedToStockOrderedByPriorityInterface|MockObject
      */
     private $getSourcesMock;
+
+    /**
+     * @var array
+     */
+    private array $queries = [];
+
+    /**
+     * @var array<string,bool>
+     */
+    private array $refused = [];
 
     /**
      * @inheritdoc
@@ -154,6 +165,100 @@ class AcquireStockItemLocksTest extends TestCase
                 ['SELECT RELEASE_LOCK', $names[1]],
             ],
             $queries
+        );
+    }
+
+    public function testExecuteReturnsTheLockNamesItTook(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $model = $this->modelRecordingQueries();
+
+        $taken = $model->execute(['sku1', 'sku2'], 5);
+
+        $this->assertSame($model->buildOrderedLockNames(['sku1', 'sku2'], 5), $taken);
+    }
+
+    public function testReleaseAllReleasesEachLockAsManyTimesAsItWasTaken(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $model = $this->modelRecordingQueries();
+        [$name] = $model->buildOrderedLockNames(['sku1'], 5);
+
+        $model->execute(['sku1'], 5);
+        $model->execute(['sku1'], 5);
+        $model->releaseAll();
+
+        $this->assertSame(
+            [['SELECT RELEASE_LOCK', $name], ['SELECT RELEASE_LOCK', $name]],
+            $this->releases()
+        );
+    }
+
+    public function testReleaseReleasesOnlyTheGivenTakes(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $model = $this->modelRecordingQueries();
+        [$outer] = $model->buildOrderedLockNames(['outer'], 5);
+        [$inner] = $model->buildOrderedLockNames(['inner'], 5);
+
+        $model->execute(['outer'], 5);
+        $taken = $model->execute(['outer', 'inner'], 5);
+        $model->release($taken);
+        $afterRelease = $this->releases();
+        $model->releaseAll();
+
+        $this->assertEqualsCanonicalizing(
+            [['SELECT RELEASE_LOCK', $outer], ['SELECT RELEASE_LOCK', $inner]],
+            $afterRelease
+        );
+        $this->assertSame([['SELECT RELEASE_LOCK', $outer]], array_slice($this->releases(), 2));
+    }
+
+    public function testFailedAcquisitionReleasesOnlyItsOwnTakes(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $model = $this->modelRecordingQueries();
+        [$held] = $model->buildOrderedLockNames(['held'], 5);
+        $names = $model->buildOrderedLockNames(['sku1', 'sku2'], 5);
+
+        $model->execute(['held'], 5);
+        $this->refused[$names[1]] = true;
+        try {
+            $model->execute(['sku1', 'sku2'], 5);
+            $this->fail('expected the acquisition to give up');
+        } catch (CouldNotSaveException $e) {
+            $this->assertNotContains(['SELECT RELEASE_LOCK', $held], $this->releases());
+        }
+
+        $model->releaseAll();
+        $this->assertSame(['SELECT RELEASE_LOCK', $held], array_slice($this->releases(), -1)[0]);
+    }
+
+    /**
+     * @return AcquireStockItemLocks
+     */
+    private function modelRecordingQueries(): AcquireStockItemLocks
+    {
+        $connection = $this->createMock(AdapterInterface::class);
+        $resourceConnection = $this->createMock(ResourceConnection::class);
+        $resourceConnection->method('getConnection')->willReturn($connection);
+        $connection->method('fetchOne')->willReturnCallback(
+            function (string $sql, array $bind) {
+                $this->queries[] = [strtok($sql, '('), $bind[0]];
+                return isset($this->refused[$bind[0]]) && str_starts_with($sql, 'SELECT GET_LOCK') ? 0 : 1;
+            }
+        );
+
+        return new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock);
+    }
+
+    /**
+     * @return array
+     */
+    private function releases(): array
+    {
+        return array_values(
+            array_filter($this->queries, fn(array $query) => $query[0] === 'SELECT RELEASE_LOCK')
         );
     }
 

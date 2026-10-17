@@ -17,6 +17,40 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### The place-order lock covers the SKUs an order reserves, and only while it reserves them
+
+The concurrency lock now covers the SKUs an order writes reservations for. Before, it was keyed on
+the visible cart items, so a configurable or a bundle locked its own SKU while its child simple got
+the reservation. A standalone order and a composite order of the same simple did not exclude each
+other, and both could sell the last unit. With the window between the last salability check and the
+reservation insert widened on purpose, simple + configurable, simple + bundle, configurable + bundle
+and grouped + configurable sold one unit twice in 5 rounds out of 5. Grouped orders were already
+safe, because their cart items are the simples themselves. Two variants of the same configurable no
+longer wait for each other.
+
+SKUs that never get a reservation no longer take the lock at all. That covers
+`manage_stock = 0`, per item or globally, and `can_subtract = 0`. Ten concurrent checkouts of one
+unmanaged SKU used to queue behind each other, and the last three failed after 30 s with
+*Could not acquire inventory lock*.
+
+The lock is now held while the reservation is written, not for the whole order submission. That is
+the salability check plus the insert, 8 to 27 ms here, against 4 to 5 s for the submission with its
+payment and email. Orders for the same SKU no longer wait for each other's payment. The lock is
+released when the reservation is written even if the caller has a transaction open. A caller that
+places orders inside its own transaction is not protected until it commits, which was already the
+case. The initial placement of asynchronous orders and multishipping checkout, which never go
+through the order submission and so had no lock at all, now take it too. A reservation that gives
+stock back, such as the rollback of a rejected asynchronous order, takes no lock, so it can no
+longer fail on contention and leave the stock reduced.
+
+The `inventory_lock_during_place_order` plugin on `QuoteManagement::submit()` is removed. A
+configuration that disables it by name no longer has any effect. Stores that disabled it to avoid
+the wait on unmanaged stock no longer need to.
+
+---
+
 # msi-core 1.1.0 — 2026-10-13
 
 ### Every source item change now leaves a history row

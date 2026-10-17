@@ -14,7 +14,7 @@ the original `Magento_Inventory*` module names and `Magento\Inventory*` namespac
 | Stock item configuration | `cataloginventory_stock_item` | `inventory_stock_item_configuration` |
 | Legacy `cataloginventory_*` tables | written on every stock change | frozen; [writes are reported](/msi-core/features/legacy-write-detection/) |
 | Reservations | per stock | [per source](/msi-core/features/source-reservations/), opt-in |
-| Place-order lock | per stock, around place-order | per source, around order submission |
+| Place-order lock | per stock, around place-order | per source, around the reservation write, only for SKUs that get a reservation |
 | Ledger repair | `inventory:reservation:create-compensations` | plus [reconciliation and oversell detection](/msi-core/features/source-reservations/#reconciliation) |
 | Salable quantity in the admin | one figure per stock | [broken down by source](/msi-core/features/salable-by-source/) |
 | Stock change history | none | [every source item change recorded](/msi-core/features/adjustment-history/) |

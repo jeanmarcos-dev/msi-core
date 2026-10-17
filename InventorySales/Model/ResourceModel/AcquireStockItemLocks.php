@@ -50,7 +50,7 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     private $getSourcesAssignedToStock;
 
     /**
-     * @var array<string,bool>
+     * @var array<string,int>
      */
     private $acquiredLocks = [];
 
@@ -85,16 +85,18 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
      *
      * @param string[] $skus
      * @param int $stockId
-     * @return void
+     * @return string[]
      * @throws CouldNotSaveException
      */
-    public function execute(array $skus, int $stockId): void
+    public function execute(array $skus, int $stockId): array
     {
         $lockNames = $this->buildOrderedLockNames($skus, $stockId);
         if (!$lockNames) {
-            return;
+            return [];
         }
         $this->acquireOrdered($lockNames);
+
+        return $lockNames;
     }
 
     /**
@@ -167,7 +169,30 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     }
 
     /**
-     * Release every lock acquired by this instance.
+     * Release one take of each given lock, leaving takes made by other callers held.
+     *
+     * @param string[] $lockNames
+     * @return void
+     */
+    public function release(array $lockNames): void
+    {
+        foreach ($lockNames as $lockName) {
+            if (empty($this->acquiredLocks[$lockName])) {
+                continue;
+            }
+            if (--$this->acquiredLocks[$lockName] === 0) {
+                unset($this->acquiredLocks[$lockName]);
+            }
+            try {
+                $this->releaseLock($lockName);
+            } catch (\Throwable $e) { //phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
+                // Locks are released by MySQL when the connection closes.
+            }
+        }
+    }
+
+    /**
+     * Release every lock acquired by this instance, once per take.
      *
      * @return void
      */
@@ -177,8 +202,10 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
             return;
         }
         try {
-            foreach (array_keys($this->acquiredLocks) as $lockName) {
-                $this->releaseLock($lockName);
+            foreach ($this->acquiredLocks as $lockName => $takes) {
+                for ($take = 0; $take < $takes; $take++) {
+                    $this->releaseLock($lockName);
+                }
             }
         } catch (\Throwable $e) { //phpcs:ignore Magento2.CodeAnalysis.EmptyBlock.DetectedCatch
             // Locks are released by MySQL when the connection closes.
@@ -197,18 +224,18 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     private function acquireOrdered(array $lockNames): void
     {
         for ($attempt = 1; $attempt <= self::MAX_ATTEMPTS; $attempt++) {
-            $acquiredAll = true;
+            $taken = [];
             foreach ($lockNames as $lockName) {
                 if (!$this->acquireLock($lockName)) {
-                    $acquiredAll = false;
                     break;
                 }
-                $this->acquiredLocks[$lockName] = true;
+                $this->acquiredLocks[$lockName] = ($this->acquiredLocks[$lockName] ?? 0) + 1;
+                $taken[] = $lockName;
             }
-            if ($acquiredAll) {
+            if (count($taken) === count($lockNames)) {
                 return;
             }
-            $this->releaseAll();
+            $this->release($taken);
             // Back off before retrying so contending requests do not lock-step.
             usleep(50000 * $attempt);
         }
