@@ -32,13 +32,20 @@ always land on the sources the demand was originally allocated to, whichever sou
 
 Concurrent orders that could draw from the same source are serialised against each other. The lock is
 taken per `(sku, source)` rather than per `(sku, stock)`, so two orders on different stocks sharing a
-source can no longer race on it. Orders with no source in common run fully in parallel.
+source can no longer race on it. Orders with no source in common run fully in parallel. This
+upgrades the per-stock lock introduced upstream by ACP2E-4509.
 
-Measured: disjoint orders show no contention; orders on a shared sku and source serialise at roughly
-687 ms of hold each. On 2.4.9 this upgrades the per-stock lock introduced upstream by ACP2E-4509.
+The lock covers the SKUs the order writes reservations for: the child simples of a configurable or a
+bundle, never the parent, so a standalone order and a composite order of the same simple exclude
+each other. SKUs that get no reservation (`manage_stock = 0`, per item or globally, or
+`can_subtract = 0`) take no lock, and neither does a reservation that gives stock back, such as the
+rollback of a rejected asynchronous order.
 
-The lock is taken around order submission, not around place-order, so admin-created orders and
-anything else that submits a quote directly are serialised too.
+It is held only while the reservation is written: the salability check and the insert, 8 to 27 ms
+measured, not the payment, emails and order save that follow. Because it wraps the reservation
+itself, every path that reserves at placement takes it: storefront and admin orders, REST,
+multishipping and the initial placement of asynchronous orders. A caller that places orders inside
+its own database transaction is not protected until it commits.
 
 ## Shipping from the reserved sources
 

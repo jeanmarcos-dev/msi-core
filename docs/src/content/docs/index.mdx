@@ -68,7 +68,7 @@ msi-core removes the split. Every stock, stock 1 included, goes through the same
 | Composite salability in stock 1 | legacy CatalogInventory indexer | MSI composite indexers |
 | Stock item configuration | `cataloginventory_stock_item` | `inventory_stock_item_configuration` |
 | Reservations | per stock | per source, opt-in |
-| Place-order lock | per stock | per source, covering admin orders too |
+| Place-order lock | per stock, around place-order | per source, only while the reservation is written |
 | Stock change history | none | every source item change |
 | Upgrade | — | schema migration with downtime, no downgrade |
 | Breaks | — | raw SQL reads of `cataloginventory_stock_item` and `_stock_status` |
