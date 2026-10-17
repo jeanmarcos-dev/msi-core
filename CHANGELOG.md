@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.1.2 — 2026-10-17
 
 ### A placement that fails after reserving gives its stock back
 
