@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.1.1 — 2026-10-17
 
 ### The place-order lock covers the SKUs an order reserves, and only while it reserves them
 
