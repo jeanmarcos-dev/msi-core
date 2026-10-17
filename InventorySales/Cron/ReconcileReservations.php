@@ -51,6 +51,18 @@ class ReconcileReservations
                 ['orders' => $result['orders'], 'compensations' => $result['compensations']]
             );
         }
+        if ($result['abandoned'] > 0) {
+            $this->logger->info(
+                'Source-level reservations: reconciliation sweep released abandoned placements.',
+                ['abandoned' => $result['abandoned']]
+            );
+        }
+        if ($result['mark_effective'] && $result['abandoned_pending'] > 0) {
+            $this->logger->notice(
+                'Source-level reservations: abandoned placements too recent to repair are left for the next run.',
+                ['abandoned_pending' => $result['abandoned_pending']]
+            );
+        }
         if ($result['limit_reached']) {
             $this->logger->warning(
                 'Source-level reservations: reconciliation sweep hit its batch limit; residues remain.',

@@ -17,12 +17,14 @@ use Magento\InventorySalesApi\Api\Data\ItemToSellInterface;
 use Magento\InventorySalesApi\Api\Data\ItemToSellInterfaceFactory;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\Data\SalesEventExtensionInterface;
+use Magento\InventorySalesApi\Api\Data\SalesEventInterface;
 use Magento\InventorySalesApi\Api\Data\SalesEventInterfaceFactory;
 use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderItemInterface;
 use Magento\Sales\Api\OrderManagementInterface;
 use Magento\Store\Model\Store;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class AppendReservationsAfterOrderPlacementPluginTest extends TestCase
@@ -87,6 +89,107 @@ class AppendReservationsAfterOrderPlacementPluginTest extends TestCase
                 array_map(fn($item) => $item->getQuantity(), $itemsToSell)
             )
         );
+    }
+
+    /**
+     * @return array<string,array{0:\Throwable}>
+     */
+    public static function placementFailures(): array
+    {
+        return [
+            'exception' => [new \RuntimeException('payment declined')],
+            'language error' => [new \TypeError('payment module bug')],
+        ];
+    }
+
+    /**
+     * @param \Throwable $failure
+     * @return void
+     */
+    #[DataProvider('placementFailures')]
+    public function testCompensatesTheReservationAndRethrowsWhenThePlacementFails(\Throwable $failure): void
+    {
+        $getSkusByProductIds = $this->createMock(GetSkusByProductIdsInterface::class);
+        $getSkusByProductIds->method('execute')->willReturn([11 => 'lk_s']);
+        $getProductTypesBySkus = $this->createMock(GetProductTypesBySkusInterface::class);
+        $getProductTypesBySkus->method('execute')->willReturn(['lk_s' => 'simple']);
+        $isSourceItemManagementAllowed = $this->createMock(IsSourceItemManagementAllowedForProductTypeInterface::class);
+        $isSourceItemManagementAllowed->method('execute')->willReturn(true);
+        $itemsToSellFactory = $this->createMock(ItemToSellInterfaceFactory::class);
+        $itemsToSellFactory->method('create')->willReturnCallback(
+            fn(array $data) => $this->itemToSell($data['sku'], $data['qty'])
+        );
+        $appendReservations = $this->createMock(AppendReservations::class);
+        $appendReservations->method('reserve')->willReturn([
+            $this->createMock(SalesChannelInterface::class),
+            $this->createMock(SalesEventExtensionInterface::class),
+        ]);
+
+        $eventTypes = [];
+        $salesEventFactory = $this->createMock(SalesEventInterfaceFactory::class);
+        $salesEventFactory->method('create')->willReturnCallback(
+            function (array $data) use (&$eventTypes) {
+                $eventTypes[] = $data['type'];
+                return $this->createMock(SalesEventInterface::class);
+            }
+        );
+        $compensated = [];
+        $placeReservations = $this->createMock(PlaceReservationsForSalesEventInterface::class);
+        $placeReservations->expects($this->once())->method('execute')->willReturnCallback(
+            function (array $items) use (&$compensated) {
+                foreach ($items as $item) {
+                    $compensated[$item->getSku()] = $item->getQuantity();
+                }
+            }
+        );
+
+        $plugin = new AppendReservationsAfterOrderPlacementPlugin(
+            $placeReservations,
+            $getSkusByProductIds,
+            $salesEventFactory,
+            $itemsToSellFactory,
+            $getProductTypesBySkus,
+            $isSourceItemManagementAllowed,
+            $appendReservations,
+            $this->createConfiguredMock(ReservationExecutionInterface::class, ['isDeferred' => true])
+        );
+
+        $caught = null;
+        try {
+            $plugin->aroundPlace(
+                $this->createMock(OrderManagementInterface::class),
+                function () use ($failure) {
+                    throw $failure;
+                },
+                $this->order([11 => 1.0], 11, 0.0)
+            );
+        } catch (\Throwable $e) {
+            $caught = $e;
+        }
+
+        $this->assertSame($failure, $caught);
+        $this->assertSame(['lk_s' => 1.0], $compensated);
+        $this->assertSame([SalesEventInterface::EVENT_ORDER_PLACE_FAILED], $eventTypes);
+    }
+
+    /**
+     * @param string $sku
+     * @param float $qty
+     * @return ItemToSellInterface
+     */
+    private function itemToSell(string $sku, float $qty): ItemToSellInterface
+    {
+        $state = (object)['qty' => $qty];
+        $item = $this->createMock(ItemToSellInterface::class);
+        $item->method('getSku')->willReturn($sku);
+        $item->method('getQuantity')->willReturnCallback(fn() => $state->qty);
+        $item->method('setQuantity')->willReturnCallback(
+            function (float $quantity) use ($state) {
+                $state->qty = $quantity;
+            }
+        );
+
+        return $item;
     }
 
     /**

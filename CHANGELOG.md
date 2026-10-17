@@ -17,6 +17,32 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### A placement that fails after reserving gives its stock back
+
+When a placement wrote its reservation and then failed with a PHP `Error` (a `TypeError` from a
+payment module, a method called on `null`) instead of an `Exception`, the compensation was never
+written. The stock stayed reserved for an order that did not exist, and the salable quantity stayed
+one unit short for good. Any `Throwable` now writes the compensation, and the error still reaches the
+caller unchanged.
+
+A placement whose process died after reserving (out of memory, killed by the FPM timeout) left the
+same orphaned reservation, and neither `inventory:reservation:reconcile` nor upstream's
+`list-inconsistencies` reported it. The reconciliation pass now repairs these abandoned placements:
+increment ids that reserved stock at placement, still hold it and have no order. To leave running
+placements alone it only releases reservations written before a mark at least 15 minutes old by the
+database clock, so a retry of the same cart that is still running keeps its own reservation. With the
+hourly sweep an orphan is repaired one to two hours after it was written. The first run after
+upgrading records the mark and repairs nothing. The command reports abandoned placements apart from
+terminal orders, and says how many are too recent to repair yet. An order deleted from `sales_order`
+while its reservations were still open now counts as abandoned too, and its stock is released.
+
+The repair runs with the sweep (`cataloginventory/source_reservations/reconcile_sweep_enabled`, off by
+default) or on demand with the command.
+
+---
+
 # msi-core 1.1.1 — 2026-10-17
 
 ### The place-order lock covers the SKUs an order reserves, and only while it reserves them

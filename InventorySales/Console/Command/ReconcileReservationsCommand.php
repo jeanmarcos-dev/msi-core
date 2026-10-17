@@ -69,12 +69,19 @@ class ReconcileReservationsCommand extends Command
         $result = $this->reconcileReservationsSweep->execute($limit, $dryRun);
 
         $output->writeln(sprintf(
-            '%s %d order(s), %d compensation(s)%s.',
+            '%s %d order(s), %d abandoned placement(s), %d compensation(s)%s.',
             $dryRun ? 'Would reconcile' : 'Reconciled',
             $result['orders'],
+            $result['abandoned'],
             $result['compensations'],
             $result['stock_ids'] ? ' across stock(s) ' . implode(', ', $result['stock_ids']) : ''
         ));
+        if ($result['abandoned_pending'] > 0) {
+            $output->writeln(sprintf(
+                '<comment>%d abandoned placement(s) are too recent to repair; a later run will repair them.</comment>',
+                $result['abandoned_pending']
+            ));
+        }
         if ($result['limit_reached']) {
             $output->writeln('<comment>Batch limit reached; run again to process the remaining residues.</comment>');
         }

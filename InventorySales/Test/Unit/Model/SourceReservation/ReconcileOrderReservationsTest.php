@@ -12,6 +12,7 @@ use Magento\InventoryReservationsApi\Model\AppendReservationsInterface;
 use Magento\InventoryReservationsApi\Model\ReservationBuilderInterface;
 use Magento\InventoryReservationsApi\Model\ReservationInterface;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetOrderReservationLedger;
+use Magento\InventorySales\Model\ResourceModel\SourceReservation\OrderExistsByIncrementId;
 use Magento\InventorySales\Model\SourceReservation\ReconcileOrderReservations;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -33,6 +34,16 @@ class ReconcileOrderReservationsTest extends TestCase
     private $appendReservations;
 
     /**
+     * @var OrderExistsByIncrementId|MockObject
+     */
+    private $orderExists;
+
+    /**
+     * @var string[]
+     */
+    private array $metadata = [];
+
+    /**
      * @var ReconcileOrderReservations
      */
     private $model;
@@ -46,7 +57,12 @@ class ReconcileOrderReservationsTest extends TestCase
         $reservationBuilder->method('setSku')->willReturnSelf();
         $reservationBuilder->method('setQuantity')->willReturnSelf();
         $reservationBuilder->method('setStockId')->willReturnSelf();
-        $reservationBuilder->method('setMetadata')->willReturnSelf();
+        $reservationBuilder->method('setMetadata')->willReturnCallback(
+            function (string $metadata) use ($reservationBuilder) {
+                $this->metadata[] = $metadata;
+                return $reservationBuilder;
+            }
+        );
         $reservationBuilder->method('setSourceCode')->willReturnSelf();
         $reservationBuilder->method('setObjectIncrementId')->willReturnSelf();
         $reservationBuilder->method('build')->willReturnCallback(
@@ -56,11 +72,14 @@ class ReconcileOrderReservationsTest extends TestCase
         $serializer = $this->createMock(SerializerInterface::class);
         $serializer->method('serialize')->willReturnCallback(static fn ($value) => json_encode($value));
 
+        $this->orderExists = $this->createMock(OrderExistsByIncrementId::class);
+
         $this->model = new ReconcileOrderReservations(
             $this->getOrderReservationLedger,
             $this->appendReservations,
             $reservationBuilder,
-            $serializer
+            $serializer,
+            $this->orderExists
         );
     }
 
@@ -86,7 +105,7 @@ class ReconcileOrderReservationsTest extends TestCase
 
     public function testReleasesNegativeBalancePerSource(): void
     {
-        $this->getOrderReservationLedger->method('execute')->willReturn([
+        $this->getOrderReservationLedger->method('execute')->with(self::INCREMENT_ID, null)->willReturn([
             ['stock_id' => 2, 'sku' => 'SLR-1', 'source_code' => 'slr_a', 'balance' => -3.0],
             ['stock_id' => 2, 'sku' => 'SLR-1', 'source_code' => 'slr_b', 'balance' => -2.0],
         ]);
@@ -124,5 +143,65 @@ class ReconcileOrderReservationsTest extends TestCase
         $this->getOrderReservationLedger->expects(self::never())->method('execute');
 
         self::assertSame([], $this->model->execute(self::OBJECT_ID, '', Order::STATE_COMPLETE));
+    }
+
+    public function testReleasesAnAbandonedPlacementAsItsOwnEvent(): void
+    {
+        $this->orderExists->method('execute')->with(self::INCREMENT_ID)->willReturn(false);
+        $this->getOrderReservationLedger->method('execute')->with(self::INCREMENT_ID, 900)->willReturn([
+            ['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'balance' => -1.0],
+            ['stock_id' => 5, 'sku' => 'lk_s2', 'source_code' => null, 'balance' => -2.0],
+        ]);
+        $this->appendReservations->expects(self::once())->method('execute')->with(self::countOf(2));
+
+        $result = $this->model->executeAbandoned(self::INCREMENT_ID, 900);
+
+        self::assertSame(
+            [
+                ['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'quantity' => 1.0],
+                ['stock_id' => 5, 'sku' => 'lk_s2', 'source_code' => null, 'quantity' => 2.0],
+            ],
+            $result
+        );
+        self::assertSame(
+            [
+                'event_type' => 'abandoned_placement',
+                'object_type' => 'order',
+                'object_id' => '',
+                'object_increment_id' => self::INCREMENT_ID,
+            ],
+            json_decode($this->metadata[0], true)
+        );
+    }
+
+    public function testDryRunPlansAnAbandonedPlacementWithoutAppending(): void
+    {
+        $this->orderExists->method('execute')->willReturn(false);
+        $this->getOrderReservationLedger->method('execute')->willReturn([
+            ['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'balance' => -1.0],
+        ]);
+        $this->appendReservations->expects(self::never())->method('execute');
+
+        self::assertSame(
+            [['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'quantity' => 1.0]],
+            $this->model->executeAbandoned(self::INCREMENT_ID, 900, true)
+        );
+    }
+
+    public function testLeavesAPlacementAloneOnceItsOrderExists(): void
+    {
+        $this->orderExists->method('execute')->with(self::INCREMENT_ID)->willReturn(true);
+        $this->getOrderReservationLedger->expects(self::never())->method('execute');
+        $this->appendReservations->expects(self::never())->method('execute');
+
+        self::assertSame([], $this->model->executeAbandoned(self::INCREMENT_ID, 900));
+    }
+
+    public function testSkipsAnAbandonedPlacementWithoutIncrementId(): void
+    {
+        $this->orderExists->expects(self::never())->method('execute');
+        $this->getOrderReservationLedger->expects(self::never())->method('execute');
+
+        self::assertSame([], $this->model->executeAbandoned('', 900));
     }
 }

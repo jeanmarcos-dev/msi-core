@@ -46,15 +46,19 @@ Without options it prints the report and exits `1` while any write is on record.
 
 ## `inventory:reservation:reconcile`
 
-Reconciles terminal orders whose reservations were never released. See
-[Reconciliation](/msi-core/features/source-reservations/#reconciliation).
+Reconciles terminal orders whose reservations were never released, and placements that reserved
+stock and never saved their order. See
+[Reconciliation](/msi-core/features/source-reservations/#reconciliation) and [Abandoned
+placements](/msi-core/features/source-reservations/#abandoned-placements).
 
 | Option | Default | |
 |---|---|---|
-| `--dry-run` | | Report the residues without writing any compensation. |
-| `--limit` | `500` | Maximum number of orders to process. |
+| `--dry-run` | | Report the residues without writing any compensation or moving the mark. |
+| `--limit` | `500` | Maximum number of orders, and of abandoned placements, to process. |
 
-Exits `0`. When the limit is reached it says so; run it again for the rest.
+Exits `0`. It reports the orders and the abandoned placements it reconciled, and how many abandoned
+placements are too recent to repair yet. When a limit is reached it says so; run it again for the
+rest.
 
 ## `inventory:reservation:detect-oversell`
 

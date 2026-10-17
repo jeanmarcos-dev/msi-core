@@ -102,6 +102,41 @@ bin/magento inventory:reservation:reconcile --limit=500
 It processes at most `--limit` orders (500 by default), reindexes the stocks it touched and says when
 the limit was reached, so it can be run again for the rest.
 
+### Abandoned placements
+
+A placement writes its reservation before it takes the payment and saves the order. When anything
+in between throws, the reservation is given back on the spot. When the process dies instead (out of
+memory, killed by the FPM timeout, a restarted container), nothing gives it back, and the stock stays
+reserved for an order that does not exist.
+
+The same pass repairs those. An abandoned placement is an increment id that reserved stock at
+placement, still holds it, and has no row in `sales_order`. Its reservations are compensated to zero
+per stock, SKU and source, as an `abandoned_placement` event.
+
+A placement that is still running looks the same for a few seconds, so the pass only touches
+reservations written before a mark that is at least 15 minutes old, by the database clock. Each run
+records the newest reservation id as the next mark once the current one is that old, and only the
+reservations below the mark are released: a retry of the same cart that is still running keeps its
+own. In practice:
+
+- With the hourly sweep, an orphaned reservation is repaired between one and two hours after it was
+  written.
+- The first run after upgrading only records the mark and repairs nothing.
+- Two manual runs a few seconds apart repair nothing new; the command says how many placements are
+  too recent to repair yet.
+- `--dry-run` reports what would be repaired without writing and without moving the mark.
+- A mark above the newest reservation id, after `inventory_reservation` was truncated or rebuilt, is
+  discarded and recorded again.
+
+A retry of the same cart reuses its increment id. If a placement died and the customer then placed
+the order, the dead attempt's reservation is added to the order's own until the order reaches a
+final state, when the terminal-order pass releases it.
+
+A placement whose order was saved and that then fails in a later step, such as an observer that
+throws after the save, still gives its reservation back. The order then exists with its reservation
+released, so the salable quantity is overstated while it stays open. This was already the case for
+exceptions and now also applies to PHP errors.
+
 ## Oversell detection
 
 Detection only: it never blocks a sale. Physical stock stays authoritative; an oversold position is
@@ -123,4 +158,5 @@ It lists each oversold source position with its physical quantity, its committed
 the difference, and exits non-zero when it finds any.
 
 Both sweeps and both commands work on per-source reservations, so they find nothing while the feature
-is off.
+is off. The one exception is the abandoned-placement pass, which also repairs stock-scoped
+reservations.

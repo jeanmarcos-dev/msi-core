@@ -11,6 +11,7 @@ use Magento\Framework\Serialize\SerializerInterface;
 use Magento\InventoryReservationsApi\Model\AppendReservationsInterface;
 use Magento\InventoryReservationsApi\Model\ReservationBuilderInterface;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetOrderReservationLedger;
+use Magento\InventorySales\Model\ResourceModel\SourceReservation\OrderExistsByIncrementId;
 use Magento\Sales\Model\Order;
 
 /**
@@ -32,12 +33,14 @@ class ReconcileOrderReservations
      * @param AppendReservationsInterface $appendReservations
      * @param ReservationBuilderInterface $reservationBuilder
      * @param SerializerInterface $serializer
+     * @param OrderExistsByIncrementId $orderExistsByIncrementId
      */
     public function __construct(
         private readonly GetOrderReservationLedger $getOrderReservationLedger,
         private readonly AppendReservationsInterface $appendReservations,
         private readonly ReservationBuilderInterface $reservationBuilder,
-        private readonly SerializerInterface $serializer
+        private readonly SerializerInterface $serializer,
+        private readonly OrderExistsByIncrementId $orderExistsByIncrementId
     ) {
     }
 
@@ -56,15 +59,52 @@ class ReconcileOrderReservations
             return [];
         }
 
-        $ledger = $this->getOrderReservationLedger->execute($objectIncrementId);
+        return $this->releaseLedger('reconciliation', (string)$objectId, $objectIncrementId, null, $dryRun);
+    }
+
+    /**
+     * Release what a placement that never saved its order reserved up to the cutoff, returning the compensations.
+     *
+     * @param string $objectIncrementId
+     * @param int $cutoff
+     * @param bool $dryRun
+     * @return array<int, array{stock_id:int, sku:string, source_code:string|null, quantity:float}>
+     */
+    public function executeAbandoned(string $objectIncrementId, int $cutoff, bool $dryRun = false): array
+    {
+        if ($objectIncrementId === '' || $this->orderExistsByIncrementId->execute($objectIncrementId)) {
+            return [];
+        }
+
+        return $this->releaseLedger('abandoned_placement', '', $objectIncrementId, $cutoff, $dryRun);
+    }
+
+    /**
+     * Append the positive release that brings every negative ledger group of the increment id to zero.
+     *
+     * @param string $eventType
+     * @param string $objectId
+     * @param string $objectIncrementId
+     * @param int|null $maxReservationId
+     * @param bool $dryRun
+     * @return array<int, array{stock_id:int, sku:string, source_code:string|null, quantity:float}>
+     */
+    private function releaseLedger(
+        string $eventType,
+        string $objectId,
+        string $objectIncrementId,
+        ?int $maxReservationId,
+        bool $dryRun
+    ): array {
+        $ledger = $this->getOrderReservationLedger->execute($objectIncrementId, $maxReservationId);
         if (empty($ledger)) {
             return [];
         }
 
         $metadata = $this->serializer->serialize([
-            'event_type' => 'reconciliation',
+            'event_type' => $eventType,
             'object_type' => 'order',
-            'object_id' => (string)$objectId,
+            'object_id' => $objectId,
             'object_increment_id' => $objectIncrementId,
         ]);
 

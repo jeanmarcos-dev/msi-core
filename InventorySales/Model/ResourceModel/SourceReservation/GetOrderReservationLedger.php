@@ -31,9 +31,10 @@ class GetOrderReservationLedger
      * Get the negative balances of an order as a list of rows.
      *
      * @param string $objectIncrementId
+     * @param int|null $maxReservationId
      * @return array<int, array{stock_id:int, sku:string, source_code:string|null, balance:float}>
      */
-    public function execute(string $objectIncrementId): array
+    public function execute(string $objectIncrementId, ?int $maxReservationId = null): array
     {
         if ($objectIncrementId === '') {
             return [];
@@ -57,6 +58,9 @@ class GetOrderReservationLedger
             ->where($incrementIdExpr . ' = ?', $objectIncrementId)
             ->group([ReservationInterface::STOCK_ID, ReservationInterface::SKU, ReservationInterface::SOURCE_CODE])
             ->having('SUM(' . ReservationInterface::QUANTITY . ') < ?', -self::EPSILON);
+        if ($maxReservationId !== null) {
+            $select->where(ReservationInterface::RESERVATION_ID . ' <= ?', $maxReservationId);
+        }
 
         $rows = [];
         foreach ($connection->fetchAll($select) as $row) {

@@ -164,7 +164,7 @@ class AppendReservationsAfterOrderPlacementPlugin
     {
         try {
             $order = $proceed($order);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             //add compensation
             foreach ($itemsToSell as $item) {
                 $item->setQuantity(-(float)$item->getQuantity());

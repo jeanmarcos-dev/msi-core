@@ -27,6 +27,11 @@ class ReconcileReservationsTest extends TestCase
     private $sweep;
 
     /**
+     * @var LoggerInterface|MockObject
+     */
+    private $logger;
+
+    /**
      * @var ReconcileReservations
      */
     private $cron;
@@ -35,10 +40,11 @@ class ReconcileReservationsTest extends TestCase
     {
         $this->config = $this->createMock(ReconciliationConfig::class);
         $this->sweep = $this->createMock(ReconcileReservationsSweep::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
         $this->cron = new ReconcileReservations(
             $this->config,
             $this->sweep,
-            $this->createMock(LoggerInterface::class)
+            $this->logger
         );
     }
 
@@ -54,8 +60,62 @@ class ReconcileReservationsTest extends TestCase
     {
         $this->config->method('isSweepEnabled')->willReturn(true);
         $this->sweep->expects(self::once())->method('execute')
-            ->willReturn(['orders' => 0, 'compensations' => 0, 'stock_ids' => [], 'limit_reached' => false]);
+            ->willReturn($this->sweepResult([]));
+        $this->logger->expects(self::never())->method('info');
+        $this->logger->expects(self::never())->method('notice');
 
         $this->cron->execute();
+    }
+
+    public function testLogsTheAbandonedPlacementsItRepaired(): void
+    {
+        $this->config->method('isSweepEnabled')->willReturn(true);
+        $this->sweep->method('execute')->willReturn($this->sweepResult(['abandoned' => 2, 'compensations' => 3]));
+        $this->logger->expects(self::once())->method('info')->with(
+            self::stringContains('abandoned placements'),
+            ['abandoned' => 2]
+        );
+
+        $this->cron->execute();
+    }
+
+    public function testNoticesAbandonedPlacementsLeftForTheNextRun(): void
+    {
+        $this->config->method('isSweepEnabled')->willReturn(true);
+        $this->sweep->method('execute')->willReturn($this->sweepResult(['abandoned_pending' => 1]));
+        $this->logger->expects(self::once())->method('notice')->with(
+            self::stringContains('next run'),
+            ['abandoned_pending' => 1]
+        );
+
+        $this->cron->execute();
+    }
+
+    public function testStaysQuietAboutPendingPlacementsUntilAMarkIsEffective(): void
+    {
+        $this->config->method('isSweepEnabled')->willReturn(true);
+        $this->sweep->method('execute')->willReturn(
+            $this->sweepResult(['abandoned_pending' => 1, 'mark_effective' => false])
+        );
+        $this->logger->expects(self::never())->method('notice');
+
+        $this->cron->execute();
+    }
+
+    /**
+     * @param array $overrides
+     * @return array
+     */
+    private function sweepResult(array $overrides): array
+    {
+        return $overrides + [
+            'orders' => 0,
+            'abandoned' => 0,
+            'abandoned_pending' => 0,
+            'mark_effective' => true,
+            'compensations' => 0,
+            'stock_ids' => [],
+            'limit_reached' => false,
+        ];
     }
 }
