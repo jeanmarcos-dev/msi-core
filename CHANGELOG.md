@@ -27,7 +27,8 @@ with *Could not acquire inventory lock for the requested items*. MariaDB accepts
 hid it. Every inventory lock (checkout, bulk source transfer and compensation) is now named after its
 family plus one md5 of its parts, 40 to 46 characters. The hash includes the database name, so two
 installations that share a database server, such as staging and production, no longer wait on each
-other's locks.
+other's locks. In application server mode, the state reset between requests now releases the locks
+the request left taken instead of forgetting them on a connection that stays open.
 
 While the old and the new code run side by side during a deploy, they name the same lock
 differently and do not exclude each other. Deploy in maintenance mode, as Magento recommends, and

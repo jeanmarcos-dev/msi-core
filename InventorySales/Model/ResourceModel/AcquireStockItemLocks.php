@@ -84,6 +84,7 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
      */
     public function _resetState(): void
     {
+        $this->releaseAll();
         $this->connection = null;
         $this->acquiredLocks = [];
     }

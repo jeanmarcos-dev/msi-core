@@ -260,6 +260,65 @@ class AcquireStockItemLocksTest extends TestCase
         $this->assertSame(['SELECT RELEASE_LOCK', $held], array_slice($this->releases(), -1)[0]);
     }
 
+    public function testResetReleasesEveryPendingTakeOnTheConnectionThatTookIt(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $taking = $this->connectionRecording('taking');
+        $later = $this->connectionRecording('later');
+        $resourceConnection = $this->createMock(ResourceConnection::class);
+        $resourceConnection->method('getConnection')->willReturnOnConsecutiveCalls($taking, $later);
+        $model = new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock, $this->lockName);
+        [$name] = $model->buildOrderedLockNames(['sku1'], 5);
+
+        $model->execute(['sku1'], 5);
+        $model->execute(['sku1'], 5);
+        $model->_resetState();
+
+        $this->assertSame(
+            [['taking', 'SELECT RELEASE_LOCK', $name], ['taking', 'SELECT RELEASE_LOCK', $name]],
+            array_values(array_filter($this->queries, fn(array $query) => $query[1] === 'SELECT RELEASE_LOCK'))
+        );
+    }
+
+    public function testAReleaseAfterTheResetHasNothingLeftToRelease(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([$this->source('slr_a', true)]);
+        $model = $this->modelRecordingQueries();
+        $taken = $model->execute(['sku1'], 5);
+        $model->_resetState();
+        $releasesAfterReset = count($this->releases());
+
+        $model->release($taken);
+
+        $this->assertCount($releasesAfterReset, $this->releases());
+    }
+
+    public function testAResetWithoutTakesDoesNotTouchTheDatabase(): void
+    {
+        $resourceConnection = $this->createMock(ResourceConnection::class);
+        $resourceConnection->expects($this->never())->method('getConnection');
+        $model = new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock, $this->lockName);
+
+        $model->_resetState();
+    }
+
+    /**
+     * @param string $label
+     * @return AdapterInterface
+     */
+    private function connectionRecording(string $label): AdapterInterface
+    {
+        $connection = $this->createMock(AdapterInterface::class);
+        $connection->method('fetchOne')->willReturnCallback(
+            function (string $sql, array $bind) use ($label) {
+                $this->queries[] = [$label, strtok($sql, '('), $bind[0]];
+                return 1;
+            }
+        );
+
+        return $connection;
+    }
+
     /**
      * @return AcquireStockItemLocks
      */
