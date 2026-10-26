@@ -105,7 +105,7 @@ class DispatchPurgeTest extends TestCase
         $this->publisher->expects($this->once())->method('publish')
             ->with(DispatchPurge::TOPIC, 'SKU-1');
         $this->cache->expects($this->once())->method('save')
-            ->with('1', DispatchPurge::GUARD_PREFIX . 'SKU-1', $this->isType('array'), $this->greaterThan(0));
+            ->with('1', DispatchPurge::GUARD_PREFIX . 'SKU-1', $this->callback('is_array'), $this->greaterThan(0));
 
         $this->model->execute(['SKU-1']);
     }

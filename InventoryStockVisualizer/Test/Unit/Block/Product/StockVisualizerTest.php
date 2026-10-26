@@ -94,7 +94,7 @@ class StockVisualizerTest extends TestCase
      * @param string $compositeMode
      * @return void
      */
-    #[DataProvider('componentKindProvider')]
+    #[DataProvider('productTypeProvider')]
     public function testComponentSuppressedWhenOutOfStock(string $typeId, string $compositeMode): void
     {
         $this->givenProduct($typeId, $compositeMode, false);
@@ -140,6 +140,14 @@ class StockVisualizerTest extends TestCase
             'grouped children' => ['grouped', Config::COMPOSITE_MODE_CHILDREN, StockVisualizer::KIND_CHILDREN],
             'bundle max' => ['bundle', Config::COMPOSITE_MODE_MAX, StockVisualizer::KIND_BUNDLE_MAX],
         ];
+    }
+
+    public static function productTypeProvider(): array
+    {
+        return array_map(
+            static fn(array $row): array => [$row[0], $row[1]],
+            self::componentKindProvider()
+        );
     }
 
     /**

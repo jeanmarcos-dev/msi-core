@@ -18,6 +18,7 @@ use Magento\InventoryAdjustment\Model\Config;
 use Magento\InventoryAdjustment\Model\ResourceModel\Adjustment\Collection;
 use Magento\InventoryAdjustment\Model\ResourceModel\Adjustment\CollectionFactory;
 use Magento\InventoryAdjustmentApi\Api\Data\AdjustmentSearchResultsInterfaceFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -102,9 +103,7 @@ class AdjustmentRepositoryTest extends TestCase
         $this->repository->getList($this->criteria(501, []));
     }
 
-    /**
-     * @dataProvider pageSizesBelowOne
-     */
+    #[DataProvider('pageSizesBelowOne')]
     public function testAPageSmallerThanOneIsRejected(int $pageSize): void
     {
         $this->collectionProcessor->expects(self::never())->method('process');

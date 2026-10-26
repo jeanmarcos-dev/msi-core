@@ -81,6 +81,14 @@ of each product it describes, the composite's included, so saving the product pu
 full page cache disabled, the fragments were sent as publicly cacheable for a day and browsers kept
 them through every stock change. They are now sent as non-cacheable, like the rest of the storefront.
 
+### The unit suite runs clean on PHPUnit 12
+
+Magento 2.4.9 and Mage-OS 3 install PHPUnit 12, where the unit suite reported 5 errors, 2 failures,
+a warning and a deprecation. Four data providers declared in annotations, which PHPUnit 12 no longer
+reads, move to the `#[DataProvider]` attribute; one test stops using `MockBuilder::addMethods()`; one
+provider gets the arity of its test; and `isType('array')` becomes a callback. The suite stays green
+on PHPUnit 10.5. Tests only: nothing that ships changes.
+
 ---
 
 # msi-core 1.1.2 — 2026-10-17

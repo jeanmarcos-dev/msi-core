@@ -10,6 +10,7 @@ namespace Magento\InventoryAdjustment\Test\Unit\Model;
 use Magento\Framework\Exception\InputException;
 use Magento\InventoryAdjustment\Model\AdjustmentInput;
 use Magento\InventoryAdjustment\Model\ExplicitAdjustmentResolver;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class ExplicitAdjustmentResolverTest extends TestCase
@@ -40,9 +41,7 @@ class ExplicitAdjustmentResolverTest extends TestCase
         (new ExplicitAdjustmentResolver())->resolve([$this->input('lost_in_war')]);
     }
 
-    /**
-     * @dataProvider salesDocumentTypes
-     */
+    #[DataProvider('salesDocumentTypes')]
     public function testASalesDocumentReferenceIsRejected(string $referenceType): void
     {
         $this->expectException(InputException::class);

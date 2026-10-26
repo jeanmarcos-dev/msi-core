@@ -14,6 +14,7 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Validation\ValidationException;
 use Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially;
 use Magento\InventoryCatalogApi\Api\Data\PartialInventoryTransferItemInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -117,9 +118,7 @@ class TransferInventoryPartiallyTest extends TestCase
         $this->model->execute($this->item('SKU-1', 3.0), 'slr_a', 'slr_b');
     }
 
-    /**
-     * @dataProvider nonPositiveQuantities
-     */
+    #[DataProvider('nonPositiveQuantities')]
     public function testRejectsANonPositiveQuantityBeforeTouchingTheDatabase(float $qty): void
     {
         $this->connection->expects(self::never())->method('beginTransaction');

@@ -13,6 +13,7 @@ use Magento\InventoryApi\Api\Data\SourceItemInterface;
 use Magento\InventoryCatalog\Model\GetSourceItemsBySkuAndSourceCodes;
 use Magento\InventoryCatalog\Model\Source\Validator\PartialTransferItemsValidator;
 use Magento\InventoryCatalogApi\Api\Data\PartialInventoryTransferItemInterface;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -76,9 +77,7 @@ class PartialTransferItemsValidatorTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider nonPositiveQuantities
-     */
+    #[DataProvider('nonPositiveQuantities')]
     public function testRejectsANonPositiveQuantity(float $qty): void
     {
         $this->quantities = ['slr_a' => ['SKU-1' => 3.0], 'slr_b' => ['SKU-1' => 3.0]];

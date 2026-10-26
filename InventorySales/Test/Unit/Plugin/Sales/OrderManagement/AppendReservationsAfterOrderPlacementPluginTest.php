@@ -23,6 +23,7 @@ use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderItemInterface;
 use Magento\Sales\Api\OrderManagementInterface;
+use Magento\Sales\Model\Order;
 use Magento\Store\Model\Store;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -207,10 +208,7 @@ class AppendReservationsAfterOrderPlacementPluginTest extends TestCase
         $items[] = $this->item($repeatedProductId, $repeatedQty);
 
         $store = $this->createConfiguredMock(Store::class, ['getWebsiteId' => 3]);
-        $order = $this->getMockBuilder(OrderInterface::class)
-            ->disableOriginalConstructor()
-            ->addMethods(['getStore'])
-            ->getMockForAbstractClass();
+        $order = $this->createMock(Order::class);
         $order->method('getItems')->willReturn($items);
         $order->method('getStore')->willReturn($store);
 
