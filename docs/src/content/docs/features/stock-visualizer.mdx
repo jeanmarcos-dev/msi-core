@@ -127,6 +127,11 @@ new output is served on the next load without a manual cache flush.
 ## Operational requirements
 
 - `bin/magento setup:upgrade` registers the per-product attributes and the message-queue topology.
+  It adds the *Stock Visualizer* group, with its five attributes, to every product attribute set,
+  even while the panel is disabled
+  ([`AddStockVisualizerAttributes`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryStockVisualizer/Setup/Patch/Data/AddStockVisualizerAttributes.php)).
+  Generating performance-toolkit fixtures needs the module disabled, see
+  [below](#generating-performance-toolkit-fixtures).
 - `bin/magento setup:di:compile` for production mode.
 - When the purge strategy resolves to the queue, run the consumer
   `bin/magento queue:consumers:start inventory.stockvisualizer.purge`, or the standard consumer cron.

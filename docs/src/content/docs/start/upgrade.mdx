@@ -115,6 +115,14 @@ Expect downtime proportional to your catalog size.
    - `DetectLegacyStockWrites`: installs the triggers that count writes made against the frozen
      tables. It needs the `TRIGGER` privilege and only warns when it is missing.
 
+   The new code must not serve a request before this step finishes. Every reservation it writes
+   carries `source_code` and `object_increment_id`, `NULL` while source-level reservations are off
+   ([`SaveMultiple`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryReservations/Model/ResourceModel/SaveMultiple.php)), and
+   `setup:upgrade` is what adds those two columns to `inventory_reservation`, with an index on each
+   ([`db_schema.xml`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryReservations/etc/db_schema.xml)). Until then, every order
+   fails to reserve. On a large `inventory_reservation` table that `ALTER` is slow, so plan the
+   maintenance window for it.
+
 4. Run `bin/magento indexer:reindex inventory`. It is required: stock 1 has no index rows yet. The
    schema patch already invalidates the indexer, so a cron-driven reindex would eventually pick it
    up too; do not rely on that during an upgrade window.

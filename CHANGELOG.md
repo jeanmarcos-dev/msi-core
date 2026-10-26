@@ -89,6 +89,25 @@ reads, move to the `#[DataProvider]` attribute; one test stops using `MockBuilde
 provider gets the arity of its test; and `isType('array')` becomes a callback. The suite stays green
 on PHPUnit 10.5. Tests only: nothing that ships changes.
 
+### Upgrade and behaviour notes
+
+Four behaviours the documentation did not explain, raised by Ryan Hoerr in the Mage-OS port
+([mage-os/mageos-inventory#15](https://github.com/mage-os/mageos-inventory/pull/15)):
+
+- [Upgrade][notes-upgrade]: the new code cannot serve requests before `setup:upgrade` adds the
+  reservation columns it writes, and that `ALTER` is slow on a large reservation table.
+- [Differences from upstream][notes-upstream]: a configurable's children count by their status in
+  the default scope.
+- [Source reservations][notes-reservations]: a release is capped at the order's outstanding
+  balance, so an order without a placement reservation gets none.
+- [Stock visualizer][notes-visualizer]: its attribute group is added to every attribute set, even
+  while the panel is disabled.
+
+[notes-upgrade]: https://jeanmarcos-dev.github.io/msi-core/start/upgrade/
+[notes-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/
+[notes-reservations]: https://jeanmarcos-dev.github.io/msi-core/features/source-reservations/#reconciliation
+[notes-visualizer]: https://jeanmarcos-dev.github.io/msi-core/features/stock-visualizer/#operational-requirements
+
 ---
 
 # msi-core 1.1.2 — 2026-10-17

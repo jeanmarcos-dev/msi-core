@@ -19,6 +19,7 @@ the original `Magento_Inventory*` module names and `Magento\Inventory*` namespac
 | Salable quantity in the admin | one figure per stock | [broken down by source](/msi-core/features/salable-by-source/) |
 | Stock change history | none | [every source item change recorded](/msi-core/features/adjustment-history/) |
 | Storefront availability | in stock or out of stock | an [Availability panel](/msi-core/features/stock-visualizer/), opt-in |
+| Disabled children of a configurable | still count toward the parent's salability | excluded, by their status in the default scope ([`SelectBuilder`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryConfigurableProductIndexer/Indexer/SelectBuilder.php)). The index is per stock, not per store, so a child disabled globally but enabled on one store view counts as disabled everywhere, and the other way round |
 
 ## Fixes
 

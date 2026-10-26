@@ -86,6 +86,14 @@ Guards on the reservation path clamp and reject reservations that would break th
 ledger has already drifted, reconciliation repairs it by appending the compensations that terminal
 orders are missing.
 
+The clamp caps every release (a cancel, a credit memo, a shipment deduction or a manual
+compensation) at the negative balance its order still has, so a release can never leave an order
+with a positive balance. An order that never had a placement reservation, because it was imported
+or placed before `inventory_reservation` was truncated, therefore gets no release when it is
+cancelled or refunded, and the dropped quantity is logged as a warning
+([`ClampCompensationReservationsPlugin`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Plugin/InventoryReservationsApi/ClampCompensationReservationsPlugin.php),
+[`testDropsReleaseWithNoOutstandingBalance`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Test/Unit/Plugin/InventoryReservationsApi/ClampCompensationReservationsPluginTest.php)).
+
 | Setting | Default | Effect |
 |---|---|---|
 | `cataloginventory/source_reservations/reconcile_cancel_refund` | `0` | When an order reaches a final state, append any release its cancel or credit memo observer failed to write. Bounded so it can never over-release. |
