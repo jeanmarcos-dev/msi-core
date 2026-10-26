@@ -41,6 +41,17 @@ well, and the fragment carried the exact quantity the product was set to hide. E
 follows the effective display type of the product it describes. On a configurable in variant mode,
 the selected variant shows a level when the configurable or the variant is set to level.
 
+### Saving a product refreshes its stock visualizer fragments
+
+The AJAX fragments carried only the stock visualizer tag, which only stock changes purge, and a
+composite's fragment did not carry the composite's own id. After a product's *Stock Visualizer*
+override changed, the full page cache kept serving the old fragment until it expired: a grouped or
+bundle product switched to *Level* showed *Out of stock* and still sent the exact quantities, and a
+variant switched to *Level* kept showing its number. Every fragment now also carries the `cat_p` tag
+of each product it describes, the composite's included, so saving the product purges it. With the
+full page cache disabled, the fragments were sent as publicly cacheable for a day and browsers kept
+them through every stock change. They are now sent as non-cacheable, like the rest of the storefront.
+
 ---
 
 # msi-core 1.1.2 — 2026-10-17

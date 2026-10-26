@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryStockVisualizer\Controller;
 
+use Magento\Catalog\Model\Product;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
@@ -36,13 +37,15 @@ class FragmentResponder
      * @param Config $config
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
      * @param GetSkusByProductIdsInterface $getSkusByProductIds
+     * @param PageCacheConfig $pageCacheConfig
      */
     public function __construct(
         private readonly JsonFactory $jsonFactory,
         private readonly ScopeConfigInterface $scopeConfig,
         private readonly Config $config,
         private readonly GetProductIdsBySkusInterface $getProductIdsBySkus,
-        private readonly GetSkusByProductIdsInterface $getSkusByProductIds
+        private readonly GetSkusByProductIdsInterface $getSkusByProductIds,
+        private readonly PageCacheConfig $pageCacheConfig
     ) {
     }
 
@@ -72,7 +75,7 @@ class FragmentResponder
     }
 
     /**
-     * Set the payload and apply public cache headers with one purge tag per product id.
+     * Set the payload and, while the page cache is on, add public headers and the purge tags of each id.
      *
      * @param Json $result
      * @param int[] $productIds
@@ -81,12 +84,17 @@ class FragmentResponder
      */
     public function cacheable(Json $result, array $productIds, $data): Json
     {
+        if (!$this->pageCacheConfig->isEnabled()) {
+            return $this->uncacheable($result, $data);
+        }
+
         $ttl = $this->config->getTtl() ?: (int) $this->scopeConfig->getValue(PageCacheConfig::XML_PAGECACHE_TTL);
         $ttl = $ttl > 0 ? $ttl : self::DEFAULT_TTL;
 
         $tags = [];
         foreach ($productIds as $productId) {
             $tags[] = CacheTag::CACHE_TAG . '_' . (int) $productId;
+            $tags[] = Product::CACHE_TAG . '_' . (int) $productId;
         }
 
         $result->setHeader('X-Magento-Tags', implode(',', $tags), true);

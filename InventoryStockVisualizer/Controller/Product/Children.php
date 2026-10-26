@@ -88,7 +88,11 @@ class Children implements HttpGetActionInterface
             return $this->responder->uncacheable($result, $data);
         }
 
-        return $this->responder->cacheable($result, $productIds, $data);
+        return $this->responder->cacheable(
+            $result,
+            [...$this->responder->resolveProductIds([$sku]), ...$productIds],
+            $data
+        );
     }
 
     /**

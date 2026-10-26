@@ -22,6 +22,7 @@ use Magento\InventoryStockVisualizer\Model\Config;
 use Magento\InventoryStockVisualizer\Model\DisplayConfig;
 use Magento\InventoryStockVisualizer\Model\LevelResolver;
 use Magento\InventoryStockVisualizer\Model\ResolveDisplayConfig;
+use Magento\PageCache\Model\Config as PageCacheConfig;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -36,6 +37,11 @@ class BundleMaxTest extends TestCase
      */
     private $data;
 
+    /**
+     * @var array<string, string>
+     */
+    private array $headers = [];
+
     public function testABundleOverriddenToQuantityGetsTheCountOnALevelStore(): void
     {
         $this->assertSame(['max' => 2], $this->payload(Config::DISPLAY_TYPE_LEVEL, Config::DISPLAY_TYPE_QUANTITY));
@@ -46,6 +52,16 @@ class BundleMaxTest extends TestCase
         $this->assertSame(
             ['level' => 'low', 'salable' => true],
             $this->payload(Config::DISPLAY_TYPE_QUANTITY, Config::DISPLAY_TYPE_LEVEL)
+        );
+    }
+
+    public function testTheFragmentIsPurgedWithTheBundleAndItsSelections(): void
+    {
+        $this->payload(Config::DISPLAY_TYPE_QUANTITY, Config::DISPLAY_TYPE_QUANTITY);
+
+        $this->assertEqualsCanonicalizing(
+            ['inv_stockviz_5', 'cat_p_5', 'inv_stockviz_11', 'cat_p_11', 'inv_stockviz_12', 'cat_p_12'],
+            explode(',', $this->headers['X-Magento-Tags'])
         );
     }
 
@@ -84,7 +100,11 @@ class BundleMaxTest extends TestCase
     private function responder(Config $config): FragmentResponder
     {
         $result = $this->createStub(Json::class);
-        $result->method('setHeader')->willReturn($result);
+        $result->method('setHeader')->willReturnCallback(function (string $name, string $value) use ($result): Json {
+            $this->headers[$name] = $value;
+
+            return $result;
+        });
         $result->method('setData')->willReturnCallback(function ($data) use ($result): Json {
             $this->data = $data;
 
@@ -95,12 +115,18 @@ class BundleMaxTest extends TestCase
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturn('120');
 
+        $getProductIdsBySkus = $this->createStub(GetProductIdsBySkusInterface::class);
+        $getProductIdsBySkus->method('execute')->willReturn([self::SKU => 5]);
+        $pageCacheConfig = $this->createStub(PageCacheConfig::class);
+        $pageCacheConfig->method('isEnabled')->willReturn(true);
+
         return new FragmentResponder(
             $jsonFactory,
             $scopeConfig,
             $config,
-            $this->createStub(GetProductIdsBySkusInterface::class),
-            $this->createStub(GetSkusByProductIdsInterface::class)
+            $getProductIdsBySkus,
+            $this->createStub(GetSkusByProductIdsInterface::class),
+            $pageCacheConfig
         );
     }
 }

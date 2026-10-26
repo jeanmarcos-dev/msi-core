@@ -149,6 +149,14 @@ derived from the display settings (`Config::getVersion()`). Changing any display
 setting mints a fresh cache key, so the new output is served on the next load
 without a manual cache flush.
 
+### Product changes purge their fragments
+
+Each fragment also carries the `cat_p_<productId>` tag of every product it
+describes, the composite included. Saving a product, for example to change its
+*Stock Visualizer* override, purges its fragments together with its page. With
+the full page cache disabled the fragments are sent as non-cacheable, like the
+rest of the storefront.
+
 ## Operational requirements
 
 - Run `bin/magento setup:upgrade` to register the per-product attributes (data

@@ -23,6 +23,7 @@ use Magento\InventoryStockVisualizer\Model\Data\StockView;
 use Magento\InventoryStockVisualizer\Model\DisplayConfig;
 use Magento\InventoryStockVisualizer\Model\ResolveDisplayConfig;
 use Magento\InventoryStockVisualizer\Model\StockViewSerializer;
+use Magento\PageCache\Model\Config as PageCacheConfig;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -31,23 +32,43 @@ use PHPUnit\Framework\TestCase;
 class ChildrenTest extends TestCase
 {
     private const SKU = 'GRP-1';
+    private const PRODUCT_IDS = [self::SKU => 5, 'CH-A' => 6];
 
     /**
      * @var mixed
      */
     private $data;
 
+    /**
+     * @var array<string, string>
+     */
+    private array $headers = [];
+
     public function testTheSetCountFollowsAParentOverriddenToQuantityOnALevelStore(): void
     {
-        $this->assertSame(3, $this->sets(Config::DISPLAY_TYPE_LEVEL, Config::DISPLAY_TYPE_QUANTITY));
+        $this->execute(Config::DISPLAY_TYPE_LEVEL, Config::DISPLAY_TYPE_QUANTITY);
+
+        $this->assertSame(3, $this->data['data']['sets']);
     }
 
     public function testTheSetCountCollapsesForAParentOverriddenToLevelOnAQuantityStore(): void
     {
-        $this->assertSame(1, $this->sets(Config::DISPLAY_TYPE_QUANTITY, Config::DISPLAY_TYPE_LEVEL));
+        $this->execute(Config::DISPLAY_TYPE_QUANTITY, Config::DISPLAY_TYPE_LEVEL);
+
+        $this->assertSame(1, $this->data['data']['sets']);
     }
 
-    private function sets(string $storeDisplayType, string $parentDisplayType): int
+    public function testTheFragmentIsPurgedWithTheGroupedProductAndItsChildren(): void
+    {
+        $this->execute(Config::DISPLAY_TYPE_QUANTITY, Config::DISPLAY_TYPE_QUANTITY);
+
+        $this->assertEqualsCanonicalizing(
+            ['inv_stockviz_5', 'cat_p_5', 'inv_stockviz_6', 'cat_p_6'],
+            explode(',', $this->headers['X-Magento-Tags'])
+        );
+    }
+
+    private function execute(string $storeDisplayType, string $parentDisplayType): void
     {
         $config = $this->createStub(Config::class);
         $config->method('isEnabled')->willReturn(true);
@@ -62,7 +83,10 @@ class ChildrenTest extends TestCase
         $getStockView = $this->createStub(GetStockViewInterface::class);
         $getStockView->method('execute')->willReturn(new StockView(self::SKU, 2, 0.0, true, [], true, true, []));
         $serializer = $this->createStub(StockViewSerializer::class);
-        $serializer->method('serializeChildren')->willReturn(['salable' => true, 'children' => []]);
+        $serializer->method('serializeChildren')->willReturn([
+            'salable' => true,
+            'children' => [['sku' => 'CH-A', 'label' => 'Item A', 'salable' => true, 'qty' => 30.0]],
+        ]);
         $setsMax = $this->createStub(GetGroupedSetsMax::class);
         $setsMax->method('execute')->willReturn(3);
         $resolveDisplayConfig = $this->createStub(ResolveDisplayConfig::class);
@@ -87,14 +111,16 @@ class ChildrenTest extends TestCase
             $resolveDisplayConfig
         );
         $controller->execute();
-
-        return $this->data['data']['sets'];
     }
 
     private function responder(Config $config): FragmentResponder
     {
         $result = $this->createStub(Json::class);
-        $result->method('setHeader')->willReturn($result);
+        $result->method('setHeader')->willReturnCallback(function (string $name, string $value) use ($result): Json {
+            $this->headers[$name] = $value;
+
+            return $result;
+        });
         $result->method('setData')->willReturnCallback(function ($data) use ($result): Json {
             $this->data = $data;
 
@@ -102,13 +128,20 @@ class ChildrenTest extends TestCase
         });
         $jsonFactory = $this->createStub(JsonFactory::class);
         $jsonFactory->method('create')->willReturn($result);
+        $getProductIdsBySkus = $this->createStub(GetProductIdsBySkusInterface::class);
+        $getProductIdsBySkus->method('execute')->willReturnCallback(
+            fn (array $skus) => array_intersect_key(self::PRODUCT_IDS, array_flip($skus))
+        );
+        $pageCacheConfig = $this->createStub(PageCacheConfig::class);
+        $pageCacheConfig->method('isEnabled')->willReturn(true);
 
         return new FragmentResponder(
             $jsonFactory,
             $this->createStub(ScopeConfigInterface::class),
             $config,
-            $this->createStub(GetProductIdsBySkusInterface::class),
-            $this->createStub(GetSkusByProductIdsInterface::class)
+            $getProductIdsBySkus,
+            $this->createStub(GetSkusByProductIdsInterface::class),
+            $pageCacheConfig
         );
     }
 }

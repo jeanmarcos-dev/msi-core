@@ -76,7 +76,11 @@ class BundleMax implements HttpGetActionInterface
             return $this->responder->uncacheable($result, $payload);
         }
 
-        return $this->responder->cacheable($result, $productIds, $payload);
+        return $this->responder->cacheable(
+            $result,
+            [...$this->responder->resolveProductIds([$sku]), ...$productIds],
+            $payload
+        );
     }
 
     /**
