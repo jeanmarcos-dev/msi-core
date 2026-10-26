@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventorySales\Plugin\InventoryReservationsApi;
 
 use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Serialize\SerializerInterface;
 use Magento\InventoryReservationsApi\Model\AppendReservationsInterface;
 use Magento\InventoryReservationsApi\Model\ReservationInterface;
 use Magento\InventorySalesApi\Api\AreProductsSalableForRequestedQtyInterface;
@@ -24,13 +25,17 @@ class RejectOversellingReservationsPlugin
 {
     private const EPSILON = 0.000001;
 
+    private const MANUAL_COMPENSATION = 'manual_compensation';
+
     /**
      * @param AreProductsSalableForRequestedQtyInterface $areProductsSalableForRequestedQty
      * @param IsProductSalableForRequestedQtyRequestInterfaceFactory $requestFactory
+     * @param SerializerInterface $serializer
      */
     public function __construct(
         private readonly AreProductsSalableForRequestedQtyInterface $areProductsSalableForRequestedQty,
-        private readonly IsProductSalableForRequestedQtyRequestInterfaceFactory $requestFactory
+        private readonly IsProductSalableForRequestedQtyRequestInterfaceFactory $requestFactory,
+        private readonly SerializerInterface $serializer
     ) {
     }
 
@@ -47,6 +52,9 @@ class RejectOversellingReservationsPlugin
     {
         $netByStock = [];
         foreach ($reservations as $reservation) {
+            if ($this->isManualCompensation($reservation)) {
+                continue;
+            }
             $stockId = $reservation->getStockId();
             $sku = $reservation->getSku();
             $netByStock[$stockId][$sku] = ($netByStock[$stockId][$sku] ?? 0.0) + $reservation->getQuantity();
@@ -65,6 +73,27 @@ class RejectOversellingReservationsPlugin
         }
 
         return $proceed($reservations);
+    }
+
+    /**
+     * Whether the reservation records a compensation written by inventory:reservation:create-compensations.
+     *
+     * @param ReservationInterface $reservation
+     * @return bool
+     */
+    private function isManualCompensation(ReservationInterface $reservation): bool
+    {
+        $metadata = $reservation->getMetadata();
+        if ($metadata === null || $metadata === '') {
+            return false;
+        }
+        try {
+            $data = $this->serializer->unserialize($metadata);
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        return is_array($data) && ($data['event_type'] ?? null) === self::MANUAL_COMPENSATION;
     }
 
     /**

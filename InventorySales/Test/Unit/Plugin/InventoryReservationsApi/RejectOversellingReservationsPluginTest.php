@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventorySales\Test\Unit\Plugin\InventoryReservationsApi;
 
 use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\InventoryReservationsApi\Model\AppendReservationsInterface;
 use Magento\InventoryReservationsApi\Model\ReservationInterface;
 use Magento\InventorySalesApi\Api\AreProductsSalableForRequestedQtyInterface;
@@ -77,7 +78,8 @@ class RejectOversellingReservationsPluginTest extends TestCase
 
         $this->plugin = new RejectOversellingReservationsPlugin(
             $this->areProductsSalableForRequestedQty,
-            $this->requestFactory
+            $this->requestFactory,
+            new Json()
         );
     }
 
@@ -147,6 +149,35 @@ class RejectOversellingReservationsPluginTest extends TestCase
         self::assertSame([3.0], $this->requestedQties);
     }
 
+    public function testLetsAManualCompensationRecordAnOversoldOrder(): void
+    {
+        $this->areProductsSalableForRequestedQty->expects(self::never())->method('execute');
+
+        $this->invokePlugin([$this->reservation(-1.0, 'sku-1', self::STOCK_ID, 'manual_compensation')]);
+
+        self::assertTrue($this->proceedCalled);
+    }
+
+    public function testStillRejectsAnOrderPlacementThatWouldOversell(): void
+    {
+        $this->givenSalability(['sku-1' => false]);
+
+        $this->expectException(CouldNotSaveException::class);
+        $this->invokePlugin([$this->reservation(-1.0, 'sku-1', self::STOCK_ID, 'order_placed')]);
+    }
+
+    public function testChecksOnlyTheDemandThatIsNotAManualCompensation(): void
+    {
+        $this->givenSalability(['sku-1' => true]);
+
+        $this->invokePlugin([
+            $this->reservation(-4.0, 'sku-1', self::STOCK_ID, 'manual_compensation'),
+            $this->reservation(-1.0, 'sku-1', self::STOCK_ID, 'order_placed'),
+        ]);
+
+        self::assertSame([1.0], $this->requestedQties);
+    }
+
     public function testChecksEachStockSeparately(): void
     {
         $this->areProductsSalableForRequestedQty->expects(self::exactly(2))
@@ -182,12 +213,19 @@ class RejectOversellingReservationsPluginTest extends TestCase
         return $result;
     }
 
-    private function reservation(float $qty, string $sku, int $stockId = self::STOCK_ID): ReservationInterface
-    {
+    private function reservation(
+        float $qty,
+        string $sku,
+        int $stockId = self::STOCK_ID,
+        ?string $eventType = null
+    ): ReservationInterface {
         $reservation = $this->createMock(ReservationInterface::class);
         $reservation->method('getQuantity')->willReturn($qty);
         $reservation->method('getSku')->willReturn($sku);
         $reservation->method('getStockId')->willReturn($stockId);
+        $reservation->method('getMetadata')->willReturn(
+            $eventType === null ? null : json_encode(['event_type' => $eventType, 'object_type' => 'order'])
+        );
 
         return $reservation;
     }

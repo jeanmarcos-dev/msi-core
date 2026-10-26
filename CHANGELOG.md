@@ -17,6 +17,21 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### `create-compensations` can record an order that was already oversold
+
+The oversell guard on the reservation append rejected every negative reservation for a SKU that was
+no longer salable, including the ones `inventory:reservation:create-compensations` writes. When an
+open order had lost its reservation and its last unit had since been sold to another order, the
+compensation that records it failed with *Not enough salable quantity to reserve*. The salable
+quantity stayed at 0 instead of -1, so the oversell stayed hidden from the merchant. The output also
+printed "Following reservations were created:" above the error. Compensations written by the command
+(`event_type` `manual_compensation`) now skip the guard, because they record a sale that already
+happened. Orders placed through checkout, the API or the admin are still checked.
+
+---
+
 # msi-core 1.1.2 — 2026-10-17
 
 ### A placement that fails after reserving gives its stock back
