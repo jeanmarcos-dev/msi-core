@@ -108,7 +108,11 @@ purged at three seams, all best-effort: a failure is logged and never breaks che
 <StockVisualizerPurgeDiagram />
 
 All three feed one decider, `ResolveSkusToPurge`, which applies the enabled gate and the display-mode
-rules, and `DispatchPurge`, which either flushes synchronously or offloads to the queue. The async path
+rules, and `DispatchPurge`, which either flushes synchronously or offloads to the queue. Purges run in
+admin, cron and consumer context, outside any storefront request, so the gate and the rules look at
+every store view: a SKU is purged when any store view that shows the panel would display it
+differently, judged with that store view's own display type and thresholds. The tag is per product, so
+one purge refreshes the fragment in every store. The async path
 collapses a burst of writes for the same SKU into a single purge through a short-lived cache guard; the
 consumer clears the guard first and then flushes live state, so the last write wins.
 

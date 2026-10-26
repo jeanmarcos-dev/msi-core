@@ -9,9 +9,9 @@ namespace Magento\InventoryStockVisualizer\Test\Unit\Model\Cache;
 
 use Magento\Framework\App\CacheInterface;
 use Magento\InventoryStockVisualizer\Model\Cache\DispatchPurge;
+use Magento\InventoryStockVisualizer\Model\Cache\GetEnabledStoreIds;
 use Magento\InventoryStockVisualizer\Model\Cache\PurgeBySkus;
 use Magento\InventoryStockVisualizer\Model\Cache\PurgeConsumer;
-use Magento\InventoryStockVisualizer\Model\Config;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -34,9 +34,9 @@ class PurgeConsumerTest extends TestCase
     private $cache;
 
     /**
-     * @var Config|MockObject
+     * @var GetEnabledStoreIds|MockObject
      */
-    private $config;
+    private $enabledStores;
 
     /**
      * @var LoggerInterface|MockObject
@@ -56,10 +56,10 @@ class PurgeConsumerTest extends TestCase
         parent::setUp();
         $this->purgeBySkus = $this->createMock(PurgeBySkus::class);
         $this->cache = $this->createMock(CacheInterface::class);
-        $this->config = $this->createMock(Config::class);
+        $this->enabledStores = $this->createMock(GetEnabledStoreIds::class);
         $this->logger = $this->createMock(LoggerInterface::class);
 
-        $this->model = new PurgeConsumer($this->purgeBySkus, $this->cache, $this->config, $this->logger);
+        $this->model = new PurgeConsumer($this->purgeBySkus, $this->cache, $this->enabledStores, $this->logger);
     }
 
     /**
@@ -69,8 +69,16 @@ class PurgeConsumerTest extends TestCase
      */
     public function testClearsGuardAndPurges(): void
     {
-        $this->config->method('isEnabled')->willReturn(true);
+        $this->enabledStores->method('execute')->willReturn([1]);
         $this->cache->expects($this->once())->method('remove')->with(DispatchPurge::GUARD_PREFIX . self::SKU);
+        $this->purgeBySkus->expects($this->once())->method('execute')->with([self::SKU]);
+
+        $this->model->process(self::SKU);
+    }
+
+    public function testAPanelEnabledOnlyOnAStoreViewStillPurges(): void
+    {
+        $this->enabledStores->method('execute')->willReturn([2]);
         $this->purgeBySkus->expects($this->once())->method('execute')->with([self::SKU]);
 
         $this->model->process(self::SKU);
@@ -83,7 +91,7 @@ class PurgeConsumerTest extends TestCase
      */
     public function testDisabledClearsGuardWithoutPurging(): void
     {
-        $this->config->method('isEnabled')->willReturn(false);
+        $this->enabledStores->method('execute')->willReturn([]);
         $this->cache->expects($this->once())->method('remove')->with(DispatchPurge::GUARD_PREFIX . self::SKU);
         $this->purgeBySkus->expects($this->never())->method('execute');
 
@@ -97,7 +105,7 @@ class PurgeConsumerTest extends TestCase
      */
     public function testSwallowsAndLogsFailure(): void
     {
-        $this->config->method('isEnabled')->willReturn(true);
+        $this->enabledStores->method('execute')->willReturn([1]);
         $this->purgeBySkus->method('execute')->willThrowException(new \RuntimeException('boom'));
         $this->logger->expects($this->once())->method('error');
 

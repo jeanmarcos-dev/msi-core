@@ -19,6 +19,16 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### The stock visualizer purges for every store view that shows it
+
+The purge paths run in admin, cron and consumer context, where the store-scoped settings resolve to
+the default scope. With the panel off by default and on for one store view, no purge ever ran, and
+that store kept serving the availability it had cached. A store view showing the exact quantity
+under a default in level mode was purged only when the default's level changed, so it showed stale
+numbers. The purge now runs when any store view shows the panel, and a SKU is purged when any of
+those store views would display it differently with its own display type and thresholds. Reported by
+Ryan Hoerr in [msi-core#10](https://github.com/jeanmarcos-dev/msi-core/issues/10).
+
 ### Inventory locks work on MySQL
 
 The per-source checkout lock was named `inv_src_` plus two md5 hashes, 73 characters. MySQL 5.7.5

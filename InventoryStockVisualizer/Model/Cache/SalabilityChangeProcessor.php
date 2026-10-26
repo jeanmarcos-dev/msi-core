@@ -9,7 +9,6 @@ namespace Magento\InventoryStockVisualizer\Model\Cache;
 
 use Magento\InventoryIndexer\Indexer\SourceItem\CompositeProductProcessorInterface;
 use Magento\InventoryIndexer\Model\GetProductsIdsToProcess;
-use Magento\InventoryStockVisualizer\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -23,14 +22,14 @@ use Psr\Log\LoggerInterface;
 class SalabilityChangeProcessor implements CompositeProductProcessorInterface
 {
     /**
-     * @param Config $config
+     * @param GetEnabledStoreIds $getEnabledStoreIds
      * @param GetProductsIdsToProcess $getProductsIdsToProcess
      * @param FlushStockVisualizerCache $flushStockVisualizerCache
      * @param LoggerInterface $logger
      * @param int $sortOrder
      */
     public function __construct(
-        private readonly Config $config,
+        private readonly GetEnabledStoreIds $getEnabledStoreIds,
         private readonly GetProductsIdsToProcess $getProductsIdsToProcess,
         private readonly FlushStockVisualizerCache $flushStockVisualizerCache,
         private readonly LoggerInterface $logger,
@@ -46,7 +45,7 @@ class SalabilityChangeProcessor implements CompositeProductProcessorInterface
      */
     public function process(array $saleableStatusesBeforeSync, array $saleableStatusesAfterSync): void
     {
-        if (!$this->config->isEnabled()) {
+        if ($this->getEnabledStoreIds->execute() === []) {
             return;
         }
         try {

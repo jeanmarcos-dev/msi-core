@@ -10,10 +10,10 @@ namespace Magento\InventoryStockVisualizer\Test\Unit\Plugin\InventoryApi;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
 use Magento\InventoryStockVisualizer\Model\Cache\DispatchPurge;
+use Magento\InventoryStockVisualizer\Model\Cache\GetEnabledStoreIds;
 use Magento\InventoryStockVisualizer\Model\Cache\ResolveSkusToPurge;
 use Magento\InventoryStockVisualizer\Model\Cache\SnapshotSourceItemQty;
 use Magento\InventoryStockVisualizer\Model\Cache\SourceItemDeltaBuilder;
-use Magento\InventoryStockVisualizer\Model\Config;
 use Magento\InventoryStockVisualizer\Plugin\InventoryApi\PurgeOnSourceItemsSave;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -25,9 +25,9 @@ use Psr\Log\LoggerInterface;
 class PurgeOnSourceItemsSaveTest extends TestCase
 {
     /**
-     * @var Config|MockObject
+     * @var GetEnabledStoreIds|MockObject
      */
-    private $config;
+    private $enabledStores;
 
     /**
      * @var SnapshotSourceItemQty|MockObject
@@ -65,7 +65,7 @@ class PurgeOnSourceItemsSaveTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->config = $this->createMock(Config::class);
+        $this->enabledStores = $this->createMock(GetEnabledStoreIds::class);
         $this->snapshot = $this->createMock(SnapshotSourceItemQty::class);
         $this->deltaBuilder = $this->createMock(SourceItemDeltaBuilder::class);
         $this->resolveSkusToPurge = $this->createMock(ResolveSkusToPurge::class);
@@ -73,7 +73,7 @@ class PurgeOnSourceItemsSaveTest extends TestCase
         $this->subject = $this->createMock(SourceItemsSaveInterface::class);
 
         $this->plugin = new PurgeOnSourceItemsSave(
-            $this->config,
+            $this->enabledStores,
             $this->snapshot,
             $this->deltaBuilder,
             $this->resolveSkusToPurge,
@@ -93,7 +93,7 @@ class PurgeOnSourceItemsSaveTest extends TestCase
         $snapshot = ['SKU-1|slr_a' => 5.0];
         $deltas = [10 => ['SKU-1' => ['total' => -2.0, 'bySource' => ['slr_a' => -2.0]]]];
 
-        $this->config->method('isEnabled')->willReturn(true);
+        $this->enabledStores->method('execute')->willReturn([1]);
         $this->snapshot->expects($this->once())->method('execute')->with($items)->willReturn($snapshot);
         $this->deltaBuilder->expects($this->once())->method('build')->with($items, $snapshot)->willReturn($deltas);
         $this->resolveSkusToPurge->expects($this->once())->method('execute')->with($deltas)->willReturn(['SKU-1']);
@@ -101,6 +101,20 @@ class PurgeOnSourceItemsSaveTest extends TestCase
 
         $this->plugin->beforeExecute($this->subject, $items);
         $this->assertNull($this->plugin->afterExecute($this->subject, null, $items));
+    }
+
+    public function testAPanelEnabledOnlyOnAStoreViewStillPurges(): void
+    {
+        $items = [$this->createMock(SourceItemInterface::class)];
+        $deltas = [10 => ['SKU-1' => ['total' => -2.0, 'bySource' => ['slr_a' => -2.0]]]];
+        $this->enabledStores->method('execute')->willReturn([2]);
+        $this->snapshot->expects($this->once())->method('execute')->willReturn(['SKU-1|slr_a' => 5.0]);
+        $this->deltaBuilder->method('build')->willReturn($deltas);
+        $this->resolveSkusToPurge->method('execute')->willReturn(['SKU-1']);
+        $this->dispatchPurge->expects($this->once())->method('execute')->with(['SKU-1']);
+
+        $this->plugin->beforeExecute($this->subject, $items);
+        $this->plugin->afterExecute($this->subject, null, $items);
     }
 
     /**
@@ -111,7 +125,7 @@ class PurgeOnSourceItemsSaveTest extends TestCase
     public function testDisabledDoesNothing(): void
     {
         $items = [$this->createMock(SourceItemInterface::class)];
-        $this->config->method('isEnabled')->willReturn(false);
+        $this->enabledStores->method('execute')->willReturn([]);
         $this->snapshot->expects($this->never())->method('execute');
         $this->deltaBuilder->expects($this->never())->method('build');
         $this->dispatchPurge->expects($this->never())->method('execute');
@@ -128,7 +142,7 @@ class PurgeOnSourceItemsSaveTest extends TestCase
     public function testNoDeltasDoesNotDispatch(): void
     {
         $items = [$this->createMock(SourceItemInterface::class)];
-        $this->config->method('isEnabled')->willReturn(true);
+        $this->enabledStores->method('execute')->willReturn([1]);
         $this->snapshot->method('execute')->willReturn([]);
         $this->deltaBuilder->method('build')->willReturn([]);
         $this->resolveSkusToPurge->expects($this->never())->method('execute');

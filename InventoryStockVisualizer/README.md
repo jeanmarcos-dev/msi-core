@@ -129,6 +129,10 @@ flowchart LR
 - **Shared decider** — all three seams feed `ResolveSkusToPurge`, which applies
   the enabled gate and the display-mode rules, and `DispatchPurge`, which either
   flushes synchronously or offloads to the queue.
+- **Every store view counts** — the seams run outside a storefront request, so the
+  gate passes when any store view shows the panel, and a SKU is purged when any of
+  those store views would display it differently with its own display type and
+  thresholds. The tag is per product, so one purge refreshes every store.
 - **Coalescing** — the async path collapses a burst of writes for the same SKU
   into a single purge via a short-lived cache guard, so hot SKUs don't flood the
   queue. The consumer clears the guard first and then flushes live state, so the

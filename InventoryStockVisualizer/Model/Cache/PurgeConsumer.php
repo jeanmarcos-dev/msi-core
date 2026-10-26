@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Magento\InventoryStockVisualizer\Model\Cache;
 
 use Magento\Framework\App\CacheInterface;
-use Magento\InventoryStockVisualizer\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -24,18 +23,20 @@ class PurgeConsumer
     /**
      * @param PurgeBySkus $purgeBySkus
      * @param CacheInterface $cache
-     * @param Config $config
+     * @param GetEnabledStoreIds $getEnabledStoreIds
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly PurgeBySkus $purgeBySkus,
         private readonly CacheInterface $cache,
-        private readonly Config $config,
+        private readonly GetEnabledStoreIds $getEnabledStoreIds,
         private readonly LoggerInterface $logger
     ) {
     }
 
     /**
+     * Reopen the coalescing guard of the SKU and purge its fragment while a store view shows the panel.
+     *
      * @param string $sku
      * @return void
      */
@@ -43,7 +44,7 @@ class PurgeConsumer
     {
         try {
             $this->cache->remove(DispatchPurge::GUARD_PREFIX . $sku);
-            if ($sku === '' || !$this->config->isEnabled()) {
+            if ($sku === '' || $this->getEnabledStoreIds->execute() === []) {
                 return;
             }
             $this->purgeBySkus->execute([$sku]);
