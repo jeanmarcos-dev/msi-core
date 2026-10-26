@@ -26,8 +26,11 @@ the default scope. With the panel off by default and on for one store view, no p
 that store kept serving the availability it had cached. A store view showing the exact quantity
 under a default in level mode was purged only when the default's level changed, so it showed stale
 numbers. The purge now runs when any store view shows the panel, and a SKU is purged when any of
-those store views would display it differently with its own display type and thresholds. Reported by
-Ryan Hoerr in [msi-core#10](https://github.com/jeanmarcos-dev/msi-core/issues/10).
+those store views would display it differently with its own display type and thresholds. The
+module's `composer.json` also declares the Bundle, Configurable Product, Grouped Product and
+Inventory Configuration API modules it uses, so `module:disable` no longer lets one of them go while
+the panel needs it. Reported by Ryan Hoerr in
+[msi-core#10](https://github.com/jeanmarcos-dev/msi-core/issues/10).
 
 ### Inventory locks work on MySQL
 

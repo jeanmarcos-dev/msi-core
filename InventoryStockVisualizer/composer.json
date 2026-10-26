@@ -10,19 +10,26 @@
     "require": {
         "php": "~8.3.0||~8.4.0||~8.5.0",
         "magento/framework": "103.0.*",
+        "magento/module-bundle": "101.0.*",
         "magento/module-catalog": "104.0.*",
         "magento/module-config": "101.2.*",
+        "magento/module-configurable-product": "100.4.*",
         "magento/module-eav": "102.1.*",
+        "magento/module-grouped-product": "100.4.*",
         "magento/module-inventory-api": "1.2.*",
         "magento/module-inventory-catalog": "1.3.*",
         "magento/module-inventory-catalog-api": "1.3.*",
         "magento/module-inventory-cache": "1.2.*",
+        "magento/module-inventory-configuration-api": "1.2.*",
         "magento/module-inventory-indexer": "1.2.*",
         "magento/module-inventory-reservations-api": "1.2.*",
         "magento/module-inventory-sales": "1.3.*",
         "magento/module-inventory-sales-api": "1.2.*",
         "magento/module-page-cache": "100.4.*",
         "magento/module-store": "101.1.*"
+    },
+    "suggest": {
+        "magento/module-downloadable": "Removes the core availability badge from downloadable product pages"
     },
     "autoload": {
         "files": [
