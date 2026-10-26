@@ -93,6 +93,9 @@ Per-product overrides (attribute group *Stock Visualizer*) cover the display typ
 and the level thresholds: `stockviz_display_type`, `stockviz_level_basis`,
 `stockviz_level_high`, `stockviz_level_low`, `stockviz_full_qty` (the percentage
 reference). Scope, delivery mode and the composite modes are store-scoped only.
+Every AJAX fragment follows the effective display type of the product it
+describes. A selected configurable variant shows a level when either the
+configurable or the variant is set to level.
 
 ## Cache invalidation
 

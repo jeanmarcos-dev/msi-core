@@ -124,7 +124,7 @@ class StockViewSerializerTest extends TestCase
         $config = $this->createMock(Config::class);
         $config->method('getDisplayType')->willReturn(Config::DISPLAY_TYPE_LEVEL);
         $config->method('getScope')->willReturn(Config::SCOPE_PER_SOURCE);
-        $displayConfig = $this->createMock(DisplayConfig::class);
+        $displayConfig = $this->displayConfig(Config::DISPLAY_TYPE_LEVEL);
         $this->resolveDisplayConfig->method('forSku')->willReturn($displayConfig);
         $this->levelResolver->method('resolve')->willReturnMap([
             [15.0, $displayConfig, 'high'],
@@ -144,5 +144,95 @@ class StockViewSerializerTest extends TestCase
             $payload
         );
         $this->assertArrayNotHasKey('qty', $payload);
+    }
+
+    public function testAProductOverriddenToQuantityGetsTheQuantityOnALevelStore(): void
+    {
+        $config = $this->createMock(Config::class);
+        $config->method('getDisplayType')->willReturn(Config::DISPLAY_TYPE_LEVEL);
+        $config->method('getScope')->willReturn(Config::SCOPE_AGGREGATE);
+        $this->resolveDisplayConfig->method('forSku')->with('SKU-1')
+            ->willReturn($this->displayConfig(Config::DISPLAY_TYPE_QUANTITY));
+
+        $payload = (new StockViewSerializer($config, $this->levelResolver, $this->resolveDisplayConfig))
+            ->serialize(new StockView('SKU-1', 2, 15.0, true, []));
+
+        $this->assertSame(['qty' => 15.0], $payload);
+    }
+
+    public function testAProductOverriddenToLevelGetsNoQuantityOnAQuantityStore(): void
+    {
+        $this->config->method('getScope')->willReturn(Config::SCOPE_AGGREGATE);
+        $displayConfig = $this->displayConfig(Config::DISPLAY_TYPE_LEVEL);
+        $this->resolveDisplayConfig->method('forSku')->with('SKU-1')->willReturn($displayConfig);
+        $this->levelResolver->method('resolve')->with(15.0, $displayConfig)->willReturn('high');
+
+        $payload = $this->serializer()->serialize(new StockView('SKU-1', 2, 15.0, true, []));
+
+        $this->assertSame(['level' => 'high', 'salable' => true], $payload);
+    }
+
+    public function testARequestedLevelHidesTheQuantityOfAQuantityProduct(): void
+    {
+        $this->config->method('getScope')->willReturn(Config::SCOPE_AGGREGATE);
+        $displayConfig = $this->displayConfig(Config::DISPLAY_TYPE_QUANTITY);
+        $this->resolveDisplayConfig->method('forSku')->willReturn($displayConfig);
+        $this->levelResolver->method('resolve')->with(15.0, $displayConfig)->willReturn('high');
+
+        $payload = $this->serializer()->serialize(new StockView('SKU-1', 2, 15.0, true, []), true);
+
+        $this->assertSame(['level' => 'high', 'salable' => true], $payload);
+    }
+
+    public function testChildrenFollowTheParentOverriddenToQuantityOnALevelStore(): void
+    {
+        $config = $this->createMock(Config::class);
+        $config->method('getDisplayType')->willReturn(Config::DISPLAY_TYPE_LEVEL);
+        $this->resolveDisplayConfig->method('forSku')->willReturnMap([
+            ['GRP-1', null, $this->displayConfig(Config::DISPLAY_TYPE_QUANTITY)],
+            ['CH-A', null, $this->displayConfig(Config::DISPLAY_TYPE_LEVEL)],
+        ]);
+        $view = new StockView('GRP-1', 2, 0.0, true, [], true, true, [
+            new ChildView('CH-A', 'Item A', 30.0, true),
+        ]);
+
+        $payload = (new StockViewSerializer($config, $this->levelResolver, $this->resolveDisplayConfig))
+            ->serializeChildren($view);
+
+        $this->assertSame(
+            [
+                'salable' => true,
+                'children' => [['sku' => 'CH-A', 'label' => 'Item A', 'salable' => true, 'qty' => 30.0]],
+            ],
+            $payload
+        );
+    }
+
+    public function testChildrenFollowTheParentOverriddenToLevelOnAQuantityStore(): void
+    {
+        $childConfig = $this->displayConfig(Config::DISPLAY_TYPE_QUANTITY);
+        $this->resolveDisplayConfig->method('forSku')->willReturnMap([
+            ['GRP-1', null, $this->displayConfig(Config::DISPLAY_TYPE_LEVEL)],
+            ['CH-A', null, $childConfig],
+        ]);
+        $this->levelResolver->method('resolve')->with(30.0, $childConfig)->willReturn('high');
+        $view = new StockView('GRP-1', 2, 0.0, true, [], true, true, [
+            new ChildView('CH-A', 'Item A', 30.0, true),
+        ]);
+
+        $payload = $this->serializer()->serializeChildren($view);
+
+        $this->assertSame(
+            [
+                'salable' => true,
+                'children' => [['sku' => 'CH-A', 'label' => 'Item A', 'salable' => true, 'level' => 'high']],
+            ],
+            $payload
+        );
+    }
+
+    private function displayConfig(string $displayType): DisplayConfig
+    {
+        return new DisplayConfig($displayType, Config::LEVEL_BASIS_QUANTITY, 10.0, 3.0, null);
     }
 }

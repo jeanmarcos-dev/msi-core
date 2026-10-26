@@ -44,7 +44,7 @@ class View implements HttpGetActionInterface
      *
      * The stock and product id are derived server-side from the website context and the
      * SKU, so request-supplied ids cannot decouple the cache tag from the data or flood
-     * the cache key. Level mode never reaches here (guarded), so quantities never leak.
+     * the cache key. A level display, the product's own or the requested one, never sends a quantity.
      *
      * @return Json
      */
@@ -63,7 +63,7 @@ class View implements HttpGetActionInterface
         try {
             $stockId = $this->getStockIdForCurrentWebsite->execute();
             $view = $this->getStockView->execute($sku, $stockId);
-            $data = $this->stockViewSerializer->serialize($view);
+            $data = $this->stockViewSerializer->serialize($view, (bool) $this->request->getParam('level'));
             $productId = $this->responder->resolveProductId($sku);
         } catch (\Throwable $e) {
             return $this->responder->uncacheable($result, null);

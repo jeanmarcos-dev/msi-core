@@ -15,6 +15,7 @@ use Magento\InventoryStockVisualizer\Api\GetStockViewInterface;
 use Magento\InventoryStockVisualizer\Controller\FragmentResponder;
 use Magento\InventoryStockVisualizer\Model\Availability\GetGroupedSetsMax;
 use Magento\InventoryStockVisualizer\Model\Config;
+use Magento\InventoryStockVisualizer\Model\ResolveDisplayConfig;
 use Magento\InventoryStockVisualizer\Model\StockViewSerializer;
 
 /**
@@ -34,6 +35,7 @@ class Children implements HttpGetActionInterface
      * @param GetStockIdForCurrentWebsite $getStockIdForCurrentWebsite
      * @param GetGroupedSetsMax $getGroupedSetsMax
      * @param FragmentResponder $responder
+     * @param ResolveDisplayConfig $resolveDisplayConfig
      */
     public function __construct(
         private readonly RequestInterface $request,
@@ -42,7 +44,8 @@ class Children implements HttpGetActionInterface
         private readonly StockViewSerializer $stockViewSerializer,
         private readonly GetStockIdForCurrentWebsite $getStockIdForCurrentWebsite,
         private readonly GetGroupedSetsMax $getGroupedSetsMax,
-        private readonly FragmentResponder $responder
+        private readonly FragmentResponder $responder,
+        private readonly ResolveDisplayConfig $resolveDisplayConfig
     ) {
     }
 
@@ -109,7 +112,7 @@ class Children implements HttpGetActionInterface
         }
 
         // Level display exposes no exact numbers, so the set count collapses to a coarse flag.
-        if ($this->config->getDisplayType() === Config::DISPLAY_TYPE_LEVEL) {
+        if ($this->resolveDisplayConfig->forSku($sku)->isLevel()) {
             return $sets > 0 ? 1 : 0;
         }
 

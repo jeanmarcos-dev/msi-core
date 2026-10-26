@@ -93,9 +93,10 @@ class BundleMax implements HttpGetActionInterface
         if ($max === null) {
             return null;
         }
-        if ($this->config->getDisplayType() === Config::DISPLAY_TYPE_LEVEL) {
+        $displayConfig = $this->resolveDisplayConfig->forSku($sku);
+        if ($displayConfig->isLevel()) {
             return [
-                'level' => $this->levelResolver->resolve((float) $max, $this->resolveDisplayConfig->forSku($sku)),
+                'level' => $this->levelResolver->resolve((float) $max, $displayConfig),
                 'salable' => $max > 0,
             ];
         }

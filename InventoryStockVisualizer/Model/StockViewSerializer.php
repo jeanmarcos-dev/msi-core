@@ -35,16 +35,18 @@ class StockViewSerializer
      * only the salable status is sent. In level display the number is replaced by a coarse level.
      *
      * @param StockViewInterface $view
+     * @param bool $level
      * @return array<string, mixed>
      */
-    public function serialize(StockViewInterface $view): array
+    public function serialize(StockViewInterface $view, bool $level = false): array
     {
         if ($view->isAggregateOnly()) {
             return ['aggregateOnly' => true, 'salable' => $view->isSalable()];
         }
 
-        if ($this->config->getDisplayType() === Config::DISPLAY_TYPE_LEVEL) {
-            return $this->serializeLevel($view);
+        $displayConfig = $this->resolveDisplayConfig->forSku($view->getSku());
+        if ($level || $displayConfig->isLevel()) {
+            return $this->serializeLevel($view, $displayConfig);
         }
 
         $data = ['qty' => $view->getSalableQty()];
@@ -70,7 +72,7 @@ class StockViewSerializer
      */
     public function serializeChildren(StockViewInterface $view): array
     {
-        $level = $this->config->getDisplayType() === Config::DISPLAY_TYPE_LEVEL;
+        $level = $this->resolveDisplayConfig->forSku($view->getSku())->isLevel();
         $children = [];
         foreach ($view->getChildren() as $child) {
             $row = [
@@ -98,11 +100,11 @@ class StockViewSerializer
      * The per-source scope adds a source_code => level map. No exact quantity leaves the server.
      *
      * @param StockViewInterface $view
+     * @param DisplayConfig $displayConfig
      * @return array<string, mixed>
      */
-    private function serializeLevel(StockViewInterface $view): array
+    private function serializeLevel(StockViewInterface $view, DisplayConfig $displayConfig): array
     {
-        $displayConfig = $this->resolveDisplayConfig->forSku($view->getSku());
         $data = [
             'level' => $this->levelResolver->resolve($view->getSalableQty(), $displayConfig),
             'salable' => $view->getSalableQty() > 0.0,

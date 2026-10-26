@@ -30,6 +30,17 @@ printed "Following reservations were created:" above the error. Compensations wr
 (`event_type` `manual_compensation`) now skip the guard, because they record a sale that already
 happened. Orders placed through checkout, the API or the admin are still checked.
 
+### The stock visualizer honours a per-product display type
+
+The panel picked its component from the product's effective display type, which includes the
+*Stock Visualizer* override. The AJAX fragments still shaped their payload from the store setting.
+With the default `level` display and one product set to *Exact quantity*, the fragment sent a level
+and the component read a missing quantity, so an in-stock product showed *Out of stock*. With the
+opposite override on a configurable, bundle or grouped product, the panel showed *Out of stock* as
+well, and the fragment carried the exact quantity the product was set to hide. Every fragment now
+follows the effective display type of the product it describes. On a configurable in variant mode,
+the selected variant shows a level when the configurable or the variant is set to level.
+
 ---
 
 # msi-core 1.1.2 — 2026-10-17

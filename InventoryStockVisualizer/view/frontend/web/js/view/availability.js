@@ -250,7 +250,7 @@ define([
                 type: 'GET',
                 dataType: 'json',
                 cache: true,
-                data: { product_id: productId, _cv: this.configVersion }
+                data: { product_id: productId, level: this.levelDisplay ? 1 : 0, _cv: this.configVersion }
             }).done(function (response) {
                 self._fillVariant(response && response.data ? response.data : null);
             }).fail(function () {
@@ -272,7 +272,7 @@ define([
             }
             this.showPrompt(false);
 
-            if (this.levelDisplay) {
+            if (typeof data.level !== 'undefined') {
                 var level = data.level || 'out';
 
                 this.statusLevel(level);
