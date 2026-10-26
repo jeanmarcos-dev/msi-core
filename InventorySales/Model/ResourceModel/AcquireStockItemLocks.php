@@ -50,6 +50,11 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     private $getSourcesAssignedToStock;
 
     /**
+     * @var InventoryLockName
+     */
+    private $inventoryLockName;
+
+    /**
      * @var array<string,int>
      */
     private $acquiredLocks = [];
@@ -62,13 +67,16 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
     /**
      * @param ResourceConnection $resourceConnection
      * @param GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock
+     * @param InventoryLockName $inventoryLockName
      */
     public function __construct(
         ResourceConnection $resourceConnection,
-        GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock
+        GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock,
+        InventoryLockName $inventoryLockName
     ) {
         $this->resourceConnection = $resourceConnection;
         $this->getSourcesAssignedToStock = $getSourcesAssignedToStock;
+        $this->inventoryLockName = $inventoryLockName;
     }
 
     /**
@@ -300,8 +308,7 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
      */
     private function sourceLockName(string $sku, string $sourceCode): string
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        return sprintf('inv_src_%s_%s', md5($sourceCode), md5($sku));
+        return $this->inventoryLockName->build(InventoryLockName::SOURCE, $sourceCode, $sku);
     }
 
     /**
@@ -313,8 +320,7 @@ class AcquireStockItemLocks implements ResetAfterRequestInterface
      */
     private function stockLockName(string $sku, int $stockId): string
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        return sprintf('inv_stk_%d_%s', $stockId, md5($sku));
+        return $this->inventoryLockName->build(InventoryLockName::STOCK, (string)$stockId, $sku);
     }
 
     /**

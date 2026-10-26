@@ -7,12 +7,14 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Test\Unit\Model\ResourceModel;
 
+use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
 use Magento\InventorySales\Model\ResourceModel\AcquireStockItemLocks;
+use Magento\InventorySales\Model\ResourceModel\InventoryLockName;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -32,6 +34,11 @@ class AcquireStockItemLocksTest extends TestCase
     private $getSourcesMock;
 
     /**
+     * @var InventoryLockName
+     */
+    private InventoryLockName $lockName;
+
+    /**
      * @var array
      */
     private array $queries = [];
@@ -47,9 +54,13 @@ class AcquireStockItemLocksTest extends TestCase
     protected function setUp(): void
     {
         $this->getSourcesMock = $this->createMock(GetSourcesAssignedToStockOrderedByPriorityInterface::class);
+        $deploymentConfig = $this->createStub(DeploymentConfig::class);
+        $deploymentConfig->method('get')->willReturn('shop');
+        $this->lockName = new InventoryLockName($deploymentConfig);
         $this->model = new AcquireStockItemLocks(
             $this->createMock(ResourceConnection::class),
-            $this->getSourcesMock
+            $this->getSourcesMock,
+            $this->lockName
         );
     }
 
@@ -102,8 +113,23 @@ class AcquireStockItemLocksTest extends TestCase
 
         $names = $this->model->buildOrderedLockNames(['sku1'], 7);
 
-        $this->assertCount(1, $names);
-        $this->assertStringStartsWith('inv_stk_7_', $names[0]);
+        $this->assertSame([$this->lockName->build(InventoryLockName::STOCK, '7', 'sku1')], $names);
+    }
+
+    public function testSourceLockNamesComeFromTheInstallationScopedBuilder(): void
+    {
+        $this->getSourcesMock->method('execute')->willReturn([
+            $this->source('src_b', true),
+            $this->source('src_a', true),
+        ]);
+        $expected = [
+            $this->lockName->build(InventoryLockName::SOURCE, 'src_a', 'sku1'),
+            $this->lockName->build(InventoryLockName::SOURCE, 'src_b', 'sku1'),
+        ];
+        sort($expected, SORT_STRING);
+
+        $this->assertSame($expected, $this->model->buildOrderedLockNames(['sku1'], 5));
+        $this->assertSame($expected, $this->model->buildOrderedSourceLockNames(['sku1'], ['src_b', 'src_a']));
     }
 
     /**
@@ -146,7 +172,7 @@ class AcquireStockItemLocksTest extends TestCase
         $connection = $this->createMock(AdapterInterface::class);
         $resourceConnection = $this->createMock(ResourceConnection::class);
         $resourceConnection->method('getConnection')->willReturn($connection);
-        $model = new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock);
+        $model = new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock, $this->lockName);
         $queries = [];
         $connection->method('fetchOne')->willReturnCallback(function (string $sql, array $bind) use (&$queries) {
             $queries[] = [strtok($sql, '('), $bind[0]];
@@ -249,7 +275,7 @@ class AcquireStockItemLocksTest extends TestCase
             }
         );
 
-        return new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock);
+        return new AcquireStockItemLocks($resourceConnection, $this->getSourcesMock, $this->lockName);
     }
 
     /**

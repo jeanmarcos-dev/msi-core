@@ -19,6 +19,21 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Inventory locks work on MySQL
+
+The per-source checkout lock was named `inv_src_` plus two md5 hashes, 73 characters. MySQL 5.7.5
+and later reject `GET_LOCK` names longer than 64, so on MySQL every order with managed stock failed
+with *Could not acquire inventory lock for the requested items*. MariaDB accepts long names, which
+hid it. Every inventory lock (checkout, bulk source transfer and compensation) is now named after its
+family plus one md5 of its parts, 40 to 46 characters. The hash includes the database name, so two
+installations that share a database server, such as staging and production, no longer wait on each
+other's locks.
+
+While the old and the new code run side by side during a deploy, they name the same lock
+differently and do not exclude each other. Deploy in maintenance mode, as Magento recommends, and
+there is no such window. Reported by Ryan Hoerr in
+[msi-core#10](https://github.com/jeanmarcos-dev/msi-core/issues/10).
+
 ### `create-compensations` can record an order that was already oversold
 
 The oversell guard on the reservation append rejected every negative reservation for a SKU that was

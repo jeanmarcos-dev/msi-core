@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventorySales\Model\ResourceModel\SourceReservation;
 
 use Magento\Framework\App\ResourceConnection;
+use Magento\InventorySales\Model\ResourceModel\InventoryLockName;
 
 /**
  * Advisory locks that serialise concurrent compensation writes for the same
@@ -23,9 +24,11 @@ class ReservationClampLock
 
     /**
      * @param ResourceConnection $resourceConnection
+     * @param InventoryLockName $inventoryLockName
      */
     public function __construct(
-        private readonly ResourceConnection $resourceConnection
+        private readonly ResourceConnection $resourceConnection,
+        private readonly InventoryLockName $inventoryLockName
     ) {
     }
 
@@ -84,8 +87,11 @@ class ReservationClampLock
     {
         $names = [];
         foreach ($items as $item) {
-            // phpcs:ignore Magento2.Security.InsecureFunction
-            $names[] = sprintf('inv_rsv_clamp_%d_%s', $item['stock_id'], md5($item['sku']));
+            $names[] = $this->inventoryLockName->build(
+                InventoryLockName::CLAMP,
+                (string)(int)$item['stock_id'],
+                (string)$item['sku']
+            );
         }
         $names = array_values(array_unique($names));
         sort($names, SORT_STRING);
