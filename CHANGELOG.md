@@ -17,7 +17,7 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.1.3 — 2026-10-27
 
 ### Shipments without a source accept items with unmanaged stock again
 
