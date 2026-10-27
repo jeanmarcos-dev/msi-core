@@ -18,6 +18,18 @@
       "PRIMARY": true
     }
   },
+  "inventory_reservation_order_balance": {
+    "column": {
+      "object_increment_id": true,
+      "stock_id": true,
+      "sku": true,
+      "source_code": true,
+      "balance": true
+    },
+    "constraint": {
+      "PRIMARY": true
+    }
+  },
   "patch_list": {
     "column": {
       "patch_id": true,

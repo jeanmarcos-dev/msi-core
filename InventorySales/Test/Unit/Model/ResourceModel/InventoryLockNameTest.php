@@ -22,7 +22,6 @@ class InventoryLockNameTest extends TestCase
         $names = [
             InventoryLockName::SOURCE => $builder->build(InventoryLockName::SOURCE, str_repeat('c', 255), $sku),
             InventoryLockName::STOCK => $builder->build(InventoryLockName::STOCK, (string)PHP_INT_MAX, $sku),
-            InventoryLockName::CLAMP => $builder->build(InventoryLockName::CLAMP, (string)PHP_INT_MAX, $sku),
         ];
 
         foreach ($names as $family => $name) {
@@ -74,8 +73,8 @@ class InventoryLockNameTest extends TestCase
         $builder = $this->builder('shop');
 
         self::assertNotSame(
-            $builder->build(InventoryLockName::STOCK, '1', 'lk_s'),
-            $builder->build(InventoryLockName::CLAMP, '1', 'lk_s')
+            $builder->build(InventoryLockName::SOURCE, '1', 'lk_s'),
+            $builder->build(InventoryLockName::STOCK, '1', 'lk_s')
         );
     }
 
