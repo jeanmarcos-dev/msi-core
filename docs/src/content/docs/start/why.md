@@ -48,19 +48,22 @@ code that reads `cataloginventory_stock_item` or `cataloginventory_stock_status`
 
 The same fork is distributed as two packages from two repositories.
 
-| Package | Repository | Magento | PHP | Drop-in |
-|---|---|---|---|---|
-| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` | 2.4.7 | 8.1 – 8.3 | yes |
-| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` | 2.4.8 | 8.2 – 8.4 | yes |
-| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` | 2.4.9 | 8.3 – 8.5 | yes |
-| **`jeanmarcos/msi-core:^1.0`** | **`jeanmarcos-dev/msi-core`** | **2.4.9** | **8.3 – 8.5** | **no** |
+| Package | Repository | Magento | PHP | Drop-in | Maintained |
+|---|---|---|---|---|---|
+| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` | 2.4.7 | 8.1 – 8.3 | yes | no |
+| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` | 2.4.8 | 8.2 – 8.4 | yes | no |
+| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` | 2.4.9 | 8.3 – 8.5 | yes | no |
+| **`jeanmarcos/msi-core:^1.0`** | **`jeanmarcos-dev/msi-core`** | **2.4.9** | **8.3 – 8.5** | **no** | **yes** |
 
-**Pick [`jeanmarcos/inventory`](https://github.com/jeanmarcos-dev/inventory)** if you want the
-curated fixes and nothing else to change. Composer swaps the package, the module names and
-namespaces stay identical, and no migration runs.
+**[`jeanmarcos/inventory`](https://github.com/jeanmarcos-dev/inventory) is no longer maintained.**
+It was the drop-in package: Composer swapped the package, the module names and namespaces stayed
+identical, and no migration ran. Its releases from 2.4.7.8, 2.4.8.9 and 2.4.9.7 on fail every order
+with managed stock on MySQL, because the per-source lock name is longer than MySQL accepts
+([msi-core#10](https://github.com/jeanmarcos-dev/msi-core/issues/10)). On 2.4.7 and 2.4.8, Magento's
+own MSI is the alternative.
 
-**Pick msi-core** if you want one inventory system instead of two, and can accept a schema migration
-with downtime and a documented break for code that reads `cataloginventory_*` by raw SQL.
+**msi-core** gives you one inventory system instead of two, at the cost of a schema migration with
+downtime and a documented break for code that reads `cataloginventory_*` by raw SQL.
 
 They are two repositories rather than two branches of one because Packagist serves every branch of a
 repository under a single package name: a second package identity needs a second repository. The

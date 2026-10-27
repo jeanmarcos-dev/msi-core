@@ -4,9 +4,9 @@ description: Where to report issues and send pull requests, and what a change ne
 ---
 
 Issues and pull requests are welcome at
-[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core), for the drop-in
-`jeanmarcos/inventory` lines too: that repository is a fork and has its issue tracker disabled. Say
-which package and which Magento version you are on.
+[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core). Say which Magento or Mage-OS
+version you are on. The drop-in `jeanmarcos/inventory` package is no longer maintained, so a problem
+reported against it is fixed in msi-core only.
 
 ## What a change needs
 
