@@ -17,6 +17,26 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### The shipping plugins move to the modules they plug into
+
+Inventory Sales registered plugins on Inventory Shipping and Inventory Shipping Admin UI without
+declaring either module. Their load order was undefined, and removing either module left a plugin on
+a class that no longer existed. Each plugin now lives in the module it plugs into: the one that ships
+from the reserved source moves to Inventory Shipping, and the one on the admin shipment form to
+Inventory Shipping Admin UI. Both modules now declare Inventory Sales, and Inventory Sales no longer
+refers to either. Each shipping module can still be disabled or removed on its own, and its plugin
+goes with it. Declaring them from Inventory Sales would have meant that `Magento_InventoryShipping`
+could only be disabled together with every module that depends on Inventory Sales. The plugins keep
+their names; their classes are now
+`Magento\InventoryShipping\Plugin\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin` and
+`Magento\InventoryShippingAdminUi\Plugin\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin`.
+Raised by Ryan Hoerr in review of
+[rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
+
+---
+
 # msi-core 1.1.3 — 2026-10-27
 
 ### Shipments without a source accept items with unmanaged stock again

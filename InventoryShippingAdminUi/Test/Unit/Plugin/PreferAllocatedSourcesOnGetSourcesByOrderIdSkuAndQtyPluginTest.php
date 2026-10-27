@@ -5,12 +5,12 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventorySales\Test\Unit\Plugin\InventoryShipping;
+namespace Magento\InventoryShippingAdminUi\Test\Unit\Plugin;
 
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
 use Magento\InventorySales\Model\SourceReservation\DistributeCompensationToSources;
-use Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin;
+use Magento\InventoryShippingAdminUi\Plugin\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\InventoryShippingAdminUi\Ui\DataProvider\GetSourcesByOrderIdSkuAndQty;
 use Magento\Sales\Api\Data\OrderInterface;

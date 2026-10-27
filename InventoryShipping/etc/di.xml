@@ -21,6 +21,9 @@
     <type name="Magento\Sales\Api\ShipmentRepositoryInterface">
         <plugin name="GetListShipmentRepository" type="Magento\InventoryShipping\Plugin\Sales\Model\Order\GetListShipmentRepositoryPlugin"/>
     </type>
+    <type name="Magento\InventoryShipping\Model\ResolveShipmentSourceCode">
+        <plugin name="prefer_allocated_source_on_resolve_shipment_source_code" type="Magento\InventoryShipping\Plugin\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin"/>
+    </type>
     <type name="Magento\InventoryApi\Model\SourceValidatorChain">
         <arguments>
             <argument name="validators" xsi:type="array">

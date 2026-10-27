@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventorySales\Test\Unit\Plugin\InventoryShipping;
+namespace Magento\InventoryShipping\Test\Unit\Plugin;
 
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventoryApi\Api\Data\StockInterface;
@@ -14,11 +14,11 @@ use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetPendingSourceReservations;
-use Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\InventoryShipping\Model\GetItemsToDeductFromShipment;
 use Magento\InventoryShipping\Model\GetManagedItemsToDeductFromShipment;
 use Magento\InventoryShipping\Model\ResolveShipmentSourceCode;
+use Magento\InventoryShipping\Plugin\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin;
 use Magento\InventorySourceDeductionApi\Model\ItemToDeductInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;

@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventorySales\Plugin\InventoryShipping;
+namespace Magento\InventoryShippingAdminUi\Plugin;
 
 use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
 use Magento\InventorySales\Model\SourceReservation\DistributeCompensationToSources;

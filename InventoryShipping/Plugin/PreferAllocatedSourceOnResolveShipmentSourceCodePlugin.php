@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Magento\InventorySales\Plugin\InventoryShipping;
+namespace Magento\InventoryShipping\Plugin;
 
 use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
 use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
