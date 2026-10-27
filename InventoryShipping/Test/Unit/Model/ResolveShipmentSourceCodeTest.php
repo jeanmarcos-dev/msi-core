@@ -10,8 +10,11 @@ namespace Magento\InventoryShipping\Test\Unit\Model;
 use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
+use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
+use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\InventoryShipping\Model\GetItemsToDeductFromShipment;
+use Magento\InventoryShipping\Model\GetManagedItemsToDeductFromShipment;
 use Magento\InventoryShipping\Model\ResolveShipmentSourceCode;
 use Magento\InventorySourceDeductionApi\Model\ItemToDeductInterface;
 use Magento\InventorySourceSelectionApi\Api\Data\InventoryRequestInterface;
@@ -41,6 +44,16 @@ class ResolveShipmentSourceCodeTest extends TestCase
     private $getItemsToDeduct;
 
     /**
+     * @var string[]
+     */
+    private $unmanagedSkus = [];
+
+    /**
+     * @var array
+     */
+    private $requestedItems = [];
+
+    /**
      * @var SourceSelectionServiceInterface|MockObject
      */
     private $sourceSelectionService;
@@ -63,6 +76,14 @@ class ResolveShipmentSourceCodeTest extends TestCase
         $stockResolver->method('execute')->with(1)->willReturn($stock);
         $this->getSources = $this->createMock(GetSourcesAssignedToStockOrderedByPriorityInterface::class);
         $this->getItemsToDeduct = $this->createMock(GetItemsToDeductFromShipment::class);
+        $getStockItemConfiguration = $this->createMock(GetStockItemConfigurationInterface::class);
+        $getStockItemConfiguration->method('execute')
+            ->willReturnCallback(function (string $sku, int $stockId) {
+                self::assertSame(5, $stockId);
+                $configuration = $this->createMock(StockItemConfigurationInterface::class);
+                $configuration->method('isManageStock')->willReturn(!in_array($sku, $this->unmanagedSkus, true));
+                return $configuration;
+            });
         $itemRequestFactory = $this->createMock(ItemRequestInterfaceFactory::class);
         $itemRequestFactory->method('create')->willReturnCallback(function (array $data) {
             $itemRequest = $this->createMock(ItemRequestInterface::class);
@@ -80,7 +101,7 @@ class ResolveShipmentSourceCodeTest extends TestCase
         $this->model = new ResolveShipmentSourceCode(
             $stockResolver,
             $this->getSources,
-            $this->getItemsToDeduct,
+            new GetManagedItemsToDeductFromShipment($this->getItemsToDeduct, $getStockItemConfiguration),
             $itemRequestFactory,
             $this->getInventoryRequest,
             $this->sourceSelectionService,
@@ -100,26 +121,88 @@ class ResolveShipmentSourceCodeTest extends TestCase
     {
         $this->givenSources(['slr_a', 'slr_b']);
         $this->givenItemsToDeduct(['SKU-1' => 2.0, 'SKU-2' => 1.0]);
-        $this->givenSelection(true, ['slr_a' => 0.0, 'slr_b' => 3.0]);
-
-        $requestedItems = [];
-        $this->getInventoryRequest->expects(self::once())->method('execute')
-            ->willReturnCallback(function (int $orderId, array $items) use (&$requestedItems) {
-                foreach ($items as $item) {
-                    $requestedItems[$item->getSku()] = $item->getQty();
-                }
-                return $this->createMock(InventoryRequestInterface::class);
-            });
+        $this->givenSelection(true, [
+            ['slr_a', 'SKU-1', 0.0, 0.0],
+            ['slr_b', 'SKU-1', 2.0, 4.0],
+            ['slr_b', 'SKU-2', 1.0, 1.0],
+        ]);
+        $this->captureRequestedItems();
 
         self::assertSame('slr_b', $this->model->execute($this->createMock(Shipment::class), $this->order()));
-        self::assertSame(['SKU-1' => 2.0, 'SKU-2' => 1.0], $requestedItems);
+        self::assertSame(['SKU-1' => 2.0, 'SKU-2' => 1.0], $this->requestedItems);
     }
 
-    public function testResolvesNothingWhenTheSelectionSplitsTheShipment(): void
+    public function testSelectsASourceForTheItemsWithManagedStockOnly(): void
     {
         $this->givenSources(['slr_a', 'slr_b']);
-        $this->givenItemsToDeduct(['SKU-1' => 5.0]);
-        $this->givenSelection(true, ['slr_a' => 3.0, 'slr_b' => 2.0]);
+        $this->givenItemsToDeduct(['SKU-1' => 2.0, 'SKU-U' => 1.0]);
+        $this->unmanagedSkus = ['SKU-U'];
+        $this->givenSelection(true, [['slr_b', 'SKU-1', 2.0, 2.0]]);
+        $this->captureRequestedItems();
+
+        self::assertSame('slr_b', $this->model->execute($this->createMock(Shipment::class), $this->order()));
+        self::assertSame(['SKU-1' => 2.0], $this->requestedItems);
+    }
+
+    public function testUsesTheFirstSourceWhenNoItemHasManagedStock(): void
+    {
+        $this->givenSources(['slr_a', 'slr_b']);
+        $this->givenItemsToDeduct(['SKU-U' => 1.0, 'SKU-V' => 2.0]);
+        $this->unmanagedSkus = ['SKU-U', 'SKU-V'];
+        $this->sourceSelectionService->expects(self::never())->method('execute');
+
+        self::assertSame('slr_a', $this->model->execute($this->createMock(Shipment::class), $this->order()));
+    }
+
+    public function testShipsFromASourceThatHoldsEveryItemWhenTheSelectionSplitsTheShipment(): void
+    {
+        $this->givenSources(['slr_a', 'slr_b']);
+        $this->givenItemsToDeduct(['SKU-1' => 5.0, 'SKU-2' => 1.0]);
+        $this->givenSelection(true, [
+            ['slr_a', 'SKU-1', 3.0, 3.0],
+            ['slr_a', 'SKU-2', 1.0, 4.0],
+            ['slr_b', 'SKU-1', 2.0, 5.0],
+            ['slr_b', 'SKU-2', 0.0, 1.0],
+        ]);
+
+        self::assertSame('slr_b', $this->model->execute($this->createMock(Shipment::class), $this->order()));
+    }
+
+    public function testPrefersTheHigherPrioritySourceWhenSeveralHoldEveryItem(): void
+    {
+        $this->givenSources(['slr_a', 'slr_b', 'slr_c']);
+        $this->givenItemsToDeduct(['SKU-1' => 4.0]);
+        $this->givenSelection(true, [
+            ['slr_a', 'SKU-1', 1.0, 1.0],
+            ['slr_c', 'SKU-1', 3.0, 9.0],
+            ['slr_b', 'SKU-1', 0.0, 4.0],
+        ]);
+
+        self::assertSame('slr_b', $this->model->execute($this->createMock(Shipment::class), $this->order()));
+    }
+
+    public function testMatchesTheSelectionSkuRegardlessOfCaseAndPadding(): void
+    {
+        $this->givenSources(['slr_a', 'slr_b']);
+        $this->givenItemsToDeduct(['sku-1' => 2.0]);
+        $this->givenSelection(true, [
+            ['slr_a', 'SKU-1', 1.0, 1.0],
+            ['slr_b', ' SKU-1 ', 1.0, 3.0],
+        ]);
+
+        self::assertSame('slr_b', $this->model->execute($this->createMock(Shipment::class), $this->order()));
+    }
+
+    public function testResolvesNothingWhenNoSourceHoldsEveryItem(): void
+    {
+        $this->givenSources(['slr_a', 'slr_b']);
+        $this->givenItemsToDeduct(['SKU-1' => 2.0, 'SKU-2' => 2.0]);
+        $this->givenSelection(true, [
+            ['slr_a', 'SKU-1', 2.0, 2.0],
+            ['slr_a', 'SKU-2', 1.0, 1.0],
+            ['slr_b', 'SKU-1', 0.0, 1.0],
+            ['slr_b', 'SKU-2', 1.0, 2.0],
+        ]);
 
         self::assertNull($this->model->execute($this->createMock(Shipment::class), $this->order()));
     }
@@ -128,7 +211,7 @@ class ResolveShipmentSourceCodeTest extends TestCase
     {
         $this->givenSources(['slr_a', 'slr_b']);
         $this->givenItemsToDeduct(['SKU-1' => 9.0]);
-        $this->givenSelection(false, ['slr_a' => 3.0]);
+        $this->givenSelection(false, [['slr_a', 'SKU-1', 3.0, 3.0]]);
 
         self::assertNull($this->model->execute($this->createMock(Shipment::class), $this->order()));
     }
@@ -182,13 +265,26 @@ class ResolveShipmentSourceCodeTest extends TestCase
         $this->getItemsToDeduct->method('execute')->willReturn($items);
     }
 
-    private function givenSelection(bool $isShippable, array $qtyToDeductBySource): void
+    private function captureRequestedItems(): void
+    {
+        $this->getInventoryRequest->expects(self::once())->method('execute')
+            ->willReturnCallback(function (int $orderId, array $items) {
+                foreach ($items as $item) {
+                    $this->requestedItems[$item->getSku()] = $item->getQty();
+                }
+                return $this->createMock(InventoryRequestInterface::class);
+            });
+    }
+
+    private function givenSelection(bool $isShippable, array $rows): void
     {
         $items = [];
-        foreach ($qtyToDeductBySource as $sourceCode => $qtyToDeduct) {
+        foreach ($rows as [$sourceCode, $sku, $qtyToDeduct, $qtyAvailable]) {
             $item = $this->createMock(SourceSelectionItemInterface::class);
             $item->method('getSourceCode')->willReturn($sourceCode);
+            $item->method('getSku')->willReturn($sku);
             $item->method('getQtyToDeduct')->willReturn($qtyToDeduct);
+            $item->method('getQtyAvailable')->willReturn($qtyAvailable);
             $items[] = $item;
         }
         $result = $this->createMock(SourceSelectionResultInterface::class);

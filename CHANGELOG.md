@@ -19,6 +19,20 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Shipments without a source accept items with unmanaged stock again
+
+Since 1.0.5, a shipment created without a source in a stock with several sources (REST `ShipOrder`
+without `extension_attributes.source_code`, or a programmatic shipment) takes its source from the
+default source selection. The selection only counts in-stock source items, so one item with
+`manage_stock = 0` made the whole shipment unshippable and it was rejected, although the source
+deduction skips such items. A shipment the selection split across sources was rejected too, even
+when one source held all of it. Items with unmanaged stock no longer count when the source is
+resolved, with source reservations on or off, and a split shipment now ships from the
+highest-priority source that holds every item on its own. A shipment is still rejected when no
+single source holds its items with managed stock, because the source deduction would fail on any
+source. Raised by Ryan Hoerr in review of
+[rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
+
 ### The stock visualizer purges for every store view that shows it
 
 The purge paths run in admin, cron and consumer context, where the store-scoped settings resolve to

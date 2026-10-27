@@ -10,7 +10,9 @@ namespace Magento\InventoryShipping\Model;
 use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
 use Magento\InventorySourceDeductionApi\Model\ItemToDeductInterface;
+use Magento\InventoryApi\Api\Data\SourceInterface;
 use Magento\InventorySourceSelectionApi\Api\Data\ItemRequestInterfaceFactory;
+use Magento\InventorySourceSelectionApi\Api\Data\SourceSelectionItemInterface;
 use Magento\InventorySourceSelectionApi\Api\GetDefaultSourceSelectionAlgorithmCodeInterface;
 use Magento\InventorySourceSelectionApi\Api\SourceSelectionServiceInterface;
 use Magento\InventorySourceSelectionApi\Model\GetInventoryRequestFromOrder;
@@ -25,7 +27,7 @@ class ResolveShipmentSourceCode
     /**
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
      * @param GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock
-     * @param GetItemsToDeductFromShipment $getItemsToDeductFromShipment
+     * @param GetManagedItemsToDeductFromShipment $getManagedItemsToDeductFromShipment
      * @param ItemRequestInterfaceFactory $itemRequestFactory
      * @param GetInventoryRequestFromOrder $getInventoryRequestFromOrder
      * @param SourceSelectionServiceInterface $sourceSelectionService
@@ -35,7 +37,7 @@ class ResolveShipmentSourceCode
     public function __construct(
         private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
         private readonly GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock,
-        private readonly GetItemsToDeductFromShipment $getItemsToDeductFromShipment,
+        private readonly GetManagedItemsToDeductFromShipment $getManagedItemsToDeductFromShipment,
         private readonly ItemRequestInterfaceFactory $itemRequestFactory,
         private readonly GetInventoryRequestFromOrder $getInventoryRequestFromOrder,
         private readonly SourceSelectionServiceInterface $sourceSelectionService,
@@ -44,7 +46,7 @@ class ResolveShipmentSourceCode
     }
 
     /**
-     * Return the single source that can ship every item, or null when none can
+     * Return the single source that can ship every item with managed stock, or null when none can
      *
      * @param Shipment $shipment
      * @param Order $order
@@ -62,22 +64,23 @@ class ResolveShipmentSourceCode
             return (string)$sources[0]->getSourceCode();
         }
 
-        $itemsToDeduct = $this->getItemsToDeductFromShipment->execute($shipment);
+        $itemsToDeduct = $this->getManagedItemsToDeductFromShipment->execute($shipment, $stockId);
         if (!$itemsToDeduct) {
             return (string)$sources[0]->getSourceCode();
         }
 
-        return $this->selectSingleSource((int)$order->getId(), $itemsToDeduct);
+        return $this->selectSingleSource((int)$order->getId(), $sources, $itemsToDeduct);
     }
 
     /**
-     * Run the default source selection and return its source when it ships everything from one source
+     * Return the source the default selection ships everything from, or else the first one holding every item
      *
      * @param int $orderId
+     * @param SourceInterface[] $sources
      * @param ItemToDeductInterface[] $itemsToDeduct
      * @return string|null
      */
-    private function selectSingleSource(int $orderId, array $itemsToDeduct): ?string
+    private function selectSingleSource(int $orderId, array $sources, array $itemsToDeduct): ?string
     {
         $requestItems = [];
         foreach ($itemsToDeduct as $itemToDeduct) {
@@ -100,7 +103,66 @@ class ResolveShipmentSourceCode
                 $sourceCodes[$selectionItem->getSourceCode()] = true;
             }
         }
+        if (count($sourceCodes) === 1) {
+            return (string)array_key_first($sourceCodes);
+        }
 
-        return count($sourceCodes) === 1 ? (string)array_key_first($sourceCodes) : null;
+        return $this->findSourceHoldingEveryItem($sources, $result->getSourceSelectionItems(), $itemsToDeduct);
+    }
+
+    /**
+     * The highest-priority source whose available quantity covers every item on its own
+     *
+     * @param SourceInterface[] $sources
+     * @param SourceSelectionItemInterface[] $selectionItems
+     * @param ItemToDeductInterface[] $itemsToDeduct
+     * @return string|null
+     */
+    private function findSourceHoldingEveryItem(array $sources, array $selectionItems, array $itemsToDeduct): ?string
+    {
+        $availableBySource = [];
+        foreach ($selectionItems as $selectionItem) {
+            $sku = $this->normalizeSku($selectionItem->getSku());
+            $availableBySource[$selectionItem->getSourceCode()][$sku] = $selectionItem->getQtyAvailable();
+        }
+
+        foreach ($sources as $source) {
+            $available = $availableBySource[$source->getSourceCode()] ?? [];
+            if ($this->holdsEveryItem($available, $itemsToDeduct)) {
+                return (string)$source->getSourceCode();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether the available quantities cover each item, compared the way the source deduction compares them
+     *
+     * @param array $availableBySku
+     * @param ItemToDeductInterface[] $itemsToDeduct
+     * @return bool
+     */
+    private function holdsEveryItem(array $availableBySku, array $itemsToDeduct): bool
+    {
+        foreach ($itemsToDeduct as $itemToDeduct) {
+            $available = $availableBySku[$this->normalizeSku($itemToDeduct->getSku())] ?? null;
+            if ($available === null || $available - $itemToDeduct->getQty() < 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Normalize a SKU the way the default source selection does
+     *
+     * @param string $sku
+     * @return string
+     */
+    private function normalizeSku(string $sku): string
+    {
+        return mb_convert_case(trim($sku), MB_CASE_LOWER, 'UTF-8');
     }
 }

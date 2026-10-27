@@ -11,7 +11,7 @@ use Magento\InventoryApi\Api\GetSourcesAssignedToStockOrderedByPriorityInterface
 use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetPendingSourceReservations;
 use Magento\InventorySalesApi\Model\StockByWebsiteIdResolverInterface;
-use Magento\InventoryShipping\Model\GetItemsToDeductFromShipment;
+use Magento\InventoryShipping\Model\GetManagedItemsToDeductFromShipment;
 use Magento\InventoryShipping\Model\ResolveShipmentSourceCode;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;
@@ -25,14 +25,14 @@ class PreferAllocatedSourceOnResolveShipmentSourceCodePlugin
 
     /**
      * @param SourceReservationsConfig $sourceReservationsConfig
-     * @param GetItemsToDeductFromShipment $getItemsToDeductFromShipment
+     * @param GetManagedItemsToDeductFromShipment $getManagedItemsToDeductFromShipment
      * @param StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver
      * @param GetPendingSourceReservations $getPendingSourceReservations
      * @param GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock
      */
     public function __construct(
         private readonly SourceReservationsConfig $sourceReservationsConfig,
-        private readonly GetItemsToDeductFromShipment $getItemsToDeductFromShipment,
+        private readonly GetManagedItemsToDeductFromShipment $getManagedItemsToDeductFromShipment,
         private readonly StockByWebsiteIdResolverInterface $stockByWebsiteIdResolver,
         private readonly GetPendingSourceReservations $getPendingSourceReservations,
         private readonly GetSourcesAssignedToStockOrderedByPriorityInterface $getSourcesAssignedToStock
@@ -40,7 +40,7 @@ class PreferAllocatedSourceOnResolveShipmentSourceCodePlugin
     }
 
     /**
-     * Return the highest-priority source whose pending reservations cover the whole shipment
+     * Return the highest-priority source whose pending reservations cover every item of the shipment with managed stock
      *
      * @param ResolveShipmentSourceCode $subject
      * @param callable $proceed
@@ -59,17 +59,18 @@ class PreferAllocatedSourceOnResolveShipmentSourceCodePlugin
             return $proceed($shipment, $order);
         }
 
+        $stockId = (int)$this->stockByWebsiteIdResolver
+            ->execute((int)$order->getStore()->getWebsiteId())
+            ->getStockId();
+
         $qtyBySku = [];
-        foreach ($this->getItemsToDeductFromShipment->execute($shipment) as $itemToDeduct) {
+        foreach ($this->getManagedItemsToDeductFromShipment->execute($shipment, $stockId) as $itemToDeduct) {
             $qtyBySku[$itemToDeduct->getSku()] = $itemToDeduct->getQty();
         }
         if (!$qtyBySku) {
             return $proceed($shipment, $order);
         }
 
-        $stockId = (int)$this->stockByWebsiteIdResolver
-            ->execute((int)$order->getStore()->getWebsiteId())
-            ->getStockId();
         $pending = $this->getPendingSourceReservations->execute(
             (string)$order->getIncrementId(),
             array_map('strval', array_keys($qtyBySku)),

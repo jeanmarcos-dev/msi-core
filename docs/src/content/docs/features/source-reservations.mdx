@@ -57,9 +57,15 @@ An order reserves each item at specific sources when it is placed, and shipping 
   `extension_attributes.source_code`, or a programmatic shipment) resolves the source in this order:
   1. the only source of the stock;
   2. the source the order reserved every item at;
-  3. the default source selection, when it ships everything from one source.
+  3. the default source selection, when it ships everything from one source;
+  4. the highest-priority source that holds every item on its own, counting the in-stock quantities
+     of enabled sources as the source selection does.
 
-  When none applies, the shipment is rejected with a validation message asking for a source.
+  Items with `manage_stock = 0` do not count in any step, because the source deduction skips them.
+  A shipment with only such items ships from the highest-priority source. When none applies, the
+  shipment is rejected with a validation message asking for a source. That includes a backordered
+  item no source holds: the source deduction does not take a source below zero, with or without
+  backorders.
 - **Shipping from a source the order did not reserve at** still works. The source selection page shows
   a warning under the **Source** selector naming the SKU and its reserved sources with quantities, and
   explaining that it takes the stock from the selected source and releases the reservation at the
