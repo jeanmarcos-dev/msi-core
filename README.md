@@ -18,16 +18,18 @@ visualizer.
 
 ## Which package do I install?
 
-| Package | Repository | Magento | PHP | Drop-in |
-|---|---|---|---|---|
-| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` | 2.4.7 | 8.1 – 8.3 | yes |
-| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` | 2.4.8 | 8.2 – 8.4 | yes |
-| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` | 2.4.9 | 8.3 – 8.5 | yes |
-| **`jeanmarcos/msi-core:^1.0`** | **`jeanmarcos-dev/msi-core`** | **2.4.9** | **8.3 – 8.5** | **no** |
+| Package | Repository | Magento | PHP | Drop-in | Maintained |
+|---|---|---|---|---|---|
+| `jeanmarcos/inventory:2.4.7.*` | `jeanmarcos-dev/inventory` | 2.4.7 | 8.1 – 8.3 | yes | no |
+| `jeanmarcos/inventory:2.4.8.*` | `jeanmarcos-dev/inventory` | 2.4.8 | 8.2 – 8.4 | yes | no |
+| `jeanmarcos/inventory:2.4.9.*` | `jeanmarcos-dev/inventory` | 2.4.9 | 8.3 – 8.5 | yes | no |
+| **`jeanmarcos/msi-core:^1.0`** | **`jeanmarcos-dev/msi-core`** | **2.4.9** | **8.3 – 8.5** | **no** | **yes** |
 
-Mage-OS 3.x, which tracks Magento 2.4.9, is supported. Pick `jeanmarcos/inventory` for the curated
-fixes and nothing else; pick `msi-core` for one inventory system instead of two, at the cost of a
-schema migration. [Why msi-core](https://jeanmarcos-dev.github.io/msi-core/start/why/) compares them.
+Mage-OS 3.x, which tracks Magento 2.4.9, is supported. `jeanmarcos/inventory` is no longer
+maintained, and its later releases fail every order with managed stock on MySQL
+([notice](https://github.com/jeanmarcos-dev/inventory#readme)). `msi-core` gives you one inventory
+system instead of two, at the cost of a schema migration.
+[Why msi-core](https://jeanmarcos-dev.github.io/msi-core/start/why/) compares them.
 
 ## Install
 
@@ -61,7 +63,7 @@ unchanged.
 ## Contributing
 
 Issues and pull requests are welcome at
-[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core), for the drop-in lines too.
+[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core).
 See [Contributing](https://jeanmarcos-dev.github.io/msi-core/project/contributing/) and
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 

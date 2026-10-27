@@ -82,7 +82,8 @@ if the new baseline forces a change. It does not fork a new branch per Magento l
 
 ## The drop-in package
 
-[`jeanmarcos/inventory`](https://github.com/jeanmarcos-dev/inventory) is versioned differently, as
+[`jeanmarcos/inventory`](https://github.com/jeanmarcos-dev/inventory), which is no longer
+maintained, is versioned differently, as
 `2.4.M.n`: the first three segments mirror the Magento line the build targets, and `n` is the
 release counter for that line. Those builds are drop-in replacements, with the same module names,
 namespaces, schema and behaviour plus fixes, so there is no version at which upgrading within a line
