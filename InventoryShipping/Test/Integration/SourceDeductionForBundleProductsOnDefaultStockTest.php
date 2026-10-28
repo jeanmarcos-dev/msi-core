@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventoryShipping\Test\Integration;
 
 use Magento\Framework\Api\SearchCriteriaBuilder;
+use Magento\Framework\MessageQueue\ConsumerFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use PHPUnit\Framework\TestCase;
@@ -28,6 +29,8 @@ use Magento\Sales\Model\Order\Item as OrderItem;
  */
 class SourceDeductionForBundleProductsOnDefaultStockTest extends TestCase
 {
+    private const MAX_MESSAGES_TO_PROCESS = 1000;
+
     /**
      * @var DefaultStockProviderInterface
      */
@@ -81,6 +84,7 @@ class SourceDeductionForBundleProductsOnDefaultStockTest extends TestCase
      * @magentoDataFixture Magento_InventoryShipping::Test/_files/products_bundle.php
      * @magentoDataFixture Magento_InventoryShipping::Test/_files/order_bundle_products.php
      * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
+     * @magentoDbIsolation disabled
      */
     public function testSourceDeductionWhileShippingBundleWithShipmentSeparately()
     {
@@ -124,6 +128,7 @@ class SourceDeductionForBundleProductsOnDefaultStockTest extends TestCase
      * @magentoDataFixture Magento_InventoryShipping::Test/_files/products_bundle.php
      * @magentoDataFixture Magento_InventoryShipping::Test/_files/order_bundle_products.php
      * @magentoDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
+     * @magentoDbIsolation disabled
      */
     public function testSourceDeductionWhileShippingBundleWithShipmentTogether()
     {
@@ -141,6 +146,7 @@ class SourceDeductionForBundleProductsOnDefaultStockTest extends TestCase
         $shipmentItemCreation->setQty(2);
 
         $this->shipOrder->execute($order->getEntityId(), [$shipmentItemCreation]);
+        $this->processSalabilityUpdates();
 
         /** @var SourceItemInterface $sourceItem */
         $sourceItem = current($this->getSourceItemBySku->execute('SKU-2'));
@@ -155,6 +161,13 @@ class SourceDeductionForBundleProductsOnDefaultStockTest extends TestCase
 
         $salableQty = $this->getProductSalableQty->execute('SKU-3', $this->defaultStockProvider->getId());
         self::assertEquals(4, $salableQty);
+    }
+
+    private function processSalabilityUpdates(): void
+    {
+        $consumer = Bootstrap::getObjectManager()->get(ConsumerFactory::class)
+            ->get('inventory.reservations.updateSalabilityStatus');
+        $consumer->process(self::MAX_MESSAGES_TO_PROCESS);
     }
 
     /**

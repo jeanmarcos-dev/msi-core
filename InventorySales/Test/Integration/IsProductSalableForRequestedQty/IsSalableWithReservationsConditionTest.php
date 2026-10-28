@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Test\Integration\IsProductSalableForRequestedQty;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\SaveStockItemConfigurationInterface;
@@ -76,6 +77,16 @@ class IsSalableWithReservationsConditionTest extends TestCase
         $this->saveStockItemConfiguration = Bootstrap::getObjectManager()->get(
             SaveStockItemConfigurationInterface::class
         );
+    }
+
+    protected function tearDown(): void
+    {
+        $resource = Bootstrap::getObjectManager()->get(ResourceConnection::class);
+        $resource->getConnection()->delete(
+            $resource->getTableName('inventory_reservation'),
+            ['metadata IS NULL', 'stock_id = ?' => 10, 'sku = ?' => 'SKU-1']
+        );
+        parent::tearDown();
     }
 
     /**

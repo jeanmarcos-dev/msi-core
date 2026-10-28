@@ -96,6 +96,7 @@ class RssFeedTest extends TestCase
      * @magentoDataFixture Magento_InventoryLowQuantityNotificationApi::Test/_files/enable_manage_stock_for_products.php
      * @magentoConfigFixture default_store cataloginventory/item_options/notify_stock_qty 7
      * @magentoConfigFixture default_store cataloginventory/item_options/manage_stock 0
+     * @magentoDbIsolation disabled
      *
      * @param string $sku
      * @param string $sourceCode
