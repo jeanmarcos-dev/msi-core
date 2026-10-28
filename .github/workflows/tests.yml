@@ -26,7 +26,7 @@ jobs:
         php: ['8.3', '8.5']
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -37,7 +37,7 @@ jobs:
           extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
 
       - name: Cache Composer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/composer
           key: composer-${{ matrix.platform }}-${{ matrix.php }}-${{ hashFiles('composer.json') }}
@@ -59,7 +59,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install bats
         run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends bats
@@ -73,7 +73,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check that every module declares the modules it uses
         run: php .github/scripts/check-module-dependencies.php .
