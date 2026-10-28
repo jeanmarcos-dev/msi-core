@@ -17,7 +17,6 @@ class InventoryLockName
 {
     public const SOURCE = 'inv_src_';
     public const STOCK = 'inv_stk_';
-    public const CLAMP = 'inv_rsv_clamp_';
 
     /**
      * @var string|null

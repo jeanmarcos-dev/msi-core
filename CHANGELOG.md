@@ -19,6 +19,27 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Two releases of one order can no longer release its stock twice
+
+A cancel, credit memo, shipment or manual compensation is capped at what its order still reserves.
+The cap read that balance without a lock, under an advisory lock that was released before the
+transaction committed and that gave up after 10 seconds. Two releases of the same order that
+overlapped could each read the balance before the other committed, and both write: a credit memo
+that commits after the online refund, a shipment saved while the order is cancelled, or any release
+that waited out the lock. The order then reserved less than nothing, and the extra unit stayed
+salable for good: reconciliation only releases what an order still holds, and the cleanup only
+deletes groups that add up to zero. Each order now keeps its balance per stock, SKU and source in
+`inventory_reservation_order_balance`, written in the same transaction as its reservations, and a
+release locks that row until it commits. Placements never wait for it. When the row stays locked
+beyond `innodb_lock_wait_timeout`, that release is not written and an error is logged; the order
+operation completes and reconciliation releases the balance once the order is final. A source
+transfer that meets such a row fails whole instead, stock included, and can be run again.
+
+`setup:upgrade` creates the table empty; orders placed before the upgrade are covered from their
+first release on. Deploy in maintenance mode, and if you ever truncate `inventory_reservation`,
+truncate the new table with it. See [Upgrade](https://jeanmarcos-dev.github.io/msi-core/start/upgrade/#upgrading-between-msi-core-versions)
+and [Source reservations](https://jeanmarcos-dev.github.io/msi-core/features/source-reservations/#reconciliation).
+
 ### The shipping plugins move to the modules they plug into
 
 Inventory Sales registered plugins on Inventory Shipping and Inventory Shipping Admin UI without

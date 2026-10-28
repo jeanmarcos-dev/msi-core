@@ -163,5 +163,17 @@ Moving to 1.1.0 or later:
   baseline row: `bin/magento inventory:adjustment:opening-balance`. See
   [Opening balance](/msi-core/features/adjustment-history/#opening-balance).
 
+Moving from 1.1.x to a later version:
+
+- **Deploy in maintenance mode.** `setup:upgrade` creates `inventory_reservation_order_balance`
+  empty, with no backfill: the first release of an order placed before the upgrade starts its row
+  from the order's reservations. Old code still serving requests during the deploy writes
+  reservations without updating the row.
+- **Empty both tables together.** If a runbook truncates `inventory_reservation`, truncate
+  `inventory_reservation_order_balance` with it. A row left behind never lets an order release more
+  than its reservations show, but the cleanup never deletes it, and an order that reuses its
+  increment id can have a release held back. See
+  [Reconciliation](/msi-core/features/source-reservations/#reconciliation).
+
 Coming from a 1.0.x release older than 1.0.3, run `bin/magento indexer:reindex inventory` once: rows
 left in the stock index by deleted or renamed products are not removed retroactively.
