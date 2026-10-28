@@ -67,13 +67,25 @@ jobs:
       - name: Run the script tests under dash
         run: bats .github/scripts/tests
 
+  dependencies:
+    name: module dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check that every module declares the modules it uses
+        run: php .github/scripts/check-module-dependencies.php .
+
   passed:
     name: tests passed
     if: always()
-    needs: [unit, scripts]
+    needs: [unit, scripts, dependencies]
     runs-on: ubuntu-latest
     steps:
       - name: Check every test job
         run: |
           test "${{ needs.unit.result }}" = "success"
           test "${{ needs.scripts.result }}" = "success"
+          test "${{ needs.dependencies.result }}" = "success"

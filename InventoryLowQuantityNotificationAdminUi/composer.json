@@ -18,7 +18,8 @@
         "magento/module-inventory-configuration-api": "1.2.*",
         "magento/module-inventory-low-quantity-notification-api": "1.2.*",
         "magento/module-inventory-low-quantity-notification": "1.2.*",
-        "magento/module-ui": "101.2.*"
+        "magento/module-ui": "101.2.*",
+        "magento/module-catalog-inventory": "100.4.*"
     },
     "autoload": {
         "files": [
