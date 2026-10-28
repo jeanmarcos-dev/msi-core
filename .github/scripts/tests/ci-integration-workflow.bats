@@ -40,8 +40,13 @@ setup() {
     ! grep -q "integration" "$ROOT/.github/workflows/tests.yml"
 }
 
-@test "runs nightly and on demand only" {
+@test "runs nightly, on demand, and on pull requests that touch the integration suite" {
     grep -qE "^  schedule:" "$WORKFLOW"
     grep -qE "^  workflow_dispatch:" "$WORKFLOW"
-    ! grep -qE "^  (pull_request|push):" "$WORKFLOW"
+    grep -qE "^  pull_request:" "$WORKFLOW"
+    grep -qF "      - '**/Test/Integration/**'" "$WORKFLOW"
+    grep -qF "      - '**/Test/_files/**'" "$WORKFLOW"
+    grep -qF "      - '.github/workflows/integration.yml'" "$WORKFLOW"
+    grep -qF "      - '.github/scripts/ci-integration*'" "$WORKFLOW"
+    ! grep -qE "^  push:" "$WORKFLOW"
 }
