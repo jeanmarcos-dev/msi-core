@@ -68,6 +68,31 @@ no longer gets `default` when it is saved again. Tracked in
 [msi-core#11](https://github.com/jeanmarcos-dev/msi-core/issues/11), from
 [magento/inventory#3317](https://github.com/magento/inventory/issues/3317).
 
+### A source that a shipment empties goes out of stock
+
+Shipping, or invoicing virtual items, lowered a source item's quantity but never wrote its status:
+the deduction computed one and dropped it, so a source shipped down to its out-of-stock threshold
+stayed In Stock. The deduction now writes the status in the same update as the quantity, and only
+when the source changes state:
+
+- a deduction that leaves the quantity at or below the product's out-of-stock threshold, for a
+  product without backorders, sets the source item Out of Stock;
+- a return to stock that lifts an Out of Stock source item above the threshold sets it In Stock,
+  only when *Set Items' Status to be In Stock When Order is Cancelled*
+  (`cataloginventory/options/can_back_in_stock`, on by default) is on. This includes a source that
+  was marked Out of Stock by hand;
+- anything else leaves the status alone, so a source marked Out of Stock by hand stays that way
+  through later shipments. Upstream's proposed fix writes the computed status on every deduction,
+  which would undo it.
+
+Whether a return brings a source back now depends on the source item's own status, no longer on the
+product's stock status. The status change is recorded in the same adjustment history row as the
+quantity. With a threshold above 0, a source that a deduction leaves Out of Stock keeps its
+remaining units, and they no longer count towards the salable quantity, as when a merchant marks the
+source Out of Stock by hand. Tracked in
+[msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
+[magento/inventory#3478](https://github.com/magento/inventory/issues/3478).
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
