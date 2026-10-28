@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   jasmine:
-    name: jasmine (luma)
+    name: jasmine
     runs-on: ubuntu-latest
     timeout-minutes: 30
     services:
@@ -101,8 +101,12 @@ jobs:
         working-directory: ${{ runner.temp }}/magento
         run: php -d memory_limit=-1 bin/magento setup:static-content:deploy --force --area frontend --language en_US --theme Magento/luma
 
+      - name: Deploy the backend static content
+        working-directory: ${{ runner.temp }}/magento
+        run: php -d memory_limit=-1 bin/magento setup:static-content:deploy --force --area adminhtml --language en_US --theme Magento/backend
+
       - name: Jasmine specs
-        run: sh .github/scripts/ci-jasmine.sh "$RUNNER_TEMP/magento" luma
+        run: sh .github/scripts/ci-jasmine.sh "$RUNNER_TEMP/magento" luma backend
 
       - name: Upload JUnit reports
         if: always()
