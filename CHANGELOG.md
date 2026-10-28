@@ -35,6 +35,30 @@ their names; their classes are now
 Raised by Ryan Hoerr in review of
 [rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
 
+### Credit for the fixes taken from open upstream pull requests
+
+Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
+were taken before this changelog started, and two of them were committed under the maintainer's
+name, so the history did not credit their authors:
+
+- [magento/inventory#3241](https://github.com/magento/inventory/pull/3241), by
+  [nikita-shcherbatykh](https://github.com/nikita-shcherbatykh): disabled child products no longer
+  keep a configurable in stock.
+- [magento/inventory#3294](https://github.com/magento/inventory/pull/3294), by
+  [vlmed](https://github.com/vlmed): the distance-based source selection admin uses
+  `OptionSourceInterface` instead of the deprecated `ArrayInterface`.
+- [magento/inventory#3368](https://github.com/magento/inventory/pull/3368), by
+  [adamphh](https://github.com/adamphh): the stock sources import declares its valid columns, so
+  its validation errors are clear.
+- [magento/inventory#3425](https://github.com/magento/inventory/pull/3425), by
+  [thomas-kl1](https://github.com/thomas-kl1): the "Only X left" message applies its threshold and
+  display settings in the right order.
+- [magento/inventory#3457](https://github.com/magento/inventory/pull/3457), by
+  [igorwulff](https://github.com/igorwulff): `UpdateIsSalable` binds the SKU as a string, so the
+  query uses the index instead of scanning the table.
+
+From now on, a fix taken from an upstream pull request keeps its author in the commit.
+
 ---
 
 # msi-core 1.1.3 — 2026-10-27
