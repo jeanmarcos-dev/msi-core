@@ -1,20 +1,21 @@
 name: integration
 
 on:
-  schedule:
-    - cron: '0 3 * * *'
-  workflow_dispatch:
   pull_request:
     branches: ['main', 'next-release']
-    paths:
-      - '**/Test/Integration/**'
-      - '**/Test/_files/**'
-      - '.github/workflows/integration.yml'
-      - '.github/scripts/ci-integration*'
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  push:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
 
 concurrency:
   group: integration-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
