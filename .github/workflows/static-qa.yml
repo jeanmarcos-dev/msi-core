@@ -7,11 +7,9 @@ name: static QA
 
 on:
   pull_request:
-    branches: ['main']
-    paths: ['**.php', 'composer.json', '*/registration.php']
+    branches: ['main', 'next-release']
   push:
-    branches: ['main']
-    paths: ['**.php', 'composer.json', '*/registration.php']
+    branches: ['main', 'next-release']
   workflow_dispatch:
 
 concurrency:
