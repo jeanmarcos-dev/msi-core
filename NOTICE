@@ -1,7 +1,7 @@
-jeanmarcos/inventory
-====================
+jeanmarcos/msi-core
+===================
 
-This distribution is a derivative work based on the Magento Multi-Source
+This package is a derivative work based on the Magento Multi-Source
 Inventory (MSI) modules from the "magento/inventory" project.
 
 Original work:
@@ -13,21 +13,27 @@ The original modules are dual-licensed under the Open Software License
 version 3.0 (OSL-3.0) and the Academic Free License version 3.0 (AFL-3.0).
 See LICENSE.txt (OSL-3.0) and LICENSE_AFL.txt (AFL-3.0) for the full texts.
 
-This distribution is redistributed under the terms of the Academic Free
+This package is redistributed under the terms of the Academic Free
 License version 3.0 (AFL-3.0).
 
-This branch targets Magento Open Source 2.4.9 (MSI baseline for that release).
+It targets Magento Open Source 2.4.9 and Mage-OS 3.x.
 
 MODIFICATIONS
 -------------
 This is a MODIFIED version of the Original Work. Changes relative to the
 upstream "magento/inventory" project include, but are not limited to:
 
-  * Curated community bug fixes and performance improvements applied ahead
-    of their acceptance (if any) into the upstream project.
-  * Repackaging the 73 distributed modules under the "jeanmarcos/inventory"
-    Composer package, which replaces the individual "magento/module-inventory-*"
-    packages for Magento 2.4.9.
+  * The Default Stock (stock 1) is indexed and managed like any other stock,
+    and MSI no longer reads or writes the legacy "cataloginventory_*" tables.
+  * Source-level reservations, salable quantity by source, an adjustment
+    history of every stock change and a storefront stock visualizer.
+  * Bug fixes and performance improvements, including community contributions
+    taken from pull requests that were still open in the upstream project.
+    Their authors keep their copyright. Commits taken from them carry a
+    "[picked #NNNN]" marker with the upstream pull request number.
+  * Repackaging the 77 modules under the "jeanmarcos/msi-core" Composer
+    package, which replaces the individual "magento/module-inventory-*" and
+    "mage-os/module-inventory-*" packages.
   * Removal of the proprietary "InventoryRequisitionList" module, which is
     NOT covered by the OSL-3.0 / AFL-3.0 open source license.
   * Removal of the "InventoryLogging" module, which targets the Adobe Commerce
@@ -36,11 +42,13 @@ upstream "magento/inventory" project include, but are not limited to:
     Magento Open Source.
 
 All Adobe copyright, license and attribution notices present in the original
-source files have been retained, as required by AFL-3.0 Section 6.
+source files have been retained, as required by AFL-3.0 Section 6. Files
+original to this package carry their own copyright notice and the license
+stated in each file.
 
 TRADEMARKS
 ----------
-"Magento" and "Adobe" are trademarks of Adobe Inc. This distribution is NOT
+"Magento" and "Adobe" are trademarks of Adobe Inc. This package is NOT
 affiliated with, sponsored by, or endorsed by Adobe. The trademarks are not
-used to promote this distribution; they appear only where required to
+used to promote this package; they appear only where required to
 identify the origin of the Original Work, as permitted by AFL-3.0 Section 4.
