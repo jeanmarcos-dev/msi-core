@@ -23,13 +23,13 @@ STUB
     cd "$REPO"
 }
 
-@test "installs the latest Magento 2.4.9 from the Mage-OS mirror with msi-core from the checkout" {
+@test "installs the latest Magento 2.4.9 from the Mage-OS mirror with a copy of msi-core from the checkout" {
     run "$TEST_SH" .github/scripts/ci-magento-project.sh magento "$BATS_TEST_TMPDIR/magento"
 
     [ "$status" -eq 0 ]
     grep -qF "composer create-project --no-interaction --no-install --repository-url=https://mirror.mage-os.org/ magento/project-community-edition:>=2.4.9 <2.4.10 $BATS_TEST_TMPDIR/magento" "$CALLS"
     grep -qF "composer config --no-interaction repositories.0 composer https://mirror.mage-os.org/" "$CALLS"
-    grep -qF "composer config --no-interaction repositories.msi-core path $REPO" "$CALLS"
+    grep -qF "composer config --no-interaction repositories.msi-core {\"type\":\"path\",\"url\":\"$REPO\",\"options\":{\"symlink\":false}}" "$CALLS"
     grep -qF "composer require --no-interaction --no-update jeanmarcos/msi-core:*@dev" "$CALLS"
     [ "$(tail -n 1 "$CALLS")" = "composer install --no-interaction --no-progress" ]
 }
@@ -50,11 +50,11 @@ STUB
     [ ! -e "$CALLS" ]
 }
 
-@test "runs the unit suite from the Magento root with the msi-core configuration and Magento's bootstrap" {
+@test "runs the unit suite of the installed msi-core from the Magento root with Magento's bootstrap" {
     mkdir -p "$BATS_TEST_TMPDIR/magento"
 
     run "$TEST_SH" .github/scripts/ci-unit.sh "$BATS_TEST_TMPDIR/magento"
 
     [ "$status" -eq 0 ]
-    grep -qF "php vendor/bin/phpunit --configuration $REPO/.github/phpunit-unit.xml --bootstrap dev/tests/unit/framework/bootstrap.php --cache-directory $BATS_TEST_TMPDIR/magento/var/phpunit-cache in $BATS_TEST_TMPDIR/magento" "$CALLS"
+    grep -qF "php vendor/bin/phpunit --configuration $BATS_TEST_TMPDIR/magento/vendor/jeanmarcos/msi-core/.github/phpunit-unit.xml --bootstrap dev/tests/unit/framework/bootstrap.php --cache-directory $BATS_TEST_TMPDIR/magento/var/phpunit-cache in $BATS_TEST_TMPDIR/magento" "$CALLS"
 }

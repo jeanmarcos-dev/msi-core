@@ -24,7 +24,7 @@ composer create-project --no-interaction --no-install --repository-url="$reposit
 cd "$target"
 mkdir -p app/etc
 composer config --no-interaction repositories.0 composer "$repository"
-composer config --no-interaction repositories.msi-core path "$source"
+composer config --no-interaction repositories.msi-core "{\"type\":\"path\",\"url\":\"$source\",\"options\":{\"symlink\":false}}"
 composer config --no-interaction allow-plugins.dealerdirect/phpcodesniffer-composer-installer true
 composer config --no-interaction allow-plugins.laminas/laminas-dependency-plugin true
 composer config --no-interaction 'allow-plugins.magento/*' true
