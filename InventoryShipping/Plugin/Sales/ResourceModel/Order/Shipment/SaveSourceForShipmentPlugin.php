@@ -10,7 +10,6 @@ namespace Magento\InventoryShipping\Plugin\Sales\ResourceModel\Order\Shipment;
 use Magento\Framework\Model\AbstractModel;
 use Magento\InventoryShipping\Model\ResourceModel\ShipmentSource\SaveShipmentSource;
 use Magento\Sales\Model\ResourceModel\Order\Shipment as ShipmentResource;
-use Magento\InventoryCatalogApi\Api\DefaultSourceProviderInterface;
 
 class SaveSourceForShipmentPlugin
 {
@@ -20,24 +19,16 @@ class SaveSourceForShipmentPlugin
     private $saveShipmentSource;
 
     /**
-     * @var DefaultSourceProviderInterface
-     */
-    private $defaultSourceProvider;
-
-    /**
      * @param SaveShipmentSource $saveShipmentSource
-     * @param DefaultSourceProviderInterface $defaultSourceProvider
      */
     public function __construct(
-        SaveShipmentSource $saveShipmentSource,
-        DefaultSourceProviderInterface $defaultSourceProvider
+        SaveShipmentSource $saveShipmentSource
     ) {
         $this->saveShipmentSource = $saveShipmentSource;
-        $this->defaultSourceProvider = $defaultSourceProvider;
     }
 
     /**
-     * Assigns a source code to a shipment after saving, using extension attributes or the default source provider.
+     * Stores the source code from the shipment extension attributes; without one, keeps the stored source.
      *
      * @param ShipmentResource $subject
      * @param ShipmentResource $result
@@ -50,13 +41,10 @@ class SaveSourceForShipmentPlugin
         ShipmentResource $result,
         AbstractModel $shipment
     ) {
-        if (!empty($shipment->getExtensionAttributes())
-            && $shipment->getExtensionAttributes()->getSourceCode()) {
-            $sourceCode = $shipment->getExtensionAttributes()->getSourceCode();
-        } else {
-            $sourceCode = $this->defaultSourceProvider->getCode();
+        $sourceCode = $shipment->getExtensionAttributes()?->getSourceCode();
+        if ($sourceCode) {
+            $this->saveShipmentSource->execute((int)$shipment->getId(), $sourceCode);
         }
-        $this->saveShipmentSource->execute((int)$shipment->getId(), $sourceCode);
 
         return $result;
     }

@@ -56,6 +56,18 @@ their names; their classes are now
 Raised by Ryan Hoerr in review of
 [rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
 
+### Saving a shipment again keeps the source it shipped from
+
+A shipment that was loaded without its `source_code` extension attribute, as a shipment collection
+loads it, and then saved again through the shipment resource model had its stored source replaced
+with `default`. The stock had already left the source it was shipped from, so returns to stock and
+the admin's per-source views read a source that shipped nothing. Saving now writes the source only
+when the shipment carries one, and otherwise keeps the stored one. A new shipment still always gets
+a source: it is resolved before the save, or the save is rejected. A shipment with no stored source
+no longer gets `default` when it is saved again. Tracked in
+[msi-core#11](https://github.com/jeanmarcos-dev/msi-core/issues/11), from
+[magento/inventory#3317](https://github.com/magento/inventory/issues/3317).
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
