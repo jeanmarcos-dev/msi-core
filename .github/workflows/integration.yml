@@ -143,3 +143,12 @@ jobs:
           path: ${{ runner.temp }}/integration-reports
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Upload Magento logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-logs-group-${{ matrix.group }}
+          path: ${{ runner.temp }}/magento/dev/tests/integration/tmp/sandbox-*/var/log
+          if-no-files-found: ignore
+          retention-days: 14
