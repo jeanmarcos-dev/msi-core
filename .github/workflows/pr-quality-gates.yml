@@ -238,7 +238,7 @@ jobs:
           echo "HAS_PHP_OR_STATIC=${{ steps.check.outputs.has_php == 'true' || steps.check.outputs.has_static == 'true' }}" >> "$GITHUB_ENV"
 
       # ── Coding standard ─────────────────────────────────────────────
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: >-
           contains(format(',{0},', vars.PR_QA_ENABLED_JOBS), ',coding-standard,') &&
           (env.HAS_PHP == 'true' || env.HAS_JS == 'true' || env.HAS_STATIC == 'true')
@@ -267,7 +267,7 @@ jobs:
 
       - name: Setup Node.js
         if: env.HAS_JS == 'true'
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
 
