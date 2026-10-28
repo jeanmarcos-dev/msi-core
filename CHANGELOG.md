@@ -93,6 +93,16 @@ source Out of Stock by hand. Tracked in
 [msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
 [magento/inventory#3478](https://github.com/magento/inventory/issues/3478).
 
+### The admin ships an unmanaged item together with a managed one
+
+On the admin source selection page, **Proceed to Shipment** rejected an order that mixed a product
+with managed stock and one without, when the source held none of the unmanaged one:
+`Qty of <sku> should be less or equal to 0`. The form posts `isManageStock` as the string `"false"`,
+which PHP reads as true, so the unmanaged item was checked against the source's quantity. The value
+is now read as a boolean, and an unmanaged item is checked against its quantity to ship. Tracked in
+[msi-core#15](https://github.com/jeanmarcos-dev/msi-core/issues/15), from
+[magento/inventory#3408](https://github.com/magento/inventory/issues/3408).
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
