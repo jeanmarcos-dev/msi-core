@@ -1,0 +1,80 @@
+name: semver
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+    inputs:
+      base:
+        description: Ref to compare against
+        required: true
+        default: next-release
+
+concurrency:
+  group: semver-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MAGENTO_SEMVER_SHA: 857bb36c7443e3bbdd7134459c48a46086dc90e0
+
+jobs:
+  semver:
+    name: semantic version check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout the change
+        uses: actions/checkout@v7
+        with:
+          path: after
+
+      - name: Checkout the base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha || inputs.base }}
+          path: before
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: ctype, dom, iconv, json, mbstring, simplexml, tokenizer
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-semver-${{ env.MAGENTO_SEMVER_SHA }}
+
+      - name: Install magento-semver
+        run: |
+          git init --quiet "$RUNNER_TEMP/magento-semver"
+          git -C "$RUNNER_TEMP/magento-semver" fetch --depth 1 https://github.com/magento/magento-semver.git "$MAGENTO_SEMVER_SHA"
+          git -C "$RUNNER_TEMP/magento-semver" checkout --quiet FETCH_HEAD
+          composer install --no-dev --no-interaction --no-progress --working-dir="$RUNNER_TEMP/magento-semver"
+
+      - name: Compare the base with the change
+        run: sh after/.github/scripts/ci-semver.sh "$RUNNER_TEMP/magento-semver" before after "$RUNNER_TEMP/semver"
+
+      - name: Write the job summary
+        if: always()
+        run: test ! -f "$RUNNER_TEMP/semver/summary.md" || cat "$RUNNER_TEMP/semver/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: semver-report
+          path: |
+            ${{ runner.temp }}/semver/svc.log
+            ${{ runner.temp }}/semver/changed-files.log
+          if-no-files-found: warn
+          retention-days: 14
