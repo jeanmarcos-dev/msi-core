@@ -1,0 +1,138 @@
+name: integration
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    name: integration (group ${{ matrix.group }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: 1
+            modules: >-
+              InventoryCatalog
+              InventoryShipping
+              InventoryBundleProduct
+              InventorySalesAdminUi
+              InventorySourceSelectionApi
+              InventoryInStorePickupQuote
+              InventoryCatalogRule
+          - group: 2
+            modules: >-
+              InventorySales
+              InventoryGroupedProductIndexer
+              InventoryReservationCli
+              InventoryVisualMerchandiser
+              InventoryShippingAdminUi
+              InventoryAdminUi
+              InventoryCatalogAdminUi
+              InventoryConfiguration
+          - group: 3
+            modules: >-
+              InventoryConfigurableProduct
+              InventoryProductAlert
+              InventoryBundleProductIndexer
+              InventoryConfigurableProductIndexer
+              InventoryInStorePickupShipping
+              InventoryStockVisualizer
+              Inventory
+              InventoryCatalogFrontendUi
+              InventoryLowQuantityNotificationAdminUi
+          - group: 4
+            modules: >-
+              InventoryInStorePickupSales
+              InventoryIndexer
+              InventoryInStorePickup
+              InventoryCatalogSearch
+              InventoryLowQuantityNotification
+              InventoryImportExport
+              InventoryGroupedProduct
+              InventoryCatalogSearchBundleProduct
+              InventoryInStorePickupMultishipping
+              InventoryElasticsearch
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: magento_integration_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: magento_integration_tests
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Integration tests, one phpunit run per module
+        env:
+          MODULES: ${{ matrix.modules }}
+        run: printf '%s\n' "$MODULES" | xargs sh .github/scripts/ci-integration-modules.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/integration-reports"
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-junit-group-${{ matrix.group }}
+          path: ${{ runner.temp }}/integration-reports
+          if-no-files-found: warn
+          retention-days: 14
