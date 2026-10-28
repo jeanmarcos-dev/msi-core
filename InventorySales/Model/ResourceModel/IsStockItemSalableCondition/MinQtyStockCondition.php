@@ -30,10 +30,12 @@ class MinQtyStockCondition implements GetIsStockItemSalableConditionInterface
     /**
      * @param StockConfigurationInterface $configuration
      * @param ResourceConnection $resourceConnection
+     * @param GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
      */
     public function __construct(
         StockConfigurationInterface $configuration,
-        ResourceConnection $resourceConnection
+        ResourceConnection $resourceConnection,
+        private readonly GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
     ) {
         $this->configuration = $configuration;
         $this->resourceConnection = $resourceConnection;
@@ -53,12 +55,29 @@ class MinQtyStockCondition implements GetIsStockItemSalableConditionInterface
             'source_item.' . SourceItemInterface::QUANTITY
         );
         $quantityExpression = 'SUM(' . $quantityExpression . ')';
+        $globalThreshold = (string)$globalMinQty;
+        $itemThreshold = 'stock_item_configuration.min_qty';
+        $connection = $this->resourceConnection->getConnection();
+        $nonBackorderableType = $this->getNonBackorderableTypeCondition->execute($connection);
+        if ($nonBackorderableType !== null) {
+            $globalThreshold = (string)$connection->getCheckSql(
+                $nonBackorderableType,
+                (string)max(0.0, $globalMinQty),
+                $globalThreshold
+            );
+            $itemThreshold = (string)$connection->getCheckSql(
+                $nonBackorderableType,
+                "GREATEST($itemThreshold, 0)",
+                $itemThreshold
+            );
+        }
 
         $condition =
-            '(stock_item_configuration.use_config_min_qty = 1 AND ' . $quantityExpression . ' > ' . $globalMinQty . ')'
+            '(stock_item_configuration.use_config_min_qty = 1 AND ' . $quantityExpression
+            . ' > ' . $globalThreshold . ')'
             . ' OR '
             . '(stock_item_configuration.use_config_min_qty = 0 AND ' . $quantityExpression
-            . ' > stock_item_configuration.min_qty)';
+            . ' > ' . $itemThreshold . ')';
 
         return $condition;
     }

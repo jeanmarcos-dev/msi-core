@@ -103,6 +103,29 @@ is now read as a boolean, and an unmanaged item is checked against its quantity 
 [msi-core#15](https://github.com/jeanmarcos-dev/msi-core/issues/15), from
 [magento/inventory#3408](https://github.com/magento/inventory/issues/3408).
 
+### Virtual and downloadable products are sold only up to their stock
+
+**This changes behaviour.** A virtual or downloadable product with managed stock and backorders on
+was sold with its source at 0. Invoicing it had nothing to deduct, so the order completed with its
+reservation still open, and that reservation lowered the product's salable quantity for good.
+msi-core keeps physical stock at 0 or above, and a backorder waits for stock before it ships, but
+these products have nothing to ship. With managed stock, they now count as having backorders *No*
+and an out-of-stock threshold of 0 or above, whatever their own or the global configuration says.
+This holds in the salable check, the salable quantity, the stock index, the cart and order
+placement. Physical products keep their backorders. The types are a list in `di.xml`, and
+[Differences from upstream][d4-upstream] explains how to take one out. The stored configuration is
+not changed, so taking a type out restores its backorders as they were.
+
+**Upgrade:** reindex `inventory` so the stock index stops listing these products as salable without
+stock. Orders sold this way before the change keep their open reservation. Once they are complete or
+closed, `bin/magento inventory:reservation:reconcile` writes the compensation that releases it. Run it
+with `--dry-run` first to see the orders it would change. Tracked in
+[msi-core#16](https://github.com/jeanmarcos-dev/msi-core/issues/16), from
+[magento/inventory#3418](https://github.com/magento/inventory/issues/3418), which reports the same for
+Adobe Commerce eGift cards.
+
+[d4-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#virtual-and-downloadable-products-do-not-admit-backorders
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
