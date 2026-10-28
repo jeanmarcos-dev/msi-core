@@ -7,11 +7,11 @@ source=$(cd "$(dirname "$0")/../.." && pwd)
 
 case "$platform" in
     magento)
-        project='magento/project-community-edition:>=2.4.9 <2.4.10'
+        vendor=magento
         repository=https://mirror.mage-os.org/
         ;;
     mage-os)
-        project='mage-os/project-community-edition:>=3.0 <4.0'
+        vendor=mage-os
         repository=https://repo.mage-os.org/
         ;;
     *)
@@ -20,7 +20,11 @@ case "$platform" in
         ;;
 esac
 
-composer create-project --no-interaction --no-install --repository-url="$repository" "$project" "$target"
+probe=$(mktemp -d)
+trap 'rm -rf "$probe"' EXIT
+version=$(php "$source/.github/scripts/ci-newest-release.php" "$probe" "$vendor/product-community-edition" "$repository" "$source")
+
+composer create-project --no-interaction --no-install --repository-url="$repository" "$vendor/project-community-edition:$version" "$target"
 cd "$target"
 mkdir -p app/etc
 composer config --no-interaction repositories.0 composer "$repository"
