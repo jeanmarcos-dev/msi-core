@@ -4,7 +4,7 @@ setup() {
     TEST_SH="$(command -v "${TEST_SH:-dash}")" || { echo "dash is required: install it or set TEST_SH" >&2; return 1; }
     REPO="$BATS_TEST_TMPDIR/repo"
     mkdir -p "$REPO/.github/scripts" "$BATS_TEST_TMPDIR/bin"
-    cp "$BATS_TEST_DIRNAME/../ci-magento-project.sh" "$BATS_TEST_DIRNAME/../ci-unit.sh" "$REPO/.github/scripts/"
+    cp "$BATS_TEST_DIRNAME/../ci-magento-project.sh" "$BATS_TEST_DIRNAME/../ci-unit.sh" "$BATS_TEST_DIRNAME/../ci-integration.sh" "$REPO/.github/scripts/"
     cat > "$BATS_TEST_TMPDIR/bin/composer" <<'STUB'
 #!/bin/sh
 echo "composer $*" >> "$CALLS"
@@ -79,3 +79,13 @@ STUB
     grep -qF "php vendor/bin/phpunit --configuration $BATS_TEST_TMPDIR/magento/vendor/jeanmarcos/msi-core/.github/phpunit-unit.xml --bootstrap dev/tests/unit/framework/bootstrap.php --cache-directory $BATS_TEST_TMPDIR/magento/var/phpunit-cache in $BATS_TEST_TMPDIR/magento" "$CALLS"
 }
 
+@test "runs the integration suite of the installed msi-core against the configured services" {
+    integration="$BATS_TEST_TMPDIR/magento/dev/tests/integration"
+    mkdir -p "$integration"
+
+    run "$TEST_SH" .github/scripts/ci-integration.sh "$BATS_TEST_TMPDIR/magento" --filter SourceTest
+
+    [ "$status" -eq 0 ]
+    grep -qF "php $REPO/.github/scripts/ci-integration-config.php $integration $BATS_TEST_TMPDIR/magento/vendor/jeanmarcos/msi-core in $integration" "$CALLS"
+    [ "$(tail -n 1 "$CALLS")" = "php -d memory_limit=-1 ../../../vendor/bin/phpunit --configuration phpunit.xml --colors=never --filter SourceTest in $integration" ]
+}
