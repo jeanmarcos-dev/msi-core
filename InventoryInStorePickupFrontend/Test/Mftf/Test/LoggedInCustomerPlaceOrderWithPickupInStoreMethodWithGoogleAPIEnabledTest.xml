@@ -65,11 +65,7 @@
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
         </after>
 
-        <amOnPage url="{{InventoryConfigurationPage.url}}" stepKey="navigateToInventoryConfigurationPage"/>
-        <waitForPageLoad stepKey="waitForConfigPageToLoad"/>
-        <conditionalClick stepKey="expandGoogledistanceProvider" selector="{{InventoryConfigSection.GoogleDistanceProvidedTab}}" dependentSelector="{{InventoryConfigSection.GoogleDistanceProvidedTabExpanded}}" visible="true"/>
-        <fillField selector="{{InventoryConfigSection.GoogleDistanceProvided}}" userInput="AIzaSyD7QOaF7rcGVZQwrbG7AYNnFLwyuhGpQBU" stepKey="fillGoogleDistanceProvider"/>
-        <click selector="{{ContentManagementSection.Save}}" stepKey="clickSaveConfig"/>
+        <actionGroup ref="AdminFillGoogleDistanceProviderAPIKeyActionGroup" stepKey="fillGoogleApiKey"/>
         <!--Clean cache and reindex-->
         <actionGroup ref="CliIndexerReindexActionGroup" stepKey="performReindex">
             <argument name="indices" value=""/>
