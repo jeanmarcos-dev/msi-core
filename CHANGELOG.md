@@ -143,6 +143,38 @@ Adobe Commerce eGift cards.
 
 [d4-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#virtual-and-downloadable-products-do-not-admit-backorders
 
+### A source item whose source code differs from the stored one only in case is rejected
+
+`POST /V1/inventory/source-items` accepted a `source_code` that differed from the stored one only in
+case, `Warehouse_Bravo` for `warehouse_bravo`, because the foreign key compares without regard to
+case, and saved the row exactly as it arrived. The product grid in the admin then failed with
+"Undefined array key", since it looks the source up by exact code. **This changes behavior:** such a
+save is now rejected with a validation error that names the stored code, `Source code
+"Warehouse_Bravo" does not match the stored source code "warehouse_bravo".`, and nothing in the
+batch is saved. A client that sends a code in another case has to send it as it is stored. A code
+that matches no source still fails as before. The grid also looks the source up without regard to
+case and skips a row it cannot resolve, so rows saved with another case before this change no longer
+break it. Those rows are not rewritten. Costs one more query per save on `inventory_source`, for
+the distinct codes of the batch. Tracked in
+[msi-core#30](https://github.com/jeanmarcos-dev/msi-core/issues/30), adapted from
+[magento/inventory#3471](https://github.com/magento/inventory/pull/3471) by
+[lbajsarowicz](https://github.com/lbajsarowicz), which saves the stored code instead of rejecting
+the save.
+
+### Separating new from existing source items no longer compares every pair
+
+Saving source items matched each item of the batch against each stored row, so the time grew with
+the product of the two. Saving 10,000 items that already existed took a median of 12.5 seconds,
+9.6 of them in the separation; with this change it takes 2.9 seconds, 0.1 of them in the
+separation. It now indexes the batch by source and SKU and walks the stored rows once. The upstream
+patch rebuilt the list of new items from arrays keyed by source and SKU: `array_merge` kept only one
+item when the same non-numeric SKU was new in two sources of the same save, and the new rows were
+inserted grouped by source instead of in the order they came in. The new items are now the ones
+left in the batch, in their original order, and tests cover both cases. Tracked in
+[msi-core#31](https://github.com/jeanmarcos-dev/msi-core/issues/31), from
+[magento/inventory#3464](https://github.com/magento/inventory/pull/3464) by
+[stollr](https://github.com/stollr).
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They

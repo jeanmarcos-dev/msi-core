@@ -130,9 +130,11 @@ class SaveMultiple
 
         $skus = [];
         $stock = [];
-        foreach ($sourceItems as $sourceItem) {
+        $sourceItemKeys = [];
+        foreach ($sourceItems as $key => $sourceItem) {
             $skus[] = $sourceItem->getSku();
             $stock[] = $sourceItem->getSourceCode();
+            $sourceItemKeys[$sourceItem->getSourceCode()][$sourceItem->getSku()][] = $key;
         }
 
         $storedSourceItems = $connection->fetchAll(
@@ -142,15 +144,14 @@ class SaveMultiple
         );
 
         $exisingSourceItems = [];
-        foreach ($sourceItems as $key => $sourceItem) {
-            foreach ($storedSourceItems as $storedSourceItem) {
-                if ($sourceItem->getSku() === $storedSourceItem['sku'] &&
-                    $sourceItem->getSourceCode() === $storedSourceItem['source_code']) {
-                    unset($sourceItems[$key]);
-                    $exisingSourceItems[$storedSourceItem['source_item_id']] = $sourceItem;
-                }
+        foreach ($storedSourceItems as $storedSourceItem) {
+            $keys = $sourceItemKeys[$storedSourceItem['source_code']][$storedSourceItem['sku']] ?? [];
+            foreach ($keys as $key) {
+                $exisingSourceItems[$storedSourceItem['source_item_id']] = $sourceItems[$key];
+                unset($sourceItems[$key]);
             }
         }
+
         return [$sourceItems, $exisingSourceItems];
     }
 

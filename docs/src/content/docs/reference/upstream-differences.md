@@ -21,6 +21,7 @@ the original `Magento_Inventory*` module names and `Magento\Inventory*` namespac
 | Storefront availability | in stock or out of stock | an [Availability panel](/msi-core/features/stock-visualizer/), opt-in |
 | Disabled children of a configurable | still count toward the parent's salability | excluded, by their status in the default scope ([`SelectBuilder`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryConfigurableProductIndexer/Indexer/SelectBuilder.php)). The index is per stock, not per store, so a child disabled globally but enabled on one store view counts as disabled everywhere, and the other way round |
 | Backorders on virtual and downloadable products | follow the product's setting; an order sold on backorder is invoiced without a deduction and its reservation stays open | [not admitted](#virtual-and-downloadable-products-do-not-admit-backorders) when the product manages stock |
+| Source item save with a source code that differs from the stored one only in case | saved as sent; the admin product grid then fails on that row | rejected with a validation error that names the stored code |
 
 ### Virtual and downloadable products do not admit backorders
 
