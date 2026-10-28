@@ -7,11 +7,9 @@ name: static QA
 
 on:
   pull_request:
-    branches: ['main']
-    paths: ['**.php', 'composer.json', '*/registration.php']
+    branches: ['main', 'next-release']
   push:
-    branches: ['main']
-    paths: ['**.php', 'composer.json', '*/registration.php']
+    branches: ['main', 'next-release']
   workflow_dispatch:
 
 concurrency:
@@ -56,7 +54,7 @@ jobs:
           git diff --name-only --diff-filter=ACMR "$base...HEAD" -- '*.php' ':(exclude).github/' > changed.txt || true
           echo "Changed PHP files:"
           cat changed.txt || true
-          echo "count=$(grep -c . changed.txt || echo 0)" >> "$GITHUB_OUTPUT"
+          echo "count=$(grep -c . changed.txt || true)" >> "$GITHUB_OUTPUT"
 
       - name: PHP lint
         if: steps.changed.outputs.count != '0'

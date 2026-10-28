@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/12.5/phpunit.xsd"
+         colors="false"
+         cacheDirectory=".phpunit.cache"
+         failOnRisky="true"
+         failOnWarning="true">
+    <testsuites>
+        <testsuite name="msi-core unit">
+            <directory suffix="Test.php">../*/Test/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <ini name="date.timezone" value="UTC"/>
+        <ini name="memory_limit" value="-1"/>
+    </php>
+</phpunit>
