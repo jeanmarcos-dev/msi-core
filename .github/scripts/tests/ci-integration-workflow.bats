@@ -50,3 +50,8 @@ setup() {
     grep -qF "      - '.github/scripts/ci-integration*'" "$WORKFLOW"
     ! grep -qE "^  push:" "$WORKFLOW"
 }
+
+@test "gives the runner a sendmail before the tests that send mail" {
+    grep -qF 'sudo tee /usr/sbin/sendmail' "$WORKFLOW"
+    [ "$(grep -n 'sudo tee /usr/sbin/sendmail' "$WORKFLOW" | cut -d: -f1)" -lt "$(grep -n 'ci-integration-modules.sh' "$WORKFLOW" | cut -d: -f1)" ]
+}

@@ -130,6 +130,11 @@ jobs:
       - name: Let MySQL create the triggers msi-core installs
         run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
 
+      - name: Accept the mail the tests send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
       - name: Integration tests, one phpunit run per module
         env:
           MODULES: ${{ matrix.modules }}
