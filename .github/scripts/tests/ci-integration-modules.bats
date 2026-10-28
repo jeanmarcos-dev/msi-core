@@ -10,7 +10,7 @@ setup() {
 #!/bin/sh
 case "$1" in
     -d)
-        echo "phpunit $*" >> "$CALLS"
+        printf '%s\n' "phpunit $*" >> "$CALLS"
         for failing in ${FAILING_MODULES:-}; do
             case "$*" in
                 *"\\$failing\\"*) exit 2 ;;
