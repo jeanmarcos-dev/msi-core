@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Magento\InventoryIndexer\Indexer\Stock;
 
 use ArrayIterator;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryConfigurationApi\Model\GetAllowedProductTypesForSourceItemManagementInterface;
 use Magento\InventoryIndexer\Indexer\SiblingProductsProvidersPool;
@@ -16,6 +18,9 @@ use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexAlias;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexHandlerInterface;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexName;
 
+/**
+ * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
+ */
 class IndexDataFiller
 {
     /**
@@ -26,6 +31,7 @@ class IndexDataFiller
      * @param DataProvider $dataProvider
      * @param IndexHandlerInterface $indexStructureHandler
      * @param SiblingProductsProvidersPool $siblingProductsProvidersPool
+     * @param ResourceConnection $resourceConnection
      */
     public function __construct(
         private readonly ReservationsIndexTable $reservationsIndexTable,
@@ -35,6 +41,7 @@ class IndexDataFiller
         private readonly DataProvider $dataProvider,
         private readonly IndexHandlerInterface $indexStructureHandler,
         private readonly SiblingProductsProvidersPool $siblingProductsProvidersPool,
+        private readonly ResourceConnection $resourceConnection,
     ) {
     }
 
@@ -70,12 +77,7 @@ class IndexDataFiller
             $composableSkus = array_merge([], ...array_values($composableSkusByTypes));
             if ($composableSkus) {
                 $data = $this->dataProvider->getData($stockId, $composableSkus);
-                $this->indexStructureHandler->cleanIndex(
-                    $indexName,
-                    new ArrayIterator($composableSkus),
-                    $connectionName
-                );
-                $this->indexStructureHandler->saveIndex($indexName, new ArrayIterator($data), $connectionName);
+                $this->replaceRows($indexName, $composableSkus, $data, $connectionName);
             }
         } else {
             $data = $this->dataProvider->getData($stockId);
@@ -96,11 +98,57 @@ class IndexDataFiller
             $data = $this->dataProvider->getSiblingsData($stockId, $productType, $skus, $indexAlias);
             if ($skuList) {
                 // Partial reindex. When full reindex, replica table is used, so no cleaning is required.
-                $this->indexStructureHandler->cleanIndex($indexName, new ArrayIterator($skus), $connectionName);
+                $this->replaceRows($indexName, $skus, $data, $connectionName);
+            } else {
+                $this->indexStructureHandler->saveIndex($indexName, new ArrayIterator($data), $connectionName);
             }
-            $this->indexStructureHandler->saveIndex($indexName, new ArrayIterator($data), $connectionName);
         }
 
         $this->reservationsIndexTable->dropTable($stockId);
+    }
+
+    /**
+     * Replace the rows of the given SKUs atomically, joining the caller's transaction when there is one.
+     *
+     * @param IndexName $indexName
+     * @param string[] $skus
+     * @param array $data
+     * @param string $connectionName
+     * @return void
+     */
+    private function replaceRows(IndexName $indexName, array $skus, array $data, string $connectionName): void
+    {
+        $connection = $this->resourceConnection->getConnection($connectionName);
+        $ownsTransaction = $connection->getTransactionLevel() === 0;
+        if ($ownsTransaction) {
+            $connection->beginTransaction();
+        }
+        try {
+            $this->indexStructureHandler->cleanIndex($indexName, new ArrayIterator($skus), $connectionName);
+            $this->indexStructureHandler->saveIndex($indexName, new ArrayIterator($data), $connectionName);
+        } catch (\Throwable $exception) {
+            if ($ownsTransaction) {
+                $this->rollBack($connection);
+            }
+            throw $exception;
+        }
+        if ($ownsTransaction) {
+            $connection->commit();
+        }
+    }
+
+    /**
+     * Roll back without letting a failed rollback hide the exception that caused it.
+     *
+     * @param AdapterInterface $connection
+     * @return void
+     */
+    private function rollBack(AdapterInterface $connection): void
+    {
+        try {
+            $connection->rollBack();
+        } catch (\Throwable) {
+            return;
+        }
     }
 }
