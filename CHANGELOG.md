@@ -56,6 +56,76 @@ their names; their classes are now
 Raised by Ryan Hoerr in review of
 [rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
 
+### Saving a shipment again keeps the source it shipped from
+
+A shipment that was loaded without its `source_code` extension attribute, as a shipment collection
+loads it, and then saved again through the shipment resource model had its stored source replaced
+with `default`. The stock had already left the source it was shipped from, so returns to stock and
+the admin's per-source views read a source that shipped nothing. Saving now writes the source only
+when the shipment carries one, and otherwise keeps the stored one. A new shipment still always gets
+a source: it is resolved before the save, or the save is rejected. A shipment with no stored source
+no longer gets `default` when it is saved again. Tracked in
+[msi-core#11](https://github.com/jeanmarcos-dev/msi-core/issues/11), from
+[magento/inventory#3317](https://github.com/magento/inventory/issues/3317).
+
+### A source that a shipment empties goes out of stock
+
+Shipping, or invoicing virtual items, lowered a source item's quantity but never wrote its status:
+the deduction computed one and dropped it, so a source shipped down to its out-of-stock threshold
+stayed In Stock. The deduction now writes the status in the same update as the quantity, and only
+when the source changes state:
+
+- a deduction that leaves the quantity at or below the product's out-of-stock threshold, for a
+  product without backorders, sets the source item Out of Stock;
+- a return to stock that lifts an Out of Stock source item above the threshold sets it In Stock,
+  only when *Set Items' Status to be In Stock When Order is Cancelled*
+  (`cataloginventory/options/can_back_in_stock`, on by default) is on. This includes a source that
+  was marked Out of Stock by hand;
+- anything else leaves the status alone, so a source marked Out of Stock by hand stays that way
+  through later shipments. Upstream's proposed fix writes the computed status on every deduction,
+  which would undo it.
+
+Whether a return brings a source back now depends on the source item's own status, no longer on the
+product's stock status. The status change is recorded in the same adjustment history row as the
+quantity. With a threshold above 0, a source that a deduction leaves Out of Stock keeps its
+remaining units, and they no longer count towards the salable quantity, as when a merchant marks the
+source Out of Stock by hand. Tracked in
+[msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
+[magento/inventory#3478](https://github.com/magento/inventory/issues/3478).
+
+### The admin ships an unmanaged item together with a managed one
+
+On the admin source selection page, **Proceed to Shipment** rejected an order that mixed a product
+with managed stock and one without, when the source held none of the unmanaged one:
+`Qty of <sku> should be less or equal to 0`. The form posts `isManageStock` as the string `"false"`,
+which PHP reads as true, so the unmanaged item was checked against the source's quantity. The value
+is now read as a boolean, and an unmanaged item is checked against its quantity to ship. Tracked in
+[msi-core#15](https://github.com/jeanmarcos-dev/msi-core/issues/15), from
+[magento/inventory#3408](https://github.com/magento/inventory/issues/3408).
+
+### Virtual and downloadable products are sold only up to their stock
+
+**This changes behaviour.** A virtual or downloadable product with managed stock and backorders on
+was sold with its source at 0. Invoicing it had nothing to deduct, so the order completed with its
+reservation still open, and that reservation lowered the product's salable quantity for good.
+msi-core keeps physical stock at 0 or above, and a backorder waits for stock before it ships, but
+these products have nothing to ship. With managed stock, they now count as having backorders *No*
+and an out-of-stock threshold of 0 or above, whatever their own or the global configuration says.
+This holds in the salable check, the salable quantity, the stock index, the cart and order
+placement. Physical products keep their backorders. The types are a list in `di.xml`, and
+[Differences from upstream][d4-upstream] explains how to take one out. The stored configuration is
+not changed, so taking a type out restores its backorders as they were.
+
+**Upgrade:** reindex `inventory` so the stock index stops listing these products as salable without
+stock. Orders sold this way before the change keep their open reservation. Once they are complete or
+closed, `bin/magento inventory:reservation:reconcile` writes the compensation that releases it. Run it
+with `--dry-run` first to see the orders it would change. Tracked in
+[msi-core#16](https://github.com/jeanmarcos-dev/msi-core/issues/16), from
+[magento/inventory#3418](https://github.com/magento/inventory/issues/3418), which reports the same for
+Adobe Commerce eGift cards.
+
+[d4-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#virtual-and-downloadable-products-do-not-admit-backorders
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They

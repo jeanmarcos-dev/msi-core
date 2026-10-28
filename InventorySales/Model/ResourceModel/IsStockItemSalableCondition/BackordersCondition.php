@@ -24,9 +24,12 @@ class BackordersCondition implements GetIsStockItemSalableConditionInterface
 
     /**
      * @param StockConfigurationInterface $configuration
+     * @param GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
      */
-    public function __construct(StockConfigurationInterface $configuration)
-    {
+    public function __construct(
+        StockConfigurationInterface $configuration,
+        private readonly GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
+    ) {
         $this->configuration = $configuration;
     }
 
@@ -53,6 +56,10 @@ class BackordersCondition implements GetIsStockItemSalableConditionInterface
             $itemBackordersCondition
             : $useDefaultBackorders . ' = ' . StockItemConfigurationInterface::BACKORDERS_YES_NONOTIFY .
             ' OR ' . $itemBackordersCondition;
+        $nonBackorderableType = $this->getNonBackorderableTypeCondition->execute($select->getConnection());
+        if ($nonBackorderableType !== null) {
+            $isBackorderEnabled = "($isBackorderEnabled) AND (product.type_id IS NULL OR NOT ($nonBackorderableType))";
+        }
 
         $isAnyStockItemInStock = (string) $select->getConnection()
             ->getCheckSql(

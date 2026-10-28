@@ -48,11 +48,11 @@ class DecrementQtyForMultipleSourceItem
                 'source_code = ?' => $sourceItem->getSourceCode(),
                 'sku = ?' => $sourceItem->getSku()
             ];
-            $connection->update(
-                [$tableName],
-                ['quantity' => new \Zend_Db_Expr('quantity - ' . $decrementItem['qty_to_decrement'])],
-                $where
-            );
+            $bind = ['quantity' => new \Zend_Db_Expr('quantity - ' . $decrementItem['qty_to_decrement'])];
+            if (isset($decrementItem['status'])) {
+                $bind['status'] = (int)$decrementItem['status'];
+            }
+            $connection->update([$tableName], $bind, $where);
         }
     }
 }

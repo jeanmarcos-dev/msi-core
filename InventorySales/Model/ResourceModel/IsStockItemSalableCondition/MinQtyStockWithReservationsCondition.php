@@ -23,9 +23,11 @@ class MinQtyStockWithReservationsCondition implements GetIsStockItemSalableCondi
 
     /**
      * @param StockConfigurationInterface $configuration
+     * @param GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
      */
     public function __construct(
-        StockConfigurationInterface $configuration
+        StockConfigurationInterface $configuration,
+        private readonly GetNonBackorderableTypeCondition $getNonBackorderableTypeCondition
     ) {
         $this->configuration = $configuration;
     }
@@ -48,6 +50,14 @@ class MinQtyStockWithReservationsCondition implements GetIsStockItemSalableCondi
             $globalMinQty,
             $itemMinQty
         );
+        $nonBackorderableType = $this->getNonBackorderableTypeCondition->execute($select->getConnection());
+        if ($nonBackorderableType !== null) {
+            $minQty = (string)$select->getConnection()->getCheckSql(
+                $nonBackorderableType,
+                "GREATEST($minQty, 0)",
+                $minQty
+            );
+        }
         $reservationQty =  (string) $select->getConnection()->getCheckSql(
             'reservations.reservation_qty IS NULL',
             0,
