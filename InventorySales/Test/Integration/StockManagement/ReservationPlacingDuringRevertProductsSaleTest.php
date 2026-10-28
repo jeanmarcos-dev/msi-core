@@ -82,7 +82,8 @@ class ReservationPlacingDuringRevertProductsSaleTest extends TestCase
         $resource->getConnection()->delete(
             $resource->getTableName('inventory_reservation'),
             [
-                "(metadata IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.event_type')) = ?)" => 'revert_products_sale',
+                "(metadata IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.event_type')) = ?)"
+                    => 'revert_products_sale',
                 'stock_id = ?' => 10,
                 'sku = ?' => 'SKU-1',
             ]
