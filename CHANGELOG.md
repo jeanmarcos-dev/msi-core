@@ -19,6 +19,23 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### A partial reindex never leaves a SKU without a row in the stock index
+
+A partial reindex replaced the rows of a SKU in `inventory_stock_<id>` with two statements that
+committed on their own: a `DELETE` and then an `INSERT ... ON DUPLICATE KEY UPDATE`, once for the
+simple products and again for each composite type. A reader that came in between found no row and
+read the SKU as not salable, as the storefront or the salability consumer can. An insert that failed
+after the delete, with a deadlock between two concurrent reindexes, left the SKU without a row until
+the next reindex. Each delete and insert pair now runs in one transaction, so a reader sees the
+previous row or the new one, and a failed insert restores the previous rows before the error
+propagates. The stock 1 table is covered too. When the caller already has a transaction open, the
+reindex joins it without opening another level, so an error it raises does not mark the caller's
+transaction as rolled back; a caller that catches that error and commits still commits the SKU
+without a row, as before. A full reindex is unchanged. Tracked in
+[msi-core#29](https://github.com/jeanmarcos-dev/msi-core/issues/29), from
+[magento/inventory#3462](https://github.com/magento/inventory/issues/3462) and
+[magento/inventory#3443](https://github.com/magento/inventory/issues/3443).
+
 ### Two releases of one order can no longer release its stock twice
 
 A cancel, credit memo, shipment or manual compensation is capped at what its order still reserves.
