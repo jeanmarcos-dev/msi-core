@@ -25,9 +25,9 @@
       <deleteData createDataKey="createStock" stepKey="deleteStock"/>
     </after>
     <dontSeeElement selector="{{AdminManageStockGridControls.addNewStock}}" stepKey="verifyAddNewStockButtonNotVisible" after="loginAsNewUser"/>
-    <dontSeeElement selector="{{AdminManageStockGridBody.editStock(BasicMsiStock1.name)}}" stepKey="verifyEditStockButtonNotVisible"/>
-    <waitForElementClickable selector="{{AdminManageStockGridControls.actionDropdown}}" stepKey="waitForActionToBeClickable"/>
-    <click  selector="{{AdminManageStockGridControls.actionDropdown}}" stepKey="clickOnActionButton"/>
-    <dontSeeElement selector="{{AdminManageStockGridControls.deleteOption}}" stepKey="verifyDeleteStockButtonNotVisible"/>
+    <dontSeeElement selector="{{AdminManageStockGridBody.editStock(BasicMsiStock1.name)}}" stepKey="verifyEditStockButtonNotVisible" after="verifyAddNewStockButtonNotVisible"/>
+    <waitForElementClickable selector="{{AdminManageStockGridControls.actionDropdown}}" stepKey="waitForActionToBeClickable" after="verifyEditStockButtonNotVisible"/>
+    <click  selector="{{AdminManageStockGridControls.actionDropdown}}" stepKey="clickOnActionButton" after="waitForActionToBeClickable"/>
+    <dontSeeElement selector="{{AdminManageStockGridControls.deleteOption}}" stepKey="verifyDeleteStockButtonNotVisible" after="clickOnActionButton"/>
   </test>
 </tests>
