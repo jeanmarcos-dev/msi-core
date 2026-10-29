@@ -93,21 +93,8 @@ QUERY;
      */
     public static function dataProvider(): array
     {
-        /* Data set #0. Search by not existing address */
         return [
-            [/* Data set #0. Search by not existing address */
-                'pickupLocations(
-    area:{
-      radius: 750
-      search_term: "86559:ZZ"
-    }
-    pageSize: 1
-    currentPage: 1
-    sort: {distance: ASC}
-  )',
-                'store_for_global_website',
-            ],
-            [/* Data set #1. Wrong page size. */
+            [/* Data set #0. Wrong page size. */
                 'pickupLocations(
     pageSize: -1
     currentPage: 1
@@ -115,7 +102,7 @@ QUERY;
                 'store_for_global_website',
                 'pageSize value must be greater than 0.',
             ],
-            [/* Data set #2. Wrong current page. */
+            [/* Data set #1. Wrong current page. */
                 'pickupLocations(
     pageSize: 10
     currentPage: -1
@@ -123,7 +110,7 @@ QUERY;
                 'store_for_global_website',
                 'currentPage value must be greater than 0.',
             ],
-            [/* Data set #3. Wrong max page. */
+            [/* Data set #2. Wrong max page. */
                 'pickupLocations(
     area:{
       radius: 750

@@ -378,7 +378,25 @@ QUERY;
               2,
               1,
               0
-            ]
+            ],
+            [ /* Data set #12. Search by not existing address. */
+              'pickupLocations(
+    area:{
+      radius: 750
+      search_term: "86559:ZZ"
+    }
+    pageSize: 1
+    currentPage: 1
+    sort: {distance: ASC}
+  )',
+              [],
+              'global_website',
+              'store_for_global_website',
+              0,
+              1,
+              1,
+              0
+            ],
         ];
     }
 
