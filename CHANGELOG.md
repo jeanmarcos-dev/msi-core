@@ -19,6 +19,19 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### A stock status set through the stock item API reaches the stock and price indexes of composite products
+
+`StockRegistryInterface::updateStockItemBySku()`, which `PUT /V1/products/{sku}/stockItems/{itemId}` calls,
+left a configurable, bundle or grouped product stale on a single-source installation. Marking the composite
+product itself out of stock saved the flag in `inventory_stock_item_configuration` but never rebuilt its row in
+`inventory_stock_1`, because the reindex went through the source items of the SKU and a composite product has
+none. Returning a child to stock saved the parent back in stock through `ChangeParentStockStatus`, whose save
+reported no change because `is_in_stock` was not among the fields the index reads, so the parent was never
+reindexed: its price had already been reindexed while it was still unsalable, and it stayed out of
+`catalog_product_index_price` and the category listings. A save that only moved the configuration of a composite
+product now rebuilds its stock row through the composite indexer, which also queues its price, and `is_in_stock`
+counts as a field the index reads. Tracked in [msi-core#51](https://github.com/jeanmarcos-dev/msi-core/issues/51).
+
 ### A partial reindex never leaves a SKU without a row in the stock index
 
 A partial reindex replaced the rows of a SKU in `inventory_stock_<id>` with two statements that

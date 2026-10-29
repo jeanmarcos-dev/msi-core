@@ -23,6 +23,7 @@ use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
 use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
+use Magento\InventoryIndexer\Indexer\CompositeProductsIndexer;
 use Magento\InventoryIndexer\Model\ReindexSourceItemsBySkus;
 
 /**
@@ -52,6 +53,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
      * @param ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration
      * @param StockRegistryStorage $stockRegistryStorage
      * @param ReindexSourceItemsBySkus $reindexSourceItemsBySkus
+     * @param CompositeProductsIndexer $compositeProductsIndexer
      * @SuppressWarnings(PHPMD.ExcessiveParameterList)
      */
     public function __construct(
@@ -66,7 +68,8 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
         private readonly IsSingleSourceModeInterface $isSingleSourceMode,
         private readonly ProjectLegacyStockItemToConfiguration $projectLegacyStockItemToConfiguration,
         private readonly StockRegistryStorage $stockRegistryStorage,
-        private readonly ReindexSourceItemsBySkus $reindexSourceItemsBySkus
+        private readonly ReindexSourceItemsBySkus $reindexSourceItemsBySkus,
+        private readonly CompositeProductsIndexer $compositeProductsIndexer
     ) {
     }
 
@@ -123,7 +126,7 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             $connection->commit();
 
             if ($configurationChanged && !$sourceItemSaved) {
-                $this->reindexSourceItemsBySkus->execute([$sku]);
+                $this->reindexConfigurationOnlyChange($sku, $typeId);
             }
 
             return $subject;
@@ -131,6 +134,23 @@ class UpdateSourceItemAtLegacyStockItemSavePlugin
             $connection->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Rebuild the stock index of a product whose save moved only the stock item configuration.
+     *
+     * @param string $sku
+     * @param string $typeId
+     * @return void
+     */
+    private function reindexConfigurationOnlyChange(string $sku, string $typeId): void
+    {
+        if ($this->isSourceItemManagementAllowed->execute($typeId)) {
+            $this->reindexSourceItemsBySkus->execute([$sku]);
+            return;
+        }
+
+        $this->compositeProductsIndexer->reindexList([$sku]);
     }
 
     /**
