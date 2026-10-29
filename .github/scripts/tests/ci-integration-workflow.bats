@@ -40,15 +40,18 @@ setup() {
     ! grep -q "integration" "$ROOT/.github/workflows/tests.yml"
 }
 
-@test "runs nightly, on demand, and on pull requests that touch the integration suite" {
-    grep -qE "^  schedule:" "$WORKFLOW"
+@test "runs on demand, and on pull requests and pushes that change more than documentation" {
     grep -qE "^  workflow_dispatch:" "$WORKFLOW"
     grep -qE "^  pull_request:" "$WORKFLOW"
-    grep -qF "      - '**/Test/Integration/**'" "$WORKFLOW"
-    grep -qF "      - '**/Test/_files/**'" "$WORKFLOW"
-    grep -qF "      - '.github/workflows/integration.yml'" "$WORKFLOW"
-    grep -qF "      - '.github/scripts/ci-integration*'" "$WORKFLOW"
-    ! grep -qE "^  push:" "$WORKFLOW"
+    grep -qE "^  push:" "$WORKFLOW"
+    [ "$(grep -cF "      - 'docs/**'" "$WORKFLOW")" -eq 2 ]
+    [ "$(grep -cF "      - '**/*.md'" "$WORKFLOW")" -eq 2 ]
+    ! grep -qE "^    paths:" "$WORKFLOW"
+    ! grep -qE "^  schedule:" "$WORKFLOW"
+}
+
+@test "cancels a run that a newer commit makes obsolete" {
+    grep -qF "  cancel-in-progress: true" "$WORKFLOW"
 }
 
 @test "gives the runner a sendmail before the tests that send mail" {
