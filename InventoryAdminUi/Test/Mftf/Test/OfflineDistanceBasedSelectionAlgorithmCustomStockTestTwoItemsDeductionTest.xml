@@ -73,7 +73,7 @@
         <after>
             <!--Revert config changes.-->
             <magentoCLI command="config:set {{TurnOnManageStockConfig.path}} {{TurnOnManageStockConfig.value}}" stepKey="revertManageStock"/>
-            <magentoCLI command="config:set cataloginventory/source_selection_distance_based/provider offline" stepKey="revertSelectionAlgorithm"/>
+            <magentoCLI command="config:set cataloginventory/source_selection_distance_based/provider google" stepKey="revertSelectionAlgorithm"/>
             <!--Disable created sources.-->
             <actionGroup ref="DisableAllSourcesActionGroup" stepKey="disableAllSources"/>
             <!--Assign Main Website to Default Stock.-->
