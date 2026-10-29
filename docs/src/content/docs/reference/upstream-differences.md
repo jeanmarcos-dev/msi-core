@@ -21,6 +21,7 @@ the original `Magento_Inventory*` module names and `Magento\Inventory*` namespac
 | Storefront availability | in stock or out of stock | an [Availability panel](/msi-core/features/stock-visualizer/), opt-in |
 | Disabled children of a configurable | still count toward the parent's salability | excluded, by their status in the default scope ([`SelectBuilder`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventoryConfigurableProductIndexer/Indexer/SelectBuilder.php)). The index is per stock, not per store, so a child disabled globally but enabled on one store view counts as disabled everywhere, and the other way round |
 | Backorders on virtual and downloadable products | follow the product's setting; an order sold on backorder is invoiced without a deduction and its reservation stays open | [not admitted](#virtual-and-downloadable-products-do-not-admit-backorders) when the product manages stock |
+| Status of a source that a shipment empties | stays In Stock at its out-of-stock threshold; a return to stock follows the product's stock status | [goes Out of Stock](#a-source-that-a-shipment-empties-goes-out-of-stock); a return brings it back by its own status |
 | Source item save with a source code that differs from the stored one only in case | saved as sent; the admin product grid then fails on that row | rejected with a validation error that names the stored code |
 
 ### Virtual and downloadable products do not admit backorders
@@ -47,6 +48,31 @@ let a type admit backorders again, set its item to `null` in your module's `di.x
 ```
 
 A product type of your own with nothing to ship can be added to the list the same way.
+
+### A source that a shipment empties goes out of stock
+
+Upstream lowers a source item's quantity when an order ships, or when virtual items are invoiced,
+but never writes its status, so a source shipped down to its out-of-stock threshold stays In Stock
+([magento/inventory#3478](https://github.com/magento/inventory/issues/3478)). In msi-core the
+deduction writes the status in the same update as the quantity, and only when the source changes
+state:
+
+- a deduction that leaves the quantity at or below the product's out-of-stock threshold, for a
+  product without backorders, sets the source item Out of Stock;
+- a return to stock that lifts an Out of Stock source item above the threshold sets it In Stock,
+  only when *Set Items' Status to be In Stock When Order is Cancelled*
+  (`cataloginventory/options/can_back_in_stock`) is on. This includes a source that was marked Out
+  of Stock by hand;
+- anything else leaves the status alone, so a source marked Out of Stock by hand stays that way
+  through later shipments.
+
+Two results differ from what an upstream store shows. A return brings a source back by the source
+item's own status, no longer by the product's stock status. And with an out-of-stock threshold above
+0, a source that a deduction leaves Out of Stock keeps its remaining units, which no longer count
+towards the salable quantity, as when a merchant marks the source Out of Stock by hand.
+
+Writing the computed status on every deduction would also fix the upstream bug, but it would undo a
+status that a merchant set by hand. msi-core writes it only when the source crosses the threshold.
 
 ## Fixes
 
