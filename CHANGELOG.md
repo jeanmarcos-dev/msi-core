@@ -19,6 +19,15 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Composer no longer installs the upstream requisition list module next to msi-core
+
+`magento/module-inventory-requisition-list` and `mage-os/module-inventory-requisition-list` were missing from the
+`replace` section of `composer.json`, although the inventory metapackage requires them. A Composer install therefore
+brought the upstream module in next to msi-core, 1.2.7 on Magento 2.4.9 and 3.6.0 on Mage-OS 3.6, and left an
+upstream MSI module running against msi-core's code. Both packages are now replaced, so Composer does not install
+them. A store that relied on the upstream module's requisition list integration loses it. Tracked in
+[msi-core#36](https://github.com/jeanmarcos-dev/msi-core/issues/36).
+
 ### `inventory-sales` no longer depends on `inventory-indexer`
 
 `ReconcileReservationsSweep` in `InventorySales` called `Magento\InventoryIndexer\Indexer\Stock\StockIndexer` itself, so
