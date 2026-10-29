@@ -76,3 +76,10 @@ setup() {
     grep -qF 'integration-junit-${{ matrix.database.slug }}-group-${{ matrix.group }}' "$WORKFLOW"
     grep -qF 'integration-logs-${{ matrix.database.slug }}-group-${{ matrix.group }}' "$WORKFLOW"
 }
+
+@test "gives the MariaDB jobs the MariaDB 12.3 client the Magento test framework looks for" {
+    grep -qF "if: matrix.database.slug == 'mariadb-12.3'" "$WORKFLOW"
+    grep -qF 'https://archive.mariadb.org/mariadb-12.3.3/repo/ubuntu noble main' "$WORKFLOW"
+    grep -qF 'install -y mariadb-client' "$WORKFLOW"
+    [ "$(grep -n 'install -y mariadb-client' "$WORKFLOW" | cut -d: -f1)" -lt "$(grep -n 'ci-integration-modules.sh' "$WORKFLOW" | cut -d: -f1)" ]
+}
