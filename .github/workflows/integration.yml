@@ -48,6 +48,7 @@ jobs:
               InventoryAdminUi
               InventoryCatalogAdminUi
               InventoryConfiguration
+              InventoryAdjustmentAdminUi
           - group: 3
             modules: >-
               InventoryConfigurableProduct

@@ -19,6 +19,16 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### The adjustment grids no longer remove the data sources of the other admin grids
+
+Since 1.1.0, `InventoryAdjustmentAdminUi` registered its two grid data sources in `etc/adminhtml/di.xml`, in the
+`collections` argument of `UiComponent\DataProvider\CollectionFactory`. Magento merges each argument of an area
+configuration with `array_replace`, so in `adminhtml` that list replaced the global one: the order, invoice,
+shipment and credit memo grids lost their data sources and failed with `Not registered handle
+sales_order_grid_data_source`, as did any other listing that uses the factory. The two data sources and their
+virtual type now live in `etc/di.xml`, where Magento's own modules register theirs, so they are added to the
+global list instead of replacing it. Tracked in [msi-core#58](https://github.com/jeanmarcos-dev/msi-core/issues/58).
+
 ### A stock status set through the stock item API reaches the stock and price indexes of composite products
 
 `StockRegistryInterface::updateStockItemBySku()`, which `PUT /V1/products/{sku}/stockItems/{itemId}` calls,
