@@ -152,6 +152,7 @@ jobs:
           sudo curl -fsSL --retry 5 https://mariadb.org/mariadb_release_signing_key.asc -o /etc/apt/keyrings/mariadb-keyring.asc
           echo 'deb [signed-by=/etc/apt/keyrings/mariadb-keyring.asc] https://archive.mariadb.org/mariadb-12.3.3/repo/ubuntu noble main' | sudo tee /etc/apt/sources.list.d/mariadb.list
           sudo apt-get -o Acquire::Retries=5 update
+          sudo apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common
           sudo apt-get -o Acquire::Retries=5 install -y mariadb-client
           mariadb-dump --version
 

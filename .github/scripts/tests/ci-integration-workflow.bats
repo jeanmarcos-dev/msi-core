@@ -83,3 +83,8 @@ setup() {
     grep -qF 'install -y mariadb-client' "$WORKFLOW"
     [ "$(grep -n 'install -y mariadb-client' "$WORKFLOW" | cut -d: -f1)" -lt "$(grep -n 'ci-integration-modules.sh' "$WORKFLOW" | cut -d: -f1)" ]
 }
+
+@test "removes the runner's MySQL packages before installing the MariaDB client, whose files they own" {
+    grep -qF "sudo apt-get purge -y 'mysql-server*' 'mysql-client*' mysql-common" "$WORKFLOW"
+    [ "$(grep -n "apt-get purge" "$WORKFLOW" | cut -d: -f1)" -lt "$(grep -n 'install -y mariadb-client' "$WORKFLOW" | cut -d: -f1)" ]
+}
