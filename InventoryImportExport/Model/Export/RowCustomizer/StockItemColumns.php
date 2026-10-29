@@ -83,7 +83,7 @@ class StockItemColumns implements RowCustomizerInterface
     {
         $this->rowsByProductId = [];
         if (!$productIds) {
-            return;
+            return null;
         }
 
         $skusByProductId = $this->getSkusByProductIds->execute($productIds);
@@ -105,6 +105,8 @@ class StockItemColumns implements RowCustomizerInterface
                 $websiteId
             );
         }
+
+        return null;
     }
 
     /**
