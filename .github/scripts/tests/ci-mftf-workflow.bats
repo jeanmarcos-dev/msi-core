@@ -59,3 +59,9 @@ setup() {
     [ "$(wc -l < "$SMOKE")" -ge 8 ]
     [ "$(wc -l < "$SMOKE")" -le 12 ]
 }
+
+@test "runs the browser jobs on an image whose libxml2 still accepts the MFTF schemas" {
+    awk '/^  mftf:/ { job = 1 } job && /runs-on:/ { print $2; exit }' "$WORKFLOW" > "$BATS_TEST_TMPDIR/runner"
+
+    [ "$(cat "$BATS_TEST_TMPDIR/runner")" = "ubuntu-24.04" ]
+}
