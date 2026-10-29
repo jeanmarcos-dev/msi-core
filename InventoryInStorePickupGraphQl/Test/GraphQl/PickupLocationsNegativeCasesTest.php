@@ -9,6 +9,7 @@ namespace Magento\InventoryInStorePickupGraphQl\Test\GraphQl;
 
 use Magento\TestFramework\Helper\Bootstrap;
 use Magento\TestFramework\TestCase\GraphQlAbstract;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test coverage for Pickup Locations GraphQl endpoint.
@@ -30,14 +31,13 @@ class PickupLocationsNegativeCasesTest extends GraphQlAbstract
      *
      * @magentoDbIsolation disabled
      *
-     * @dataProvider dataProvider
-     *
      * @param string $body
      * @param string $storeCode
      * @param string|null $expectedExceptionMessage
      *
      * @throws \Exception
      */
+    #[DataProvider('dataProvider')]
     public function testPickupLocationsEndpoint(
         string $body,
         string $storeCode,

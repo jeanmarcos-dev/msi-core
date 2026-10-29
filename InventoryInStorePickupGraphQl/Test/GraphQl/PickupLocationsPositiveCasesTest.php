@@ -13,6 +13,7 @@ use Magento\InventoryInStorePickupApi\Api\Data\PickupLocationInterface;
 use Magento\InventoryInStorePickupApi\Model\GetPickupLocationInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\TestFramework\TestCase\GraphQlAbstract;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Test coverage for Pickup Locations GraphQl endpoint.
@@ -47,8 +48,6 @@ class PickupLocationsPositiveCasesTest extends GraphQlAbstract
      *
      * @magentoDbIsolation disabled
      *
-     * @dataProvider dataProvider
-     *
      * @param string $body
      * @param array $expected
      * @param string $websiteCode
@@ -61,6 +60,7 @@ class PickupLocationsPositiveCasesTest extends GraphQlAbstract
      * @throws NoSuchEntityException
      * @throws \Exception
      */
+    #[DataProvider('dataProvider')]
     public function testPickupLocationsEndpoint(
         string $body,
         array $expected,
