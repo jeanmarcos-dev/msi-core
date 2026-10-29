@@ -1,7 +1,7 @@
-// /**
-//  * Copyright 2026 Jeanmarcos Juarez
-//  * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
-//  */
+/**
+ * Copyright 2026 Jeanmarcos Juarez
+ * SPDX-License-Identifier: OSL-3.0 OR AFL-3.0
+ */
 
 @sv__level-high: @color-dark-green1;
 @sv__level-medium: @color-orange-red1;
@@ -26,20 +26,20 @@
 
 & when (@media-common = true) {
     .product-info-main .stock-visualizer.sva {
-        margin: @indent__s 0;
+        background: @sv__panel-bg;
         border: 1px solid @sv__border;
         border-radius: 4px;
-        background: @sv__panel-bg;
+        margin: @indent__s 0;
         overflow: hidden;
 
         .sva-head {
-            display: flex;
             align-items: center;
-            justify-content: space-between;
+            background: @sv__head-bg;
+            display: flex;
             flex-wrap: wrap;
             gap: @indent__xs @indent__s;
+            justify-content: space-between;
             padding: @indent__xs @indent__s;
-            background: @sv__head-bg;
         }
 
         .sva-head:not(:last-child) {
@@ -47,23 +47,23 @@
         }
 
         .sva-title {
+            color: @sv__muted;
             font-size: 1.1rem;
             font-weight: @font-weight__bold;
-            text-transform: uppercase;
             letter-spacing: .06em;
-            color: @sv__muted;
+            text-transform: uppercase;
         }
 
         .sv-status {
-            display: inline-flex;
             align-items: center;
+            border-radius: 999px;
+            color: @sv__level-out;
+            display: inline-flex;
             flex: 0 0 auto;
+            font-weight: @font-weight__bold;
             gap: 7px;
             padding: 3px 10px;
-            border-radius: 999px;
-            font-weight: @font-weight__bold;
             white-space: nowrap;
-            color: @sv__level-out;
 
             &.level-high {
                 .sv-status-colors(@sv__level-high);
@@ -87,11 +87,11 @@
         }
 
         .sv-dot {
-            width: 8px;
-            height: 8px;
+            background: @sv__level-out;
             border-radius: 50%;
             flex: 0 0 auto;
-            background: @sv__level-out;
+            height: 8px;
+            width: 8px;
         }
 
         .sv-count {
@@ -99,8 +99,8 @@
             font-variant-numeric: tabular-nums;
 
             &:not(:empty)::before {
-                content: '\00B7\00A0';
                 color: @sv__muted;
+                content: '\00B7\00A0';
             }
 
             &:empty {
@@ -119,16 +119,16 @@
         }
 
         .sv-hint {
-            padding: @indent__s;
             color: @sv__muted;
+            padding: @indent__s;
         }
 
         .sv-children {
             padding-bottom: 0;
 
             .sv-src {
-                padding: @indent__s 0;
                 border-top-color: @sv__border;
+                padding: @indent__s 0;
             }
         }
 
@@ -137,18 +137,18 @@
         }
 
         .sv-sets {
-            margin: 0 @indent__s;
-            padding: @indent__s 0;
             border-top: 1px solid @sv__border;
             color: @sv__muted;
+            margin: 0 @indent__s;
+            padding: @indent__s 0;
         }
 
         .sv-src {
-            margin: 0;
-            padding: @indent__xs 0;
             border-top: 1px solid @sv__head-bg;
+            margin: 0;
             max-height: 12em;
             overflow: hidden;
+            padding: @indent__xs 0;
             transition: max-height .3s ease, opacity .3s ease, padding .3s ease, margin .3s ease, border-width .3s ease;
 
             &:first-child {
@@ -156,12 +156,12 @@
             }
 
             &.sv-collapsed {
-                max-height: 0;
-                padding-top: 0;
-                padding-bottom: 0;
-                margin: 0;
                 border-top-width: 0;
+                margin: 0;
+                max-height: 0;
                 opacity: 0;
+                padding-bottom: 0;
+                padding-top: 0;
             }
         }
 
@@ -172,17 +172,17 @@
         }
 
         .sv-src-top {
-            display: flex;
             align-items: center;
-            justify-content: space-between;
+            display: flex;
             flex-wrap: wrap;
             gap: 2px @indent__s;
+            justify-content: space-between;
             margin-bottom: 6px;
         }
 
         .sv-name {
-            display: inline-flex;
             align-items: center;
+            display: inline-flex;
             flex: 1 1 auto;
             gap: 7px;
             min-width: 0;
@@ -195,15 +195,15 @@
         }
 
         .sv-pin {
-            width: 14px;
-            height: 14px;
-            flex: 0 0 auto;
             color: @sv__muted;
+            flex: 0 0 auto;
+            height: 14px;
+            width: 14px;
         }
 
         .sv-val {
-            font-weight: @font-weight__bold;
             font-variant-numeric: tabular-nums;
+            font-weight: @font-weight__bold;
         }
 
         .sv-lvl {
@@ -211,30 +211,25 @@
         }
 
         .sv-meter {
+            background: @sv__track;
+            border-radius: 999px;
             display: block;
             height: 6px;
-            border-radius: 999px;
-            background: @sv__track;
             overflow: hidden;
         }
 
         .sv-meter > i {
+            background: @sv__level-high;
+            border-radius: 999px;
             display: block;
             height: 100%;
-            border-radius: 999px;
-            background: @sv__level-high;
             transition: width .4s ease;
         }
 
         .sv-loading .sv-meter {
-            background-image: linear-gradient(
-                90deg,
-                @sv__skeleton-bg 25%,
-                @sv__skeleton-hi 37%,
-                @sv__skeleton-bg 63%
-            );
-            background-size: 400% 100%;
             animation: sv-shimmer 1.2s ease infinite;
+            background-image: linear-gradient(90deg, @sv__skeleton-bg 25%, @sv__skeleton-hi 37%, @sv__skeleton-bg 63%);
+            background-size: 400% 100%;
         }
 
         .sv-loading .sv-meter > i {
@@ -274,20 +269,15 @@
         }
 
         .sv-skel {
+            animation: sv-shimmer 1.2s ease infinite;
+            background: @sv__skeleton-bg;
+            background-image: linear-gradient(90deg, @sv__skeleton-bg 25%, @sv__skeleton-hi 37%, @sv__skeleton-bg 63%);
+            background-size: 400% 100%;
+            border-radius: 2px;
             display: inline-block;
-            width: 2ch;
             height: .8em;
             vertical-align: -.05em;
-            border-radius: 2px;
-            background: @sv__skeleton-bg;
-            background-image: linear-gradient(
-                90deg,
-                @sv__skeleton-bg 25%,
-                @sv__skeleton-hi 37%,
-                @sv__skeleton-bg 63%
-            );
-            background-size: 400% 100%;
-            animation: sv-shimmer 1.2s ease infinite;
+            width: 2ch;
         }
 
         .stock-visualizer-cta {
@@ -295,8 +285,8 @@
         }
 
         .stock-visualizer-cta.sv-cta-loading {
-            opacity: .7;
             cursor: default;
+            opacity: .7;
         }
     }
 }
