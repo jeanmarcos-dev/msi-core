@@ -23,8 +23,7 @@
         "magento/module-quote": "101.2.*",
         "magento/module-sales-inventory": "100.4.*",
         "magento/module-store": "101.1.*",
-        "magento/module-sales": "103.0.*",
-        "magento/module-inventory-indexer": "2.2.*"
+        "magento/module-sales": "103.0.*"
     },
     "suggest": {
         "magento/module-inventory-catalog": "1.3.*"

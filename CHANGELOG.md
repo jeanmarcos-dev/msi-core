@@ -19,6 +19,15 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### `inventory-sales` no longer depends on `inventory-indexer`
+
+`ReconcileReservationsSweep` in `InventorySales` called `Magento\InventoryIndexer\Indexer\Stock\StockIndexer` itself, so
+`inventory-sales` and `inventory-indexer` required each other. The reindex that follows a reconcile now lives in an
+`after` plugin on the sweep in `InventoryIndexer`, like the other indexer hooks, and `InventorySales/composer.json` no
+longer requires `magento/module-inventory-indexer`. The sweep still returns the `stock_ids` it compensated, the plugin
+reindexes them unless the run was a dry run, and the result of the sweep is unchanged.
+Tracked in [msi-core#35](https://github.com/jeanmarcos-dev/msi-core/issues/35).
+
 ### The adjustment grids no longer remove the data sources of the other admin grids
 
 Since 1.1.0, `InventoryAdjustmentAdminUi` registered its two grid data sources in `etc/adminhtml/di.xml`, in the
