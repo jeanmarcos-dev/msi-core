@@ -8,11 +8,9 @@ Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/i18n/* | Versio
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/design/* | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | lib/internal/Magento/* | Version must not be specified*
 Magento\Test\Integrity\App\Language\ConfigTest::testSchemaUsingInvalidXml |  | Failed asserting that Element 'code': 'e_GB' is not a valid value of t*
-Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryAdjustmentApi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryApi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryCatalogApi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryDistanceBasedSourceSelectionAdminUi | Version must not be specified*
-Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryInStorePickupSalesApi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryInStorePickupShippingApi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryInStorePickupWebapiExtension | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryLowQuantityNotificationApi | Version must not be specified*
@@ -32,6 +30,3 @@ Magento\Test\Integrity\Magento\Backend\ControllerAclTest::testAcl |  | Backend c
 Magento\Test\Integrity\Magento\Framework\Search\RequestConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'metric', attribute 'type': 'sumasdasd' *
 Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
 Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
-Magento\Test\Integrity\Readme\ReadmeTest::testReadmeFiles | array ( 0 => 'app/code/Magento/InventoryAdjustment', ) | File README.md not found in app/code/Magento/InventoryAdjustment
-Magento\Test\Integrity\Readme\ReadmeTest::testReadmeFiles | array ( 0 => 'app/code/Magento/InventoryAdjustmentAdminUi', ) | File README.md not found in app/code/Magento/InventoryAdjustmentAdminU*
-Magento\Test\Integrity\Readme\ReadmeTest::testReadmeFiles | array ( 0 => 'app/code/Magento/InventoryAdjustmentApi', ) | File README.md not found in app/code/Magento/InventoryAdjustmentApi
