@@ -11,12 +11,12 @@ use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryApi\Api\Data\SourceItemInterface;
 use Magento\InventoryApi\Api\SourceItemsSaveInterface;
-use Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin;
+use Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsSavePlugin;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
-class DropStockRegistrySnapshotOnSourceItemsChangePluginTest extends TestCase
+class DropStockRegistrySnapshotOnSourceItemsSavePluginTest extends TestCase
 {
     /**
      * @var GetProductIdsBySkusInterface|MockObject
@@ -29,7 +29,7 @@ class DropStockRegistrySnapshotOnSourceItemsChangePluginTest extends TestCase
     private $stockRegistryStorage;
 
     /**
-     * @var DropStockRegistrySnapshotOnSourceItemsChangePlugin
+     * @var DropStockRegistrySnapshotOnSourceItemsSavePlugin
      */
     private $plugin;
 
@@ -37,7 +37,7 @@ class DropStockRegistrySnapshotOnSourceItemsChangePluginTest extends TestCase
     {
         $this->getProductIdsBySkus = $this->createMock(GetProductIdsBySkusInterface::class);
         $this->stockRegistryStorage = $this->createMock(StockRegistryStorage::class);
-        $this->plugin = new DropStockRegistrySnapshotOnSourceItemsChangePlugin(
+        $this->plugin = new DropStockRegistrySnapshotOnSourceItemsSavePlugin(
             $this->getProductIdsBySkus,
             $this->stockRegistryStorage
         );

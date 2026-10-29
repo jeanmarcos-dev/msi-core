@@ -11,9 +11,8 @@ define([
 ], function (Element, $, ko, $t) {
     'use strict';
 
-    var RECOMPUTE_DELAY = 60;
-
-    var LEVEL_FILL = { high: 100, medium: 60, low: 30, out: 0 };
+    var RECOMPUTE_DELAY = 60,
+        LEVEL_FILL = { high: 100, medium: 60, low: 30, out: 0 };
 
     return Element.extend({
         defaults: {
@@ -74,14 +73,14 @@ define([
 
             this.flush = ko.pureComputed(function () {
                 switch (this.kind) {
-                    case 'variant':
-                        return !this.showPrompt() && this.variantRows().length === 0;
-                    case 'bundleMax':
-                        return !this.showPrompt();
-                    case 'children':
-                        return !this.childrenVisible() || this.childRows().length === 0;
-                    default:
-                        return this.perSource ? !this.sourcesVisible() : true;
+                case 'variant':
+                    return !this.showPrompt() && this.variantRows().length === 0;
+                case 'bundleMax':
+                    return !this.showPrompt();
+                case 'children':
+                    return !this.childrenVisible() || this.childRows().length === 0;
+                default:
+                    return this.perSource ? !this.sourcesVisible() : true;
                 }
             }, this);
 
@@ -95,17 +94,17 @@ define([
          */
         _boot: function () {
             switch (this.kind) {
-                case 'variant':
-                    this._bootVariant();
-                    break;
-                case 'bundleMax':
-                    this._bootBundle();
-                    break;
-                case 'children':
-                    this._bootChildren();
-                    break;
-                default:
-                    this._bootQuantity();
+            case 'variant':
+                this._bootVariant();
+                break;
+            case 'bundleMax':
+                this._bootBundle();
+                break;
+            case 'children':
+                this._bootChildren();
+                break;
+            default:
+                this._bootQuantity();
             }
         },
 
@@ -117,22 +116,22 @@ define([
             this.showCta(false);
 
             switch (this.kind) {
-                case 'variant':
-                    this.loading(true);
-                    this._fetchVariant(this.pendingId);
-                    break;
-                case 'bundleMax':
-                    this.loading(true);
-                    this._fetchBundle(this.pendingSelections);
-                    break;
-                case 'children':
-                    this.childrenVisible(true);
-                    this._fetchChildren();
-                    break;
-                default:
-                    this.sourcesVisible(true);
-                    this.loading(true);
-                    this._fetchQuantity();
+            case 'variant':
+                this.loading(true);
+                this._fetchVariant(this.pendingId);
+                break;
+            case 'bundleMax':
+                this.loading(true);
+                this._fetchBundle(this.pendingSelections);
+                break;
+            case 'children':
+                this.childrenVisible(true);
+                this._fetchChildren();
+                break;
+            default:
+                this.sourcesVisible(true);
+                this.loading(true);
+                this._fetchQuantity();
             }
         },
 
@@ -180,13 +179,15 @@ define([
          * @private
          */
         _fillQuantity: function (data) {
+            var salable;
+
             this.loading(false);
 
             if (!data) {
                 return;
             }
 
-            var salable = data.qty > 0;
+            salable = data.qty > 0;
 
             this.statusLevel(salable ? 'high' : 'out');
             this.statusWord(salable ? $t('In stock') : $t('Out of stock'));
@@ -263,6 +264,9 @@ define([
          * @private
          */
         _fillVariant: function (data) {
+            var level,
+                salable;
+
             this.loading(false);
 
             if (!data) {
@@ -273,7 +277,7 @@ define([
             this.showPrompt(false);
 
             if (typeof data.level !== 'undefined') {
-                var level = data.level || 'out';
+                level = data.level || 'out';
 
                 this.statusLevel(level);
                 this.statusWord(this._levelLabel(level));
@@ -289,12 +293,12 @@ define([
                 return;
             }
 
-            var salable = data.qty > 0;
+            salable = data.qty > 0;
 
             this.statusLevel(salable ? 'high' : 'out');
             this.statusWord(salable ? $t('In stock') : $t('Out of stock'));
             this.count(salable ? this._formatQty(data.qty) : '');
-            this.variantRows(this._buildVariantRows(salable ? (data.sources || {}) : {}));
+            this.variantRows(this._buildVariantRows(salable ? data.sources || {} : {}));
         },
 
         /**
@@ -309,13 +313,14 @@ define([
          */
         _resolveSelectedProductId: function () {
             var $form = this._form(),
-                configurable = $form.data('mageConfigurable');
+                configurable = $form.data('mageConfigurable'),
+                swatch;
 
             if (configurable) {
                 return this._toId(configurable.simpleProduct);
             }
 
-            var swatch = this._swatchRenderer();
+            swatch = this._swatchRenderer();
 
             if (swatch && typeof swatch.getProductId === 'function') {
                 return this._toId(swatch.getProductId());
@@ -429,6 +434,9 @@ define([
          * @private
          */
         _fillBundle: function (data) {
+            var level,
+                salable;
+
             this.loading(false);
 
             if (!data) {
@@ -439,7 +447,7 @@ define([
             this.showPrompt(false);
 
             if (this.levelDisplay) {
-                var level = data.level || 'out';
+                level = data.level || 'out';
 
                 this.statusLevel(level);
                 this.statusWord(this._levelLabel(level));
@@ -454,7 +462,7 @@ define([
                 return;
             }
 
-            var salable = data.max > 0;
+            salable = data.max > 0;
 
             this.statusLevel(salable ? 'high' : 'out');
             this.statusWord(salable ? $t('In stock') : $t('Out of stock'));
@@ -477,17 +485,22 @@ define([
             }
 
             $.each(config.selected, function (optionId, selectionIds) {
+                var option;
+
                 if (!selectionIds || !selectionIds.length) {
                     return;
                 }
-                var option = config.options && config.options[optionId] ? config.options[optionId] : null;
+                option = config.options && config.options[optionId] ? config.options[optionId] : null;
 
                 $.each(selectionIds, function (index, selectionId) {
+                    var selection,
+                        qty;
+
                     if (selectionId === null || selectionId === undefined || selectionId === '') {
                         return;
                     }
-                    var selection = option && option.selections ? option.selections[selectionId] : null,
-                        qty = selection ? parseFloat(selection.qty) : 1;
+                    selection = option && option.selections ? option.selections[selectionId] : null;
+                    qty = selection ? parseFloat(selection.qty) : 1;
 
                     selections[selectionId] = qty > 0 ? qty : 1;
                 });
@@ -501,10 +514,12 @@ define([
          * @private
          */
         _optionConfig: function () {
+            var priceBundle;
+
             if (this.optionConfig) {
                 return this.optionConfig;
             }
-            var priceBundle = this._form().data('magePriceBundle');
+            priceBundle = this._form().data('magePriceBundle');
 
             return priceBundle && priceBundle.options ? priceBundle.options.optionConfig : null;
         },
@@ -545,14 +560,14 @@ define([
          */
         _levelLabel: function (level) {
             switch (level) {
-                case 'high':
-                    return $t('In stock');
-                case 'medium':
-                    return $t('Limited availability');
-                case 'low':
-                    return $t('Low stock');
-                default:
-                    return $t('Out of stock');
+            case 'high':
+                return $t('In stock');
+            case 'medium':
+                return $t('Limited availability');
+            case 'low':
+                return $t('Low stock');
+            default:
+                return $t('Out of stock');
             }
         },
 
@@ -639,15 +654,15 @@ define([
          * @private
          */
         _fillChildren: function (data) {
+            var self = this,
+                bySku = {};
+
             if (!data) {
                 return;
             }
 
             this.statusLevel(data.salable ? 'high' : 'out');
             this.statusWord(data.salable ? $t('In stock') : $t('Out of stock'));
-
-            var self = this,
-                bySku = {};
 
             $.each(data.children || [], function (index, child) {
                 bySku[child.sku] = child;

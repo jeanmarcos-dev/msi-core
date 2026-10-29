@@ -22,11 +22,11 @@
 
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
         <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_save"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
+                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsSavePlugin"/>
     </type>
     <type name="Magento\InventoryApi\Api\SourceItemsDeleteInterface">
         <plugin name="inventory_catalog_drop_stock_registry_snapshot_on_source_items_delete"
-                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsChangePlugin"/>
+                type="Magento\InventoryCatalog\Plugin\InventoryApi\DropStockRegistrySnapshotOnSourceItemsDeletePlugin"/>
     </type>
     <type name="Magento\InventoryIndexer\Indexer\Stock\Strategy\Sync">
         <plugin name="update_product_prices_plugin" type="Magento\InventoryCatalog\Plugin\InventoryIndexer\Indexer\Stock\Strategy\Sync\PriceIndexUpdatePlugin"/>

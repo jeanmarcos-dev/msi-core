@@ -46,7 +46,7 @@ define([
                     return null;
                 }
 
-                return $t('%1 is reserved at %2. Shipping from this source takes the stock from it and releases that reservation.')
+                return $t('%1 is reserved at %2. Shipping from this source takes the stock from it and releases that reservation.') // eslint-disable-line max-len
                     .replace('%1', item.sku)
                     .replace('%2', _.map(allocated, function (source) {
                         return source.sourceName + ' (' + source.qty + ')';

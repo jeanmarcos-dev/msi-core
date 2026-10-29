@@ -19,7 +19,7 @@ use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
  * or deleting a source item is the native way to change that data, so without this every legacy reader
  * that already looked at the product would keep answering with the quantity from before the write.
  */
-class DropStockRegistrySnapshotOnSourceItemsChangePlugin
+abstract class AbstractDropStockRegistrySnapshotPlugin
 {
     /**
      * @param GetProductIdsBySkusInterface $getProductIdsBySkus
@@ -34,20 +34,17 @@ class DropStockRegistrySnapshotOnSourceItemsChangePlugin
     /**
      * Drop the cached legacy stock registry entries of every sku the write touched.
      *
-     * @param object $subject
-     * @param void $result
      * @param SourceItemInterface[] $sourceItems
      * @return void
-     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function afterExecute(object $subject, $result, array $sourceItems)
+    protected function dropSnapshot(array $sourceItems): void
     {
         $skus = [];
         foreach ($sourceItems as $sourceItem) {
             $skus[$sourceItem->getSku()] = $sourceItem->getSku();
         }
         if (!$skus) {
-            return $result;
+            return;
         }
 
         try {
@@ -57,14 +54,12 @@ class DropStockRegistrySnapshotOnSourceItemsChangePlugin
             // the alternative is serving stale quantities.
             $this->stockRegistryStorage->clean();
 
-            return $result;
+            return;
         }
 
         foreach ($productIds as $productId) {
             $this->stockRegistryStorage->removeStockItem((int) $productId);
             $this->stockRegistryStorage->removeStockStatus((int) $productId);
         }
-
-        return $result;
     }
 }
