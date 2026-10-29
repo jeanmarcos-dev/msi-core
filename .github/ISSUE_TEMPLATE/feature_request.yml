@@ -1,0 +1,31 @@
+name: Feature request
+description: A new feature or a change in behaviour, already scoped.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Still shaping the idea? Start it in [Ideas](https://github.com/jeanmarcos-dev/msi-core/discussions/categories/ideas).
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: The problem it solves, and for whom.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behaviour
+      description: How it would work, from the admin, the storefront or the API.
+    validations:
+      required: true
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: What it would improve for stores that run msi-core.
+  - type: textarea
+    id: additional-information
+    attributes:
+      label: Additional information
