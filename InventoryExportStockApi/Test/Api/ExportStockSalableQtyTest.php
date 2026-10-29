@@ -354,6 +354,7 @@ class ExportStockSalableQtyTest extends OrderPlacementBase
      * @magentoApiDataFixture Magento_InventoryApi::Test/_files/sources.php
      * @magentoApiDataFixture Magento_InventoryApi::Test/_files/stocks.php
      * @magentoApiDataFixture Magento_InventoryApi::Test/_files/stock_source_links.php
+     * @magentoApiDataFixture Magento_InventorySalesApi::Test/_files/stock_website_sales_channels.php
      * @magentoApiDataFixture Magento/ConfigurableProduct/_files/product_configurable.php
      * @magentoApiDataFixture Magento_InventoryConfigurableProduct::Test/_files/source_items_configurable.php
      * @magentoApiDataFixture Magento_InventoryIndexer::Test/_files/reindex_inventory.php
