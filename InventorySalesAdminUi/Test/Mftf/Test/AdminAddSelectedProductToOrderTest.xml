@@ -9,7 +9,7 @@
 <tests xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:noNamespaceSchemaLocation="urn:magento:mftf:Test/etc/testSchema.xsd">
     <test name="AdminAddSelectedProductToOrderTest">
-        <actionGroup ref="AssertAdminItemOrderedErrorActionGroup" stepKey="assertProductErrorRemains">
+        <actionGroup ref="AssertAdminItemOrderedErrorActionGroup" stepKey="assertProductErrorRemainsInItemsOrdered" after="assertProductErrorRemains">
             <argument name="productName" value="$simpleProduct.name$"/>
             <argument name="messageType" value="error"/>
             <argument name="message" value="Not enough items for sale"/>

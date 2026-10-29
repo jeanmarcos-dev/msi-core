@@ -187,8 +187,9 @@
             <argument name="Source" value="$$testSource2.source[name]$$"/>
         </actionGroup>
 
-        <see selector="{{AdminSourceSelectionOrderedItemsGrid.rowAvailableSourcesName('0','1')}}" userInput="$$testSource2.source[name]$$" stepKey="CheckHighPrioritySourceName2"/>
-        <seeInField selector="{{AdminSourceSelectionOrderedItemsGrid.rowAvailableSourcesQtyToDeduct('0','1')}}" userInput="10" stepKey="CheckHighPrioritySourceQty2"/>
+        <dontSee selector=".data-row[data-repeat-index='0'] td[data-index='sources']" userInput="$$testSource1.source[name]$$" stepKey="CheckEmptiedSourceIsNotListed"/>
+        <see selector="{{AdminSourceSelectionOrderedItemsGrid.rowAvailableSourcesName('0','0')}}" userInput="$$testSource2.source[name]$$" stepKey="CheckHighPrioritySourceName2"/>
+        <seeInField selector="{{AdminSourceSelectionOrderedItemsGrid.rowAvailableSourcesQtyToDeduct('0','0')}}" userInput="10" stepKey="CheckHighPrioritySourceQty2"/>
 
         <click selector="{{AdminSourceSelectionFormSection.proceedToShipment}}" stepKey="createShipment2"/>
         <waitForPageLoad time="45" stepKey="waitForPageLoad5"/>

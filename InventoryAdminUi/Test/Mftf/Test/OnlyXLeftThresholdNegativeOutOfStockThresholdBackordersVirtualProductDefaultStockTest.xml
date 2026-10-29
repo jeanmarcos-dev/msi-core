@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Virtual Product Default Stock."/>
             <title value="Only X Left with Backorders and Negative 'Out Of Stock' Threshold with Virtual Product on Default Stock."/>
-            <description value="Verify, 'Only X Left' message appears on storefront with backorders and negative 'Out of Stock' threshold combination on default stock with virtual product."/>
+            <description value="Verify that backorders and a negative 'Out of Stock' threshold do not let a virtual product on default stock be ordered above its stock, and that 'Only X Left' message appears on storefront after an order up to that stock."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/607680/scenarios/2079442"/>
             <severity value="MAJOR"/>
             <group value="msi"/>
@@ -79,6 +79,11 @@
         <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="navigateToPDP"/>
         <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="15" stepKey="fillQuantity"/>
         <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="addToCart"/>
+        <waitForElementVisible selector="{{StorefrontProductPageSection.errorMsg}}" stepKey="waitForErrorMessage"/>
+        <see selector="{{StorefrontProductPageSection.errorMsg}}" userInput="Not enough items for sale" stepKey="verifyErrorMessage"/>
+        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="5" stepKey="fillAvailableQuantity"/>
+        <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="addAvailableToCart"/>
+        <waitForElementVisible selector="{{StorefrontProductPageSection.successMsg}}" stepKey="waitForProductAdded"/>
         <!--Place order.-->
         <actionGroup ref="GoToCheckoutFromMinicartActionGroup" stepKey="navigateToCheckout"/>
         <actionGroup ref="ClickPlaceOrderActionGroup" stepKey="placeOrder"/>

@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Virtual Product Default Stock"/>
             <title value="Admin user enable backorders for virtual product on Default source."/>
-            <description value="Admin user enable backorders for virtual product on Default source."/>
+            <description value="Admin user enables backorders for virtual product on Default source, and the product still cannot be ordered above its stock."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/735257/scenarios/2126218"/>
             <severity value="CRITICAL"/>
             <group value="msi"/>
@@ -63,9 +63,14 @@
             <argument name="Customer" value="$$customer$$"/>
         </actionGroup>
         <!--Add 11 product pieces to cart.-->
+        <amOnPage url="{{StorefrontProductPage.url($$product.custom_attributes[url_key]$$)}}" stepKey="openProductPage"/>
+        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="11" stepKey="fillQuantityAboveStock"/>
+        <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="addProductAboveStockToCart"/>
+        <waitForElementVisible selector="{{StorefrontProductPageSection.errorMsg}}" stepKey="waitForErrorMessage"/>
+        <see selector="{{StorefrontProductPageSection.errorMsg}}" userInput="Not enough items for sale" stepKey="verifyErrorMessage"/>
         <actionGroup ref="StorefrontAddSimpleProductWithQtyActionGroup" stepKey="addProductToCart">
             <argument name="product" value="$$product$$"/>
-            <argument name="quantity" value="11"/>
+            <argument name="quantity" value="10"/>
         </actionGroup>
         <!--Place order-->
         <conditionalClick selector="{{StorefrontMinicartSection.showCart}}" dependentSelector="{{StorefrontMinicartSection.miniCartOpened}}" visible="false" stepKey="openMiniCart"/>
