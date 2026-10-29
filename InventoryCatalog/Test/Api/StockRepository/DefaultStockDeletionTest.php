@@ -13,7 +13,7 @@ use Magento\TestFramework\TestCase\WebapiAbstract;
 use Magento\TestFramework\Helper\Bootstrap;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 
-class PreventDefaultStockDeletingTest extends WebapiAbstract
+class DefaultStockDeletionTest extends WebapiAbstract
 {
     /**
      * @var DefaultStockProviderInterface
@@ -29,7 +29,7 @@ class PreventDefaultStockDeletingTest extends WebapiAbstract
     /**
      * @throws \Exception
      */
-    public function testCouldNotDeleteException()
+    public function testDefaultStockWithSalesChannelCouldNotBeDeleted()
     {
         $serviceInfo = [
             'rest' => [
@@ -41,7 +41,7 @@ class PreventDefaultStockDeletingTest extends WebapiAbstract
                 'operation' => 'inventoryApiStockRepositoryV1DeleteById',
             ],
         ];
-        $expectedMessage = 'Default Stock could not be deleted.';
+        $expectedMessage = 'Stock has at least one sale channel and could not be deleted.';
         try {
             (TESTS_WEB_API_ADAPTER === self::ADAPTER_REST) ? $this->_webApiCall($serviceInfo) :
                 $this->_webApiCall($serviceInfo, ['stockId' => $this->defaultStockProvider->getId()]);
