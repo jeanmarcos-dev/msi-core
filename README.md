@@ -62,8 +62,9 @@ unchanged.
 
 ## Contributing
 
-Issues and pull requests are welcome at
-[jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core).
+Questions go to [Discussions](https://github.com/jeanmarcos-dev/msi-core/discussions). Issues and
+pull requests are welcome at [jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core).
+Report a vulnerability privately, as [`SECURITY.md`](SECURITY.md) explains, never in a public issue.
 See [Contributing](https://jeanmarcos-dev.github.io/msi-core/project/contributing/) and
 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
 

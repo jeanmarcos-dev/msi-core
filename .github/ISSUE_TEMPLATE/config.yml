@@ -1,0 +1,4 @@
+contact_links:
+  - name: Questions and help
+    url: https://github.com/jeanmarcos-dev/msi-core/discussions/categories/q-a
+    about: Ask how to install, configure or use msi-core in Discussions.
