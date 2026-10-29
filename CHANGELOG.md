@@ -37,6 +37,19 @@ longer requires `magento/module-inventory-indexer`. The sweep still returns the 
 reindexes them unless the run was a dry run, and the result of the sweep is unchanged.
 Tracked in [msi-core#35](https://github.com/jeanmarcos-dev/msi-core/issues/35).
 
+### Saving existing source items writes them in batches instead of one row at a time
+
+`SaveMultiple::updateExistentItems` ran one `UPDATE inventory_source_item ... WHERE source_item_id = ?` per
+existing source item, so saving many items that already exist made one round trip, and without a surrounding
+transaction one commit, per item. Existing items are now written in batches of 1,000 with
+`INSERT ... ON DUPLICATE KEY UPDATE` keyed on `source_item_id`, so every row keeps its id, the auto increment
+does not move and the order of the writes is unchanged. Nothing listens to `inventory_source_item` writes at
+database level, and the plugins around the save read the table before and after the write, so they are not
+affected. Measured saving 10,000 existing source items in one `SourceItemsSaveInterface::execute` call on MySQL
+8.4 (median of 5): the whole save went from 2.40 s to 1.47 s, `SaveMultiple` with its plugins from 1.62 s to
+0.71 s, and the writes alone, inside the transaction the adjustment recorder opens, from 1.08 s to 0.24 s.
+Tracked in [msi-core#41](https://github.com/jeanmarcos-dev/msi-core/issues/41).
+
 ### Five modules declare the modules their code uses
 
 `InventoryAdjustment`, `InventoryBundleProductIndexer`, `InventoryImportExport`, `InventorySalesAdminUi` and

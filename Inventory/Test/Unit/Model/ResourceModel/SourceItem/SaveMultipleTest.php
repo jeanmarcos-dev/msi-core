@@ -22,6 +22,16 @@ use PHPUnit\Framework\TestCase;
  */
 class SaveMultipleTest extends TestCase
 {
+    /**
+     * @var array
+     */
+    private array $queries = [];
+
+    protected function setUp(): void
+    {
+        $this->queries = [];
+    }
+
     public function testSeparateExistingAndNewItems(): void
     {
         $select = $this->createStub(Select::class);
@@ -37,7 +47,6 @@ class SaveMultipleTest extends TestCase
             ->with(SourceItemResourceModel::TABLE_NAME_SOURCE_ITEM)
             ->willReturn('inventory_source_item');
 
-        // The code does: $connection->select()->from(...)->where(...)->where(...)
         $connection
             ->method('select')
             ->willReturn($select);
@@ -50,7 +59,6 @@ class SaveMultipleTest extends TestCase
             ->method('where')
             ->willReturnSelf();
 
-        // Two items already exist in the DB
         $storedItems = [
             ['source_item_id' => 1111, 'source_code' => 'warehouse', 'sku' => 'EXISTING-1'],
             ['source_item_id' => 2222, 'source_code' => 'warehouse', 'sku' => 'EXISTING-2'],
@@ -59,30 +67,22 @@ class SaveMultipleTest extends TestCase
         $connection
             ->method('fetchAll')
             ->willReturn($storedItems);
+        $connection->method('quoteIdentifier')->willReturnCallback(fn (string $name): string => '`' . $name . '`');
 
-        // Capture what gets INSERTed (new items)
         $insertedBind = null;
-        $connection
-            ->expects($this->once())
-            ->method('query')
-            ->willReturnCallback(function (string $sql, array $bind) use (&$insertedBind): void {
-                $insertedBind = $bind;
-            });
-
-        // Capture what gets UPDATED (existing items)
-        $updatedItems = [];
+        $upsertedBind = null;
         $connection
             ->expects($this->exactly(2))
-            ->method('update')
-            ->willReturnCallback(function (
-                string $tableName,
-                array $bind,
-                array $condition,
-            ) use (&$updatedItems): void {
-                $updatedItems[] = ['bind' => $bind, 'condition' => $condition];
+            ->method('query')
+            ->willReturnCallback(function (string $sql, array $bind) use (&$insertedBind, &$upsertedBind): void {
+                if (str_contains($sql, '`source_item_id`')) {
+                    $upsertedBind = $bind;
+                    return;
+                }
+                $insertedBind = $bind;
             });
+        $connection->expects($this->never())->method('update');
 
-        // Build 4 source items: 2 existing + 2 new
         $sourceItems = [
             $this->createSourceItem('warehouse', 'EXISTING-1', 10, 1),
             $this->createSourceItem('warehouse', 'EXISTING-2', 20, 1),
@@ -93,18 +93,16 @@ class SaveMultipleTest extends TestCase
         $saveMultiple = new SaveMultiple($resourceConnection);
         $saveMultiple->execute($sourceItems);
 
-        // ASSERT — 2 new items should have been INSERTed
         $this->assertIsArray($insertedBind);
         $this->assertContains('NEW-1', $insertedBind);
         $this->assertContains('NEW-2', $insertedBind);
         $this->assertNotContains('EXISTING-1', $insertedBind);
         $this->assertNotContains('EXISTING-2', $insertedBind);
 
-        // ASSERT — 2 existing items should have been UPDATED
-        $this->assertContains('EXISTING-1', $updatedItems[0]['bind']);
-        $this->assertContains(1111, $updatedItems[0]['condition']);
-        $this->assertContains('EXISTING-2', $updatedItems[1]['bind']);
-        $this->assertContains(2222, $updatedItems[1]['condition']);
+        $this->assertSame(
+            [1111, 'warehouse', 'EXISTING-1', 10.0, 1, 2222, 'warehouse', 'EXISTING-2', 20.0, 1],
+            $upsertedBind
+        );
     }
 
     public function testSameNewSkuInTwoSourcesIsInsertedForBoth(): void
@@ -125,17 +123,12 @@ class SaveMultipleTest extends TestCase
     public function testSkuExistingInOneSourceIsUpdatedThereAndInsertedInTheOther(): void
     {
         $insertedBind = null;
+        $upserts = [];
         $connection = $this->createConnection(
             [['source_item_id' => 7, 'source_code' => 'src_a', 'sku' => 'ABC']],
-            $insertedBind
+            $insertedBind,
+            $upserts
         );
-        $updates = [];
-        $connection->expects($this->once())
-            ->method('update')
-            ->willReturnCallback(function (string $table, array $bind, array $condition) use (&$updates): void {
-                $updates[] = [$bind, $condition];
-            });
-
         $saveMultiple = new SaveMultiple($this->createResourceConnection($connection));
         $saveMultiple->execute([
             $this->createSourceItem('src_a', 'ABC', 5, 1),
@@ -143,21 +136,18 @@ class SaveMultipleTest extends TestCase
         ]);
 
         $this->assertSame(['src_b', 'ABC', 3.0, 1], $insertedBind);
-        $this->assertCount(1, $updates);
-        $this->assertContains(5.0, $updates[0][0]);
-        $this->assertContains(7, $updates[0][1]);
+        $this->assertSame([7, 'src_a', 'ABC', 5.0, 1], $upserts[0]);
     }
 
     public function testNewItemsAreInsertedInTheOrderTheyWereGiven(): void
     {
         $insertedBind = null;
+        $upserts = [];
         $connection = $this->createConnection(
             [['source_item_id' => 7, 'source_code' => 'src_a', 'sku' => 'OLD']],
-            $insertedBind
+            $insertedBind,
+            $upserts
         );
-        $connection->expects($this->once())
-            ->method('update')
-            ->with('inventory_source_item', $this->anything(), ['source_item_id = ?' => 7]);
 
         $saveMultiple = new SaveMultiple($this->createResourceConnection($connection));
         $saveMultiple->execute([
@@ -168,10 +158,58 @@ class SaveMultipleTest extends TestCase
         ]);
 
         $this->assertSame(['src_b', 'X', 1.0, 1, 'src_a', 'Y', 3.0, 1, 'src_b', 'Z', 4.0, 1], $insertedBind);
+        $this->assertSame([[7, 'src_a', 'OLD', 2.0, 1]], $upserts);
     }
 
-    private function createConnection(array $storedItems, ?array &$insertedBind): AdapterInterface&MockObject
+    public function testExistingItemsAreUpsertedInChunksKeepingTheirOrder(): void
     {
+        $stored = [];
+        $items = [];
+        for ($i = 1; $i <= 2500; $i++) {
+            $stored[] = ['source_item_id' => $i, 'source_code' => 'src_a', 'sku' => 'SKU-' . $i];
+            $items[] = $this->createSourceItem('src_a', 'SKU-' . $i, $i, 1);
+        }
+        $insertedBind = null;
+        $upserts = [];
+        $connection = $this->createConnection($stored, $insertedBind, $upserts);
+        $connection->expects($this->never())->method('update');
+
+        $saveMultiple = new SaveMultiple($this->createResourceConnection($connection));
+        $saveMultiple->execute($items);
+
+        $this->assertNull($insertedBind);
+        $this->assertCount(2500, $upserts);
+        $this->assertSame(range(1, 2500), array_column($upserts, 0));
+        $this->assertCount(3, $this->queries);
+    }
+
+    public function testUpsertSqlKeysOnTheSourceItemIdAndRewritesTheValues(): void
+    {
+        $insertedBind = null;
+        $upserts = [];
+        $connection = $this->createConnection(
+            [['source_item_id' => 7, 'source_code' => 'src_a', 'sku' => 'ABC']],
+            $insertedBind,
+            $upserts
+        );
+
+        $saveMultiple = new SaveMultiple($this->createResourceConnection($connection));
+        $saveMultiple->execute([$this->createSourceItem('src_a', 'ABC', 5, 1)]);
+
+        $this->assertStringContainsString(
+            '(`source_item_id`, `source_code`, `sku`, `quantity`, `status`)',
+            $this->queries[0][0]
+        );
+        $this->assertStringContainsString('ON DUPLICATE KEY UPDATE', $this->queries[0][0]);
+        $this->assertStringContainsString('`quantity` = VALUES(`quantity`)', $this->queries[0][0]);
+        $this->assertStringContainsString('`status` = VALUES(`status`)', $this->queries[0][0]);
+    }
+
+    private function createConnection(
+        array $storedItems,
+        ?array &$insertedBind,
+        array &$upserts = []
+    ): AdapterInterface&MockObject {
         $select = $this->createStub(Select::class);
         $select->method('from')->willReturnSelf();
         $select->method('where')->willReturnSelf();
@@ -179,8 +217,16 @@ class SaveMultipleTest extends TestCase
         $connection = $this->createMock(AdapterInterface::class);
         $connection->method('select')->willReturn($select);
         $connection->method('fetchAll')->willReturn($storedItems);
+        $connection->method('quoteIdentifier')->willReturnCallback(fn (string $name): string => '`' . $name . '`');
         $connection->method('query')
-            ->willReturnCallback(function (string $sql, array $bind) use (&$insertedBind): void {
+            ->willReturnCallback(function (string $sql, array $bind) use (&$insertedBind, &$upserts): void {
+                $this->queries[] = [$sql, $bind];
+                if (str_contains($sql, '`source_item_id`')) {
+                    foreach (array_chunk($bind, 5) as $row) {
+                        $upserts[] = $row;
+                    }
+                    return;
+                }
                 $insertedBind = $bind;
             });
 
