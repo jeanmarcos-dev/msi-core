@@ -21,7 +21,8 @@
         "magento/module-catalog-inventory": "100.4.*",
         "magento/module-inventory-sales-api": "1.2.*",
         "magento/module-store": "101.1.*",
-        "magento/module-eav": "102.1.*"
+        "magento/module-eav": "102.1.*",
+        "magento/module-tax": "100.4.*"
     },
     "suggest": {
         "magento/module-inventory": "1.2.*"

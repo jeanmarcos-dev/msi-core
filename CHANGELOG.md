@@ -37,6 +37,19 @@ longer requires `magento/module-inventory-indexer`. The sweep still returns the 
 reindexes them unless the run was a dry run, and the result of the sweep is unchanged.
 Tracked in [msi-core#35](https://github.com/jeanmarcos-dev/msi-core/issues/35).
 
+### Five modules declare the modules their code uses
+
+`InventoryAdjustment`, `InventoryBundleProductIndexer`, `InventoryImportExport`, `InventorySalesAdminUi` and
+`InventoryStockVisualizer` used modules that their `composer.json` did not require, so a Composer install could
+leave the code calling a class or script that was not there. `magento/framework-message-queue`,
+`magento/module-catalog-import-export`, `magento/module-sales` and `magento/module-ui` are now in `require`, the
+first and last for the first time and the other two moved from `suggest`. `magento/module-tax` is also in
+`require` for the bundle indexer: its use is guarded by `isEnabled('Magento_Tax')`, but the Integrity
+`DependencyTest` counts that reference as a hard dependency and the package already arrives through
+`magento/module-bundle` and `magento/module-catalog`, so declaring it changes nothing at install time. The five
+entries are removed from the static Integrity baseline. Tracked in
+[msi-core#56](https://github.com/jeanmarcos-dev/msi-core/issues/56).
+
 ### The adjustment grids no longer remove the data sources of the other admin grids
 
 Since 1.1.0, `InventoryAdjustmentAdminUi` registered its two grid data sources in `etc/adminhtml/di.xml`, in the

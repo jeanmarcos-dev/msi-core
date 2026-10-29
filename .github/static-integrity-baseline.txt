@@ -18,11 +18,6 @@ Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/In
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventorySetupFixtureGenerator | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventorySwatchesFrontendUi | Version must not be specified*
 Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryWishlist | Version must not be specified*
-Magento\Test\Integrity\DependencyTest::testUndeclared | app/code/Magento/InventoryAdjustment/Plugin/AsynchronousOperations/BulkOperationOriginPlugin.php | Module Magento\InventoryAdjustment has undeclared dependencies: hard ?*
-Magento\Test\Integrity\DependencyTest::testUndeclared | app/code/Magento/InventoryBundleProductIndexer/Model/ResourceModel/Indexer/Price.php | Module Magento\InventoryBundleProductIndexer has undeclared dependenci*
-Magento\Test\Integrity\DependencyTest::testUndeclared | app/code/Magento/InventoryImportExport/Model/Export/RowCustomizer/StockItemColumns.php | Module Magento\InventoryImportExport has undeclared dependencies: hard*
-Magento\Test\Integrity\DependencyTest::testUndeclared | app/code/Magento/InventorySalesAdminUi/Plugin/InventoryShippingAdminUi/AddAllocatedSourcesToSourceSelectionPlugin.php | Module Magento\InventorySalesAdminUi has undeclared dependencies: hard*
-Magento\Test\Integrity\DependencyTest::testUndeclared | app/code/Magento/InventoryStockVisualizer/Block/Product/StockVisualizer.php | Module Magento\InventoryStockVisualizer has undeclared dependencies: h*
 Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/Plugin/Model/Adapter/BatchDataMapper/ProductDataMapperPlugin.php | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
 Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/Plugin/Model/Adapter/FieldMapper/AdditionalFieldMapperPlugin.php | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
 Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/etc/di.xml | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
@@ -30,3 +25,4 @@ Magento\Test\Integrity\Magento\Backend\ControllerAclTest::testAcl |  | Backend c
 Magento\Test\Integrity\Magento\Framework\Search\RequestConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'metric', attribute 'type': 'sumasdasd' *
 Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
 Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Some dependencies required by composer.json are not used in the module and must be removed:*
