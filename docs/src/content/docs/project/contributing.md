@@ -1,12 +1,21 @@
 ---
 title: Contributing
-description: Where to report issues and send pull requests, and what a change needs to be accepted.
+description: Where to ask questions, report issues and vulnerabilities, and send pull requests, and what a change needs to be accepted.
 ---
+
+Questions about installing, configuring or using msi-core go to
+[Discussions](https://github.com/jeanmarcos-dev/msi-core/discussions/categories/q-a).
 
 Issues and pull requests are welcome at
 [jeanmarcos-dev/msi-core](https://github.com/jeanmarcos-dev/msi-core). Say which Magento or Mage-OS
 version you are on. The drop-in `jeanmarcos/inventory` package is no longer maintained, so a problem
 reported against it is fixed in msi-core only.
+
+## Reporting a vulnerability
+
+Report it privately, never in a public issue or discussion. The
+[security policy](https://github.com/jeanmarcos-dev/msi-core/security/policy) says how, and which
+versions receive security fixes.
 
 ## What a change needs
 

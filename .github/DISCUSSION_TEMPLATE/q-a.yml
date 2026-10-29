@@ -1,0 +1,30 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask how to install, configure or use msi-core. A defect goes in an [issue](https://github.com/jeanmarcos-dev/msi-core/issues/new/choose), and a vulnerability is reported privately as the [security policy](https://github.com/jeanmarcos-dev/msi-core/security/policy) explains.
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What you are trying to do, what you tried, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: msi-core-version
+    attributes:
+      label: msi-core version
+      description: "`composer show jeanmarcos/msi-core` prints it. Leave it empty if you have not installed msi-core yet."
+      placeholder: "1.1.3"
+  - type: input
+    id: platform-version
+    attributes:
+      label: Magento Open Source or Mage-OS version
+      placeholder: "Magento Open Source 2.4.9"
+    validations:
+      required: true
+  - type: input
+    id: php-version
+    attributes:
+      label: PHP version
+      placeholder: "8.4"
