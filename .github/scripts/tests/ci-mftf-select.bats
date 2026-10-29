@@ -48,13 +48,13 @@ XML
     run php "$SCRIPT" "$GENERATED" "$SOURCE" 1 1
 
     [ "$status" -eq 0 ]
-    [ "$(printf '%s' "$output" | php -r 'echo json_encode(json_decode(stream_get_contents(STDIN), true));')" = '{"tests":["AdminBetaTest","StorefrontDeltaTest"],"suites":{"InventoryMultiModeSuite":["AdminAlphaTest","AdminGammaTest"]}}' ]
+    [ "$output" = "$(printf '%s\n' AdminBetaTest StorefrontDeltaTest InventoryMultiModeSuite:AdminAlphaTest InventoryMultiModeSuite:AdminGammaTest)" ]
 }
 
 @test "gives every test to exactly one shard" {
     for shard in 1 2 3; do
-        php "$SCRIPT" "$GENERATED" "$SOURCE" "$shard" 3 | php -r '$s = json_decode(stream_get_contents(STDIN), true); foreach ($s["tests"] as $t) echo "$t\n"; foreach ($s["suites"] as $names) foreach ($names as $t) echo "$t\n";'
-    done | sort > "$BATS_TEST_TMPDIR/assigned"
+        php "$SCRIPT" "$GENERATED" "$SOURCE" "$shard" 3
+    done | sed 's/^.*://' | sort > "$BATS_TEST_TMPDIR/assigned"
 
     [ "$(cat "$BATS_TEST_TMPDIR/assigned")" = "$(printf '%s\n' AdminAlphaTest AdminBetaTest AdminGammaTest StorefrontDeltaTest)" ]
 }
@@ -72,14 +72,23 @@ XML
     run php "$SCRIPT" "$GENERATED" "$SOURCE" 1 1 --tests "AdminBetaTest, AdminGammaTest"
 
     [ "$status" -eq 0 ]
-    [ "$(printf '%s' "$output" | php -r 'echo json_encode(json_decode(stream_get_contents(STDIN), true));')" = '{"tests":["AdminBetaTest"],"suites":{"InventoryMultiModeSuite":["AdminGammaTest"]}}' ]
+    [ "$output" = "$(printf '%s\n' AdminBetaTest InventoryMultiModeSuite:AdminGammaTest)" ]
 }
 
 @test "keeps only the tests of an MFTF group" {
     run php "$SCRIPT" "$GENERATED" "$SOURCE" 1 1 --group multi_mode
 
     [ "$status" -eq 0 ]
-    [ "$(printf '%s' "$output" | php -r 'echo json_encode(json_decode(stream_get_contents(STDIN), true));')" = '{"tests":[],"suites":{"InventoryMultiModeSuite":["AdminAlphaTest","AdminGammaTest"]}}' ]
+    [ "$output" = "$(printf '%s\n' InventoryMultiModeSuite:AdminAlphaTest InventoryMultiModeSuite:AdminGammaTest)" ]
+}
+
+@test "names a test once per suite that MFTF generated it in" {
+    touch "$GENERATED/PaypalSuite/AdminGammaTestCest.php"
+
+    run php "$SCRIPT" "$GENERATED" "$SOURCE" 1 1 --tests AdminGammaTest
+
+    [ "$status" -eq 0 ]
+    [ "$output" = "$(printf '%s\n' InventoryMultiModeSuite:AdminGammaTest PaypalSuite:AdminGammaTest)" ]
 }
 
 @test "fails when a requested test is not a msi-core test that MFTF generated" {
@@ -94,7 +103,7 @@ XML
     run php "$SCRIPT" "$GENERATED" "$SOURCE" 5 5
 
     [ "$status" -eq 0 ]
-    [ "$output" = '{"tests":[],"suites":{}}' ]
+    [ -z "$output" ]
 }
 
 @test "rejects a shard outside the range" {

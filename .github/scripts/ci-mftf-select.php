@@ -65,22 +65,12 @@ if ($options['--group'] !== null) {
 
 usort($units, static fn (array $a, array $b): int => [$a['module'], $a['name'], $a['container']] <=> [$b['module'], $b['name'], $b['container']]);
 
-$selection = ['tests' => [], 'suites' => []];
+$names = [];
 foreach (array_values($units) as $index => $unit) {
-    if ($index % $shards !== $shard - 1) {
-        continue;
-    }
-    if ($unit['container'] === 'default') {
-        $selection['tests'][] = $unit['name'];
-    } else {
-        $selection['suites'][$unit['container']][] = $unit['name'];
+    if ($index % $shards === $shard - 1) {
+        $names[] = $unit['container'] === 'default' ? $unit['name'] : $unit['container'] . ':' . $unit['name'];
     }
 }
-sort($selection['tests']);
-ksort($selection['suites']);
-foreach ($selection['suites'] as &$names) {
-    sort($names);
-}
-unset($names);
+usort($names, static fn (string $a, string $b): int => [str_contains($a, ':'), $a] <=> [str_contains($b, ':'), $b]);
 
-echo json_encode($selection['suites'] === [] ? ['tests' => $selection['tests'], 'suites' => new stdClass()] : $selection), "\n";
+echo implode('', array_map(static fn (string $name): string => $name . "\n", $names));

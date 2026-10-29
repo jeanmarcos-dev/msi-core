@@ -8,13 +8,13 @@ setup() {
     GENERATED="$MAGENTO/dev/tests/acceptance/tests/functional/Magento/_generated"
     mkdir -p "$MAGENTO/dev/tests/acceptance/tests/_output/allure-results" "$GENERATED/stale" "$BIN"
     echo failure > "$MAGENTO/dev/tests/acceptance/tests/_output/a.fail.html"
-    echo '{"tests":["AdminBetaTest"],"suites":{}}' > "$BATS_TEST_TMPDIR/selection"
+    echo AdminBetaTest > "$BATS_TEST_TMPDIR/selection"
     cat > "$BIN/php" <<'STUB'
 #!/bin/sh
 echo "$*" >> "$CALLS"
 case "$*" in
     *ci-mftf-select.php*) cat "$SELECTION" ;;
-    *generate:tests*--tests*) test ! -e "$GENERATED/stale" || { echo "stale generated tests were kept" >&2; exit 1; } ;;
+    *"generate:tests --force "*) test ! -e "$GENERATED/stale" || { echo "stale generated tests were kept" >&2; exit 1; } ;;
     *run:manifest*) exit "${MANIFEST_STATUS:-0}" ;;
 esac
 STUB
@@ -50,12 +50,32 @@ STUB
     run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
 
     [ "$status" -eq 0 ]
-    grep -qF 'generate:tests --force --tests {"tests":["AdminBetaTest"],"suites":{}}' "$CALLS"
+    grep -qE 'generate:tests --force AdminBetaTest$' "$CALLS"
     grep -qF "run:manifest $GENERATED/testManifest.txt" "$CALLS"
 }
 
+@test "names every selected test as an argument, so MFTF never falls back to generating all of them" {
+    printf '%s\n' AdminBetaTest InventoryMultiModeSuite:AdminAlphaTest InventorySingleModeSuite:AdminGammaTest > "$SELECTION"
+
+    run sh "$SCRIPT" "$MAGENTO" 2 4 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    grep -qF 'generate:tests --force AdminBetaTest InventoryMultiModeSuite:AdminAlphaTest InventorySingleModeSuite:AdminGammaTest' "$CALLS"
+    ! grep -qF -- '--tests {' "$CALLS"
+}
+
+@test "names the suite tests as arguments when the shard holds suite tests only" {
+    printf '%s\n' InventoryMultiModeSuite:AdminAlphaTest InventorySingleModeSuite:AdminGammaTest > "$SELECTION"
+
+    run sh "$SCRIPT" "$MAGENTO" 17 20 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    grep -qF 'generate:tests --force InventoryMultiModeSuite:AdminAlphaTest InventorySingleModeSuite:AdminGammaTest' "$CALLS"
+    grep -qF "run:manifest" "$CALLS"
+}
+
 @test "runs nothing when the shard has no test" {
-    echo '{"tests":[],"suites":{}}' > "$SELECTION"
+    : > "$SELECTION"
 
     run sh "$SCRIPT" "$MAGENTO" 4 4 "$REPORT"
 
