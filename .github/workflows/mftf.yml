@@ -1,0 +1,195 @@
+name: mftf
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths:
+      - '.github/workflows/mftf.yml'
+      - '.github/scripts/ci-mftf*'
+      - '.github/scripts/mftf-smoke-tests.txt'
+      - '.github/scripts/tests/ci-mftf*'
+  workflow_dispatch:
+    inputs:
+      group:
+        description: MFTF group to run, for example store_pickup. Leave empty, with no tests, to run the whole suite
+        required: false
+        default: ''
+        type: string
+      tests:
+        description: Comma-separated test names to run. Leave empty to run a group or the whole suite
+        required: false
+        default: ''
+        type: string
+      shards:
+        description: Jobs to split the run over, 1 to 20. Leave empty for 20 (whole suite), 4 (group) or 1 (tests)
+        required: false
+        default: ''
+        type: string
+  workflow_call:
+    inputs:
+      group:
+        description: MFTF group to run, for example store_pickup. Leave empty, with no tests, to run the whole suite
+        required: false
+        default: ''
+        type: string
+      tests:
+        description: Comma-separated test names to run. Leave empty to run a group or the whole suite
+        required: false
+        default: ''
+        type: string
+      shards:
+        description: Jobs to split the run over, 1 to 20. Leave empty for 20 (whole suite), 4 (group) or 1 (tests)
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: mftf-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      tests: ${{ steps.plan.outputs.tests }}
+      group: ${{ steps.plan.outputs.group }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Split the run
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_GROUP: ${{ inputs.group }}
+          INPUT_TESTS: ${{ inputs.tests }}
+          INPUT_SHARDS: ${{ inputs.shards }}
+        run: sh .github/scripts/ci-mftf-plan.sh
+
+  mftf:
+    name: mftf (shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }})
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: magento_mftf
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: magento_mftf
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+      MFTF_BASE_URL: http://127.0.0.1:8080/
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Accept the mail the tests send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
+      - name: Install the Magento instance the browser opens
+        run: sh .github/scripts/ci-mftf-install.sh "$RUNNER_TEMP/magento" "$MFTF_BASE_URL"
+
+      - name: Serve Magento over HTTP
+        run: sh .github/scripts/ci-mftf-serve.sh "$RUNNER_TEMP/magento" 8080 "$RUNNER_TEMP/php-server.log"
+
+      - name: Start Selenium
+        run: sh .github/scripts/ci-mftf-selenium.sh selenium/standalone-chromium:4.46.0
+
+      - name: Configure MFTF
+        run: sh .github/scripts/ci-mftf-configure.sh "$RUNNER_TEMP/magento" "$MFTF_BASE_URL"
+
+      - name: MFTF tests, shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }}
+        env:
+          MFTF_TESTS: ${{ needs.plan.outputs.tests }}
+          MFTF_GROUP: ${{ needs.plan.outputs.group }}
+        run: |
+          set --
+          [ -z "$MFTF_TESTS" ] || set -- "$@" --tests "$MFTF_TESTS"
+          [ -z "$MFTF_GROUP" ] || set -- "$@" --group "$MFTF_GROUP"
+          sh .github/scripts/ci-mftf.sh "$RUNNER_TEMP/magento" "${{ matrix.shard }}" "${{ needs.plan.outputs.shards }}" "$RUNNER_TEMP/mftf-report" "$@"
+
+      - name: Summarize the results
+        if: always()
+        run: php .github/scripts/ci-mftf-summary.php "$RUNNER_TEMP/mftf-report/_output/allure-results" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload MFTF output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mftf-output-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/mftf-report
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Magento logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mftf-logs-shard-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/magento/var/log
+            ${{ runner.temp }}/php-server.log
+          if-no-files-found: ignore
+          retention-days: 14
