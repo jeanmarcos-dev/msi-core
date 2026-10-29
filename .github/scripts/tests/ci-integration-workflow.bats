@@ -58,3 +58,21 @@ setup() {
     grep -qF 'sudo tee /usr/sbin/sendmail' "$WORKFLOW"
     [ "$(grep -n 'sudo tee /usr/sbin/sendmail' "$WORKFLOW" | cut -d: -f1)" -lt "$(grep -n 'ci-integration-modules.sh' "$WORKFLOW" | cut -d: -f1)" ]
 }
+
+@test "runs every module group on MySQL 8.4 and on MariaDB 12.3" {
+    grep -qF 'image: ${{ matrix.database.image }}' "$WORKFLOW"
+    grep -qE "^ +image: mysql:8\.4$" "$WORKFLOW"
+    grep -qE "^ +image: mariadb:12\.3$" "$WORKFLOW"
+    [ "$(grep -cE '^ +- group: [0-9]+$' "$WORKFLOW")" -eq 4 ]
+}
+
+@test "names each job after the database engine it ran on" {
+    grep -qE "^    name: integration \(\\$\{\{ matrix\.database\.name \}\}, group \\$\{\{ matrix\.group \}\}\)$" "$WORKFLOW"
+    grep -qE "^ +- name: MySQL 8\.4$" "$WORKFLOW"
+    grep -qE "^ +- name: MariaDB 12\.3$" "$WORKFLOW"
+}
+
+@test "keeps the reports of each database apart" {
+    grep -qF 'integration-junit-${{ matrix.database.slug }}-group-${{ matrix.group }}' "$WORKFLOW"
+    grep -qF 'integration-logs-${{ matrix.database.slug }}-group-${{ matrix.group }}' "$WORKFLOW"
+}
