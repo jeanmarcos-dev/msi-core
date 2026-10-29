@@ -16,7 +16,8 @@ STUB
 echo "git $*" >> "$CALLS"
 if [ "$1" = clone ]; then
     eval "target=\${$#}"
-    mkdir -p "$target/app/code/Magento/Catalog"
+    mkdir -p "$target/app/code/Magento/Catalog" "$target/dev/tests/static/framework/Magento"
+    cp "$RULESET" "$target/dev/tests/static/framework/Magento/ruleset.xml"
 fi
 STUB
     cat > "$BATS_TEST_TMPDIR/bin/php" <<'STUB'
@@ -29,6 +30,16 @@ case "$1" in
         ;;
 esac
 STUB
+    RULESET="$BATS_TEST_TMPDIR/ruleset.xml"
+    cat > "$RULESET" <<'XML'
+<?xml version="1.0"?>
+<ruleset name="Magento">
+    <rule ref="./../../../../../vendor/magento/magento-coding-standard/Magento2"/>
+    <rule ref="./../../../../../vendor/magento/magento-coding-standard/Magento2Framework"/>
+    <exclude-pattern>*\.min.js$</exclude-pattern>
+</ruleset>
+XML
+    export RULESET
     chmod +x "$BATS_TEST_TMPDIR/bin/composer" "$BATS_TEST_TMPDIR/bin/git" "$BATS_TEST_TMPDIR/bin/php"
     export PATH="$BATS_TEST_TMPDIR/bin:$PATH"
     export CALLS="$BATS_TEST_TMPDIR/calls"
@@ -91,4 +102,25 @@ STUB
     [ "$status" -ne 0 ]
     ! grep -q "git clone" "$CALLS"
     [ ! -e "$BATS_TEST_TMPDIR/magento" ]
+}
+
+@test "turns off the upstream copyright header sniffs, which only accept Adobe's notice" {
+    run "$TEST_SH" .github/scripts/ci-static-project.sh "$BATS_TEST_TMPDIR/magento"
+
+    [ "$status" -eq 0 ]
+    ruleset=$BATS_TEST_TMPDIR/magento/dev/tests/static/framework/Magento/ruleset.xml
+    grep -qF '<exclude name="Magento2Framework.Header.Copyright"/>' "$ruleset"
+    grep -qF '<exclude name="Magento2Framework.Header.CopyrightAnotherExtensionsFiles"/>' "$ruleset"
+    grep -qF '<exclude name="Magento2Framework.Header.CopyrightGraphQL"/>' "$ruleset"
+}
+
+@test "keeps the rest of the Magento ruleset, including the legacy license text sniff" {
+    run "$TEST_SH" .github/scripts/ci-static-project.sh "$BATS_TEST_TMPDIR/magento"
+
+    [ "$status" -eq 0 ]
+    ruleset=$BATS_TEST_TMPDIR/magento/dev/tests/static/framework/Magento/ruleset.xml
+    grep -qF 'magento-coding-standard/Magento2"/>' "$ruleset"
+    grep -qF 'magento-coding-standard/Magento2Framework">' "$ruleset"
+    ! grep -q 'Header.License' "$ruleset"
+    grep -qF '<exclude-pattern>' "$ruleset"
 }
