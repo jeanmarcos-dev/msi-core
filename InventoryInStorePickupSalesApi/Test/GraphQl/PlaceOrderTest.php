@@ -136,7 +136,7 @@ QUERY;
             $this->getStoreHeader()
         );
 
-        $this->verifyOrder($response);
+        $this->verifyOrder($response, 'admin@example.com');
     }
 
     /**
@@ -359,11 +359,12 @@ QUERY;
      * Verify created order.
      *
      * @param array $response
+     * @param string $expectedEmail
      *
      * @return void
      * @throws \Magento\Framework\Exception\NoSuchEntityException
      */
-    private function verifyOrder(array $response): void
+    private function verifyOrder(array $response, string $expectedEmail = 'customer@example.com'): void
     {
         $searchCriteria = $this->searchCriteriaBuilder
             ->addFilter('increment_id', $response['placeOrder']['order']['order_number'])
@@ -376,7 +377,7 @@ QUERY;
         self::assertEquals('instore_pickup', $this->order->getShippingMethod());
         self::assertEquals('John', $address->getFirstName());
         self::assertEquals('Doe', $address->getLastName());
-        self::assertEquals('customer@example.com', $address->getEmail());
+        self::assertEquals($expectedEmail, $address->getEmail());
         self::assertEquals($source->getSourceCode(), $this->order->getExtensionAttributes()->getPickupLocationCode());
         self::assertEquals($source->getRegion(), $address->getRegion());
         self::assertEquals($source->getPostcode(), $address->getPostCode());
