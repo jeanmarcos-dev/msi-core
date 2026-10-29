@@ -128,10 +128,10 @@ no longer gets `default` when it is saved again. Tracked in
 
 ### A source that a shipment empties goes out of stock
 
-Shipping, or invoicing virtual items, lowered a source item's quantity but never wrote its status:
-the deduction computed one and dropped it, so a source shipped down to its out-of-stock threshold
-stayed In Stock. The deduction now writes the status in the same update as the quantity, and only
-when the source changes state:
+**This changes behaviour.** Shipping, or invoicing virtual items, lowered a source item's quantity
+but never wrote its status: the deduction computed one and dropped it, so a source shipped down to
+its out-of-stock threshold stayed In Stock. The deduction now writes the status in the same update
+as the quantity, and only when the source changes state:
 
 - a deduction that leaves the quantity at or below the product's out-of-stock threshold, for a
   product without backorders, sets the source item Out of Stock;
@@ -147,9 +147,11 @@ Whether a return brings a source back now depends on the source item's own statu
 product's stock status. The status change is recorded in the same adjustment history row as the
 quantity. With a threshold above 0, a source that a deduction leaves Out of Stock keeps its
 remaining units, and they no longer count towards the salable quantity, as when a merchant marks the
-source Out of Stock by hand. Tracked in
-[msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
+source Out of Stock by hand. [Differences from upstream][d12-upstream] compares it with upstream.
+Tracked in [msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
 [magento/inventory#3478](https://github.com/magento/inventory/issues/3478).
+
+[d12-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#a-source-that-a-shipment-empties-goes-out-of-stock
 
 ### The admin ships an unmanaged item together with a managed one
 
