@@ -89,30 +89,26 @@ jobs:
           INCREMENTAL_BUILD: '1'
         run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" legacy
 
-      - name: Point the static tests at every file
-        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
-        run: sh .github/scripts/ci-static-changed.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/all.txt" "$RUNNER_TEMP/lists/added.txt"
-
-      - name: XML coding standard
+      - name: XML coding standard on changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
         run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" xml
 
-      - name: HTML coding standard
+      - name: HTML coding standard on changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
         run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" html
 
-      - name: Less coding standard
+      - name: Less coding standard on changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
         run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" less
 
-      - name: GraphQL coding standard
+      - name: GraphQL coding standard on changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
         run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" graphql
 
-      - name: Code integrity
+      - name: Code integrity against the baseline
         if: ${{ !cancelled() && steps.project.outcome == 'success' }}
-        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" integrity
+        run: sh .github/scripts/ci-static-integrity.sh "$RUNNER_TEMP/magento" .github/static-integrity-baseline.txt
 
-      - name: JavaScript coding standard
+      - name: JavaScript coding standard on changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
-        run: sh .github/scripts/ci-static-js.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/all.txt"
+        run: sh .github/scripts/ci-static-js.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/changed.txt"

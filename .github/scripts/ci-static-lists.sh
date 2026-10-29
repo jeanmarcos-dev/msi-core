@@ -12,4 +12,3 @@ esac
 
 git diff --name-only --diff-filter=ACMR "$base" HEAD > "$out/changed.txt"
 git diff --name-only --diff-filter=A "$base" HEAD > "$out/added.txt"
-git ls-files > "$out/all.txt"

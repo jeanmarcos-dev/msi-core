@@ -41,14 +41,6 @@ InventorySales/Renamed.php" ]
     [ "$(cat "$OUT/added.txt")" = "InventorySales/New.php" ]
 }
 
-@test "lists every tracked file" {
-    run sh "$SCRIPT" "$BASE" "$OUT"
-
-    [ "$status" -eq 0 ]
-    [ "$(wc -l < "$OUT/all.txt")" -eq 4 ]
-    grep -qx "docs/guide.md" "$OUT/all.txt"
-}
-
 @test "writes empty change lists when nothing changed" {
     run sh "$SCRIPT" "$(git rev-parse HEAD)" "$OUT"
 
