@@ -42,7 +42,7 @@ class OrderCreateMultiStockModeConfigurableProductTest extends OrderPlacementBas
         $this->assertEquals('Configurable OptionOption 1', $order['items'][1]['name']);
         $this->assertEquals('simple', $order['items'][1]['product_type']);
         $this->assertEquals('simple_10', $order['items'][1]['sku']);
-        $this->assertEquals(10, $order['items'][1]['price']);
+        $this->assertEquals(0, $order['items'][1]['price']);
         $this->cancelOrder($orderId);
     }
 
@@ -79,7 +79,7 @@ class OrderCreateMultiStockModeConfigurableProductTest extends OrderPlacementBas
         $this->assertEquals('Configurable OptionOption 1', $order['items'][1]['name']);
         $this->assertEquals('simple', $order['items'][1]['product_type']);
         $this->assertEquals('simple_10', $order['items'][1]['sku']);
-        $this->assertEquals(10, $order['items'][1]['price']);
+        $this->assertEquals(0, $order['items'][1]['price']);
         $this->cancelOrder($orderId);
     }
 
@@ -132,7 +132,8 @@ class OrderCreateMultiStockModeConfigurableProductTest extends OrderPlacementBas
     {
         $this->_markTestAsRestOnly();
         $this->setStoreView('store_for_us_website');
-        $this->assignProductsToWebsite(['configurable_in_stock', 'simple_10'], 'us_website');
+        $this->assignStockToWebsite(20, 'us_website');
+        $this->assignProductsToWebsite(['configurable', 'simple_10'], 'us_website');
         $this->getCustomerToken('customer@example.com', 'password');
         $this->createCustomerCart();
         $this->addConfigurableProduct('configurable');
@@ -160,7 +161,7 @@ class OrderCreateMultiStockModeConfigurableProductTest extends OrderPlacementBas
         $this->assertEquals('Configurable OptionOption 1', $order['items'][1]['name']);
         $this->assertEquals('simple', $order['items'][1]['product_type']);
         $this->assertEquals('simple_10', $order['items'][1]['sku']);
-        $this->assertEquals(10, $order['items'][1]['price']);
+        $this->assertEquals(0, $order['items'][1]['price']);
         $this->cancelOrder($orderId);
     }
 }
