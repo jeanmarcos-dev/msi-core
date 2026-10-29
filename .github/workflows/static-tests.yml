@@ -70,10 +70,17 @@ jobs:
             base=$PUSH_BEFORE
           fi
           sh .github/scripts/ci-static-lists.sh "$base" "$RUNNER_TEMP/lists"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
 
       - name: Point the static tests at the changed files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
         run: sh .github/scripts/ci-static-changed.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/changed.txt" "$RUNNER_TEMP/lists/added.txt"
+
+      - name: Copyright notices on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' }}
+        env:
+          BASE: ${{ steps.lists.outputs.base }}
+        run: sh .github/scripts/ci-static-copyright.sh "$BASE" "$RUNNER_TEMP/lists/changed.txt" "$RUNNER_TEMP/lists/added.txt"
 
       - name: Strict types on added files
         if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
