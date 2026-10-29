@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Test\Unit\Model\SourceReservation;
 
-use Magento\InventoryIndexer\Indexer\Stock\StockIndexer;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetAbandonedPlacements;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetTerminalOrdersWithResidualReservations;
 use Magento\InventorySales\Model\SourceReservation\AbandonedPlacementMark;
@@ -29,11 +28,6 @@ class ReconcileReservationsSweepTest extends TestCase
      * @var ReconcileOrderReservations|MockObject
      */
     private $engine;
-
-    /**
-     * @var StockIndexer|MockObject
-     */
-    private $stockIndexer;
 
     /**
      * @var GetAbandonedPlacements|MockObject
@@ -59,21 +53,19 @@ class ReconcileReservationsSweepTest extends TestCase
     {
         $this->getTerminalOrders = $this->createMock(GetTerminalOrdersWithResidualReservations::class);
         $this->engine = $this->createMock(ReconcileOrderReservations::class);
-        $this->stockIndexer = $this->createMock(StockIndexer::class);
         $this->getAbandonedPlacements = $this->createMock(GetAbandonedPlacements::class);
         $this->mark = $this->createMock(AbandonedPlacementMark::class);
         $this->logger = $this->createMock(LoggerInterface::class);
         $this->sweep = new ReconcileReservationsSweep(
             $this->getTerminalOrders,
             $this->engine,
-            $this->stockIndexer,
             $this->getAbandonedPlacements,
             $this->mark,
             $this->logger
         );
     }
 
-    public function testReconcilesEachOrderAndReindexesAffectedStocks(): void
+    public function testReconcilesEachOrderAndReportsTheAffectedStocks(): void
     {
         $this->getTerminalOrders->method('execute')->willReturn([
             ['object_id' => 1, 'increment_id' => '000000001', 'state' => Order::STATE_COMPLETE],
@@ -83,7 +75,6 @@ class ReconcileReservationsSweepTest extends TestCase
             [['stock_id' => 2, 'sku' => 'A', 'source_code' => 'slr_a', 'quantity' => 3.0]],
             [['stock_id' => 3, 'sku' => 'A', 'source_code' => 'slr_a', 'quantity' => 1.0]]
         );
-        $this->stockIndexer->expects(self::once())->method('executeList')->with([2, 3]);
 
         $result = $this->sweep->execute(500);
 
@@ -93,7 +84,7 @@ class ReconcileReservationsSweepTest extends TestCase
         self::assertFalse($result['limit_reached']);
     }
 
-    public function testDryRunDoesNotReindex(): void
+    public function testDryRunReportsTheCompensationsItWouldMake(): void
     {
         $this->getTerminalOrders->method('execute')->willReturn([
             ['object_id' => 1, 'increment_id' => '000000001', 'state' => Order::STATE_COMPLETE],
@@ -101,7 +92,6 @@ class ReconcileReservationsSweepTest extends TestCase
         $this->engine->expects(self::once())->method('execute')
             ->with(1, '000000001', Order::STATE_COMPLETE, true)
             ->willReturn([['stock_id' => 2, 'sku' => 'A', 'source_code' => null, 'quantity' => 4.0]]);
-        $this->stockIndexer->expects(self::never())->method('executeList');
 
         $result = $this->sweep->execute(500, true);
 
@@ -141,7 +131,6 @@ class ReconcileReservationsSweepTest extends TestCase
             }
         );
         $this->mark->expects(self::once())->method('advance');
-        $this->stockIndexer->expects(self::once())->method('executeList')->with([5, 6]);
 
         $result = $this->sweep->execute(500);
 
@@ -181,7 +170,6 @@ class ReconcileReservationsSweepTest extends TestCase
         $this->engine->expects(self::once())->method('executeAbandoned')->with('000000007', 900, true)
             ->willReturn([['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'quantity' => 1.0]]);
         $this->mark->expects(self::never())->method('advance');
-        $this->stockIndexer->expects(self::never())->method('executeList');
 
         $result = $this->sweep->execute(500, true);
 
@@ -189,7 +177,7 @@ class ReconcileReservationsSweepTest extends TestCase
         self::assertSame(0, $result['abandoned_pending']);
     }
 
-    public function testTerminalOrdersAndAbandonedPlacementsAreCountedApartAndReindexedOnce(): void
+    public function testTerminalOrdersAndAbandonedPlacementsAreCountedApart(): void
     {
         $this->getTerminalOrders->method('execute')->willReturn([
             ['object_id' => 1, 'increment_id' => '000000001', 'state' => Order::STATE_COMPLETE],
@@ -204,7 +192,6 @@ class ReconcileReservationsSweepTest extends TestCase
         $this->engine->method('executeAbandoned')->willReturn(
             [['stock_id' => 5, 'sku' => 'lk_s', 'source_code' => 'slr_a', 'quantity' => 1.0]]
         );
-        $this->stockIndexer->expects(self::once())->method('executeList')->with([2, 5]);
 
         $result = $this->sweep->execute(500);
 

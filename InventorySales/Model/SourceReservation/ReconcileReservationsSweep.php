@@ -7,23 +7,20 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Model\SourceReservation;
 
-use Magento\InventoryIndexer\Indexer\Stock\StockIndexer;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetAbandonedPlacements;
 use Magento\InventorySales\Model\ResourceModel\SourceReservation\GetTerminalOrdersWithResidualReservations;
 use Psr\Log\LoggerInterface;
 
 /**
  * Reconcile a batch of terminal orders that still carry a residual reservation
- * balance, then reindex the affected stocks so their salable qty reflects the
- * restored availability. Bounded per run; the caller is told when the limit was
- * reached so nothing is silently left behind.
+ * balance and report the stocks whose availability was restored. Bounded per run;
+ * the caller is told when the limit was reached so nothing is silently left behind.
  */
 class ReconcileReservationsSweep
 {
     /**
      * @param GetTerminalOrdersWithResidualReservations $getTerminalOrdersWithResidualReservations
      * @param ReconcileOrderReservations $reconcileOrderReservations
-     * @param StockIndexer $stockIndexer
      * @param GetAbandonedPlacements $getAbandonedPlacements
      * @param AbandonedPlacementMark $abandonedPlacementMark
      * @param LoggerInterface $logger
@@ -31,7 +28,6 @@ class ReconcileReservationsSweep
     public function __construct(
         private readonly GetTerminalOrdersWithResidualReservations $getTerminalOrdersWithResidualReservations,
         private readonly ReconcileOrderReservations $reconcileOrderReservations,
-        private readonly StockIndexer $stockIndexer,
         private readonly GetAbandonedPlacements $getAbandonedPlacements,
         private readonly AbandonedPlacementMark $abandonedPlacementMark,
         private readonly LoggerInterface $logger
@@ -66,9 +62,6 @@ class ReconcileReservationsSweep
         $stockIds = array_values(array_unique(array_column($compensations, 'stock_id')));
         if (!$dryRun) {
             $this->abandonedPlacementMark->advance();
-            if (!empty($stockIds)) {
-                $this->stockIndexer->executeList($stockIds);
-            }
         }
 
         return [
