@@ -377,7 +377,7 @@ class GetPickupLocationsTest extends WebapiAbstract
                     'scopeCode' => 'global_website',
                     'scopeType' => 'website',
                     'pageSize' => 2,
-                    'currentPage' => 2,
+                    'currentPage' => 1,
                     'sort' => [
                         [
                             SortOrder::DIRECTION => SortOrder::SORT_DESC,

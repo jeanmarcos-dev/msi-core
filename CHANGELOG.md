@@ -188,6 +188,18 @@ left in the batch, in their original order, and tests cover both cases. Tracked 
 [magento/inventory#3464](https://github.com/magento/inventory/pull/3464) by
 [stollr](https://github.com/stollr).
 
+### The web API honours the sort of a pickup location search
+
+`GET` and `POST /V1/inventory/in-store-pickup/pickup-locations/` rejected any `searchRequest[sort]`
+over REST and SOAP with `"Sort" is not supported`. Since magento/magento2@8075ae1942 the web API
+passes a constructor argument to a data object only when its type is simple or lives in an
+`Api\Data` namespace, so it fell back to a setter for `sort`, and `SearchRequestInterface` had
+none. `SearchRequestInterface` and `SearchRequest` now declare `setSort()`, and the pickup
+locations come back sorted by the given fields. GraphQL was not affected, because it builds the
+request through `SearchRequestBuilder`. `setSort()` adds a method to an `@api` interface, which
+[`VERSIONING.md`](VERSIONING.md) allows in a minor release. Tracked in
+[msi-core#50](https://github.com/jeanmarcos-dev/msi-core/issues/50).
+
 ### Credit for the fixes taken from open upstream pull requests
 
 Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
