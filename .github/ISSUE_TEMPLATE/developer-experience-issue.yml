@@ -1,0 +1,35 @@
+name: Developer experience issue
+description: Customizing, extending or integrating with msi-core is harder than it should be.
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What you are trying to build, and what gets in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples
+      description: Code, a patch, or a failing test that shows the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+  - type: input
+    id: msi-core-version
+    attributes:
+      label: msi-core version
+      placeholder: "1.1.3"
+    validations:
+      required: true
+  - type: input
+    id: platform-version
+    attributes:
+      label: Magento Open Source or Mage-OS version
+      placeholder: "Magento Open Source 2.4.9"
+    validations:
+      required: true

@@ -26,6 +26,13 @@ versions receive security fixes.
   an update to the page of this site that documents it. The site lives in `docs/` of the same
   repository.
 
+## License of your contribution
+
+msi-core has no contributor license agreement. Under
+[section D.6 of GitHub's terms of service](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service#6-contributions-under-repository-license),
+what you contribute is licensed under the license of the files it changes, OSL-3.0 and AFL-3.0
+([License and attribution](/msi-core/project/license/)). You keep the copyright of your work.
+
 ## Building this site
 
 ```bash
