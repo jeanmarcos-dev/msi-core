@@ -50,6 +50,13 @@ setup() {
     grep -qxF "magento/tfa/OTP_SHARED_SECRET=JBSWY3DPEHPK3PXP" "$MAGENTO/dev/tests/acceptance/.credentials"
 }
 
+@test "exposes the admin password to the tests that read it from the environment" {
+    MFTF_ADMIN_PASSWORD=secret1 run sh "$SCRIPT" "$MAGENTO" http://127.0.0.1:8080/
+
+    [ "$status" -eq 0 ]
+    grep -qxF "MAGENTO_ADMIN_PASSWORD=secret1" "$MAGENTO/dev/tests/acceptance/.env"
+}
+
 @test "requires the Magento directory and the base URL" {
     run sh "$SCRIPT" "$MAGENTO"
 

@@ -16,3 +16,4 @@ php -d memory_limit=-1 vendor/bin/mftf build:project \
 printf 'magento/MAGENTO_ADMIN_PASSWORD=%s\nmagento/tfa/OTP_SHARED_SECRET=%s\n' \
     "${MFTF_ADMIN_PASSWORD:-123123q}" \
     "${MFTF_OTP_SECRET:-GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ}" > dev/tests/acceptance/.credentials
+printf 'MAGENTO_ADMIN_PASSWORD=%s\n' "${MFTF_ADMIN_PASSWORD:-123123q}" >> dev/tests/acceptance/.env

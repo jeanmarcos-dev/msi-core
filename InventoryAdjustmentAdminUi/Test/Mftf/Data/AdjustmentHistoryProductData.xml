@@ -45,6 +45,7 @@
             <item>Magento_Backend::stores</item>
             <item>Magento_InventoryApi::inventory</item>
             <item>Magento_InventoryApi::source</item>
+            <item>Magento_TwoFactorAuth::tfa</item>
         </array>
     </entity>
     <entity name="AdjustmentHistoryRestrictedUser" type="user">
