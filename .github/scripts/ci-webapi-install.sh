@@ -34,4 +34,5 @@ php bin/magento config:set --lock-env catalog/search/opensearch_server_port "${O
 php bin/magento config:set --lock-env customer/account_share/scope 0
 php bin/magento config:set --lock-env catalog/downloadable/disable_guest_checkout 0
 php bin/magento config:set --lock-env catalog/downloadable/shareable 1
+php bin/magento indexer:set-mode realtime
 sh "$source/.github/scripts/ci-webapi-fixture-links.sh" "$magento"
