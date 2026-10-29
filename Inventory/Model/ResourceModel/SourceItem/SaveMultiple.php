@@ -19,6 +19,8 @@ use Magento\InventoryApi\Api\Data\SourceItemInterface;
  */
 class SaveMultiple
 {
+    private const UPDATE_BATCH_SIZE = 1000;
+
     /**
      * @var ResourceConnection
      */
@@ -189,7 +191,7 @@ class SaveMultiple
     }
 
     /**
-     * Update existing Source Items.
+     * Update existing Source Items in batches, keeping their source_item_id.
      *
      * @param array $sourceItems
      * @param AdapterInterface $connection
@@ -198,15 +200,39 @@ class SaveMultiple
      */
     private function updateExistentItems(array $sourceItems, AdapterInterface $connection, string $tableName): void
     {
-        foreach ($sourceItems as $sourceItemId => $sourceItem) {
-            $bind = [
-                SourceItemInterface::SOURCE_CODE => $sourceItem->getSourceCode(),
-                SourceItemInterface::SKU => $sourceItem->getSku(),
-                SourceItemInterface::QUANTITY => $sourceItem->getQuantity(),
-                SourceItemInterface::STATUS => $sourceItem->getStatus()
-            ];
+        $columnsSql = $this->buildColumnsSqlPart([
+            'source_item_id',
+            SourceItemInterface::SOURCE_CODE,
+            SourceItemInterface::SKU,
+            SourceItemInterface::QUANTITY,
+            SourceItemInterface::STATUS
+        ]);
+        $onDuplicateSql = $this->buildOnDuplicateSqlPart([
+            SourceItemInterface::SOURCE_CODE,
+            SourceItemInterface::SKU,
+            SourceItemInterface::QUANTITY,
+            SourceItemInterface::STATUS,
+        ]);
 
-            $connection->update($tableName, $bind, ['source_item_id = ?' => $sourceItemId]);
+        foreach (array_chunk($sourceItems, self::UPDATE_BATCH_SIZE, true) as $batch) {
+            $bind = [];
+            foreach ($batch as $sourceItemId => $sourceItem) {
+                $bind[] = $sourceItemId;
+                $bind[] = $sourceItem->getSourceCode();
+                $bind[] = $sourceItem->getSku();
+                $bind[] = $sourceItem->getQuantity();
+                $bind[] = $sourceItem->getStatus();
+            }
+            $connection->query(
+                sprintf(
+                    'INSERT INTO `%s` (%s) VALUES %s %s',
+                    $tableName,
+                    $columnsSql,
+                    rtrim(str_repeat('(?, ?, ?, ?, ?), ', count($batch)), ', '),
+                    $onDuplicateSql
+                ),
+                $bind
+            );
         }
     }
 }
