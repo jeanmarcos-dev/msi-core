@@ -15,6 +15,8 @@ use Magento\Setup\Model\FixtureGenerator\EntityGeneratorFactory;
  */
 class UpdateCustomTableMapPlugin
 {
+    private const DEFAULT_STOCK_INDEX_TABLE = 'inventory_stock_1';
+
     /**
      * Processed source items for complex products.
      *
@@ -49,6 +51,26 @@ class UpdateCustomTableMapPlugin
                 return $binds;
             },
         ];
+
+        $skuBoundTable = static function (): array {
+            $processed = [];
+
+            return [
+                'entity_id_field' => EntityGenerator::SKIP_ENTITY_ID_BINDING,
+                'handler' => static function ($productId, $entityNumber, $fixture, $binds) use (&$processed) {
+                    $sku = $fixture['sku']($productId, $entityNumber);
+                    if (!$binds || isset($processed[$sku])) {
+                        return [];
+                    }
+                    $processed[$sku] = true;
+
+                    return [array_merge(reset($binds), ['sku' => $sku])];
+                },
+            ];
+        };
+        $data['customTableMap']['inventory_stock_item_configuration'] = $skuBoundTable();
+        $data['customTableMap'][self::DEFAULT_STOCK_INDEX_TABLE] = $skuBoundTable();
+        $data['customTableMap']['inventory_source_item_adjustment'] = $skuBoundTable();
 
         return [$data];
     }

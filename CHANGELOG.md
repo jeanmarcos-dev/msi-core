@@ -19,6 +19,19 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Magento's Performance Toolkit generates its fixtures on a store with msi-core
+
+`bin/magento setup:performance:generate-fixtures` stopped at the first simple product with `The entity ID field for the
+"inventory_stock_item_configuration" table wasn't found`. The generator copies the rows a template product writes by
+entity id, and `InventorySetupFixtureGenerator` only mapped `inventory_source_item`. msi-core keys
+`inventory_stock_item_configuration` and `inventory_source_item_adjustment` by SKU, and the Default Stock index
+`inventory_stock_1` is a table instead of a view over `cataloginventory_stock_status`, so each of them has to be
+rewritten to the SKU of the generated product, once per SKU. The synchronous stock reindex also refreshes
+`catalog_product_index_website` while the template is saved, a table written once per website; a plugin on `SqlCollector`
+now keeps it out of the template. The small profile and a three-source, two-stock profile complete, the generated stock
+index rows are identical to the ones `indexer:reindex` computes, and the 15 template SKUs the generator leaves behind are
+removed by the existing `inventory.source.items.cleanup` consumer. Tracked in [msi-core#100](https://github.com/jeanmarcos-dev/msi-core/issues/100).
+
 ### Re-enabling a child at website scope through the repository reindexes its configurable parents
 
 `SaveInventoryDataObserver` decided that the status of a product had not changed by comparing it with the value the product
