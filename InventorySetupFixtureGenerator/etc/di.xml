@@ -9,4 +9,7 @@
     <type name="Magento\Setup\Model\FixtureGenerator\EntityGeneratorFactory">
         <plugin name="update_custom_table_map" type="Magento\InventorySetupFixtureGenerator\Plugin\Setup\Model\FixtureGenerator\EntityGeneratorFactory\UpdateCustomTableMapPlugin"/>
     </type>
+    <type name="Magento\Setup\Model\FixtureGenerator\SqlCollector">
+        <plugin name="exclude_website_tables" type="Magento\InventorySetupFixtureGenerator\Plugin\Setup\Model\FixtureGenerator\SqlCollector\ExcludeWebsiteTablesPlugin"/>
+    </type>
 </config>
