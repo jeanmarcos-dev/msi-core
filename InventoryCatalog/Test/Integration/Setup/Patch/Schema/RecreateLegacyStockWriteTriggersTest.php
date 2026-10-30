@@ -15,6 +15,8 @@ use PHPUnit\Framework\TestCase;
 
 class RecreateLegacyStockWriteTriggersTest extends TestCase
 {
+    private const PREVIOUS_TIMESTAMP_FUNCTION = 'NOW';
+
     /**
      * @magentoDbIsolation disabled
      */
@@ -25,6 +27,8 @@ class RecreateLegacyStockWriteTriggersTest extends TestCase
         $connection = $resource->getConnection();
         $expected = $this->definitions($connection);
         self::assertNotEmpty($expected);
+
+        $previousTimestamp = self::PREVIOUS_TIMESTAMP_FUNCTION . '()';
 
         foreach (array_keys($expected) as $name) {
             $table = (string)$connection->fetchOne(
@@ -38,9 +42,10 @@ class RecreateLegacyStockWriteTriggersTest extends TestCase
                 'CREATE TRIGGER ' . $name . ' AFTER ' . $operation . ' ON ' . $table . ' FOR EACH ROW '
                 . 'INSERT INTO inventory_legacy_stock_write (table_name, operation, write_count, '
                 . 'sample_product_id, first_detected_at, last_detected_at) '
-                . "VALUES ('" . $table . "', '" . strtolower($operation) . "', 1, NEW.product_id, NOW(), NOW()) "
+                . "VALUES ('" . $table . "', '" . strtolower($operation) . "', 1, NEW.product_id, "
+                . $previousTimestamp . ', ' . $previousTimestamp . ') '
                 . 'ON DUPLICATE KEY UPDATE write_count = write_count + 1, '
-                . 'sample_product_id = NEW.product_id, last_detected_at = NOW()'
+                . 'sample_product_id = NEW.product_id, last_detected_at = ' . $previousTimestamp
             );
         }
         self::assertNotEquals($expected, $this->definitions($connection));
