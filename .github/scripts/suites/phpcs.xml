@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<ruleset name="msi-core suites scripts">
+    <rule ref="Magento2">
+        <exclude name="Magento2.Security.LanguageConstruct"/>
+        <exclude name="Magento2.Security.IncludeFile"/>
+        <exclude name="Magento2.Security.InsecureFunction"/>
+        <exclude name="Magento2.Security.Superglobal"/>
+        <exclude name="Magento2.Functions.DiscouragedFunction"/>
+        <exclude name="Magento2.Functions.StaticFunction"/>
+        <exclude name="Magento2.Legacy.InstallUpgrade"/>
+        <exclude name="Generic.PHP.NoSilencedErrors"/>
+        <exclude name="Magento2.Annotation.MethodAnnotationStructure"/>
+    </rule>
+    <file>.</file>
+    <exclude-pattern>phpcs.xml</exclude-pattern>
+</ruleset>
