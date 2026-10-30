@@ -53,6 +53,13 @@ may not alter them at all.
 - **Tests, fixtures and MFTF artifacts.** Never part of the public surface, in any version.
 - **Behaviour that was a defect.** Fixing a bug is a patch even when code depended on the bug.
 
+## How a pull request declares its level
+
+A pull request may declare its level with a `semver:patch`, `semver:minor` or `semver:major` label. The
+`semantic version check` job fails when the Semantic Version Checker reports a higher level than the
+label; without a label it only reports. The version of a release is decided by comparing the last tag
+with `next-release`.
+
 ## Deprecation
 
 Anything covered above is deprecated for at least one minor version before a major removes it.
