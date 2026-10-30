@@ -41,6 +41,21 @@ schema comparison reported four triggers as different. `RecreateLegacyStockWrite
 replacing whatever an earlier release left, and logs a warning instead of failing when the database refuses the `TRIGGER`
 privilege. Tracked in [msi-core#101](https://github.com/jeanmarcos-dev/msi-core/issues/101).
 
+### A shipment refreshes the salability of every stock that shares the shipped source
+
+With source level reservations on, the index row of a stock counts the reservations of every source linked to it, so a
+reservation placed through one stock changes the row of every other stock that shares a source. The salability update
+after `PlaceReservationsForSalesEventInterface` was enqueued only for the stock of the sales channel. A shipment
+deducts the source item first, which reindexes every stock of the source while the reservation of the order is still
+open, and places the compensating reservation afterwards: the stock of the sales channel was corrected by the queue,
+but a sibling stock holding that source kept `is_salable = 0` in its row with the right quantity, until the next full
+reindex. The same gap left the sibling stock stale after placing, cancelling or refunding an order. The update is now
+enqueued for the stock of the sales channel and for each stock that shares a source holding one of the SKUs, with one
+indexed query per reservation, and only when source level reservations are on. Upstream 1.2.9 does not have the gap,
+because its reservations are scoped to the stock that placed them. The consumer of
+`inventory.reservations.updateSalabilityStatus` has to be running. Tracked in
+[msi-core#104](https://github.com/jeanmarcos-dev/msi-core/issues/104).
+
 ### Re-enabling a child at website scope through the repository reindexes its configurable parents
 
 `SaveInventoryDataObserver` decided that the status of a product had not changed by comparing it with the value the product

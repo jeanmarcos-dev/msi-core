@@ -10,6 +10,8 @@ namespace Magento\InventoryIndexer\Plugin\InventorySales;
 use Magento\Framework\MessageQueue\PublisherInterface;
 use Magento\InventoryIndexer\Model\Queue\ReservationData;
 use Magento\InventoryIndexer\Model\Queue\ReservationDataFactory;
+use Magento\InventoryIndexer\Model\ResourceModel\GetStockIdsSharingSourcesWithStock;
+use Magento\InventoryReservationsApi\Model\SourceReservationsConfig;
 use Magento\InventorySalesApi\Api\Data\ItemToSellInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
@@ -41,18 +43,34 @@ class EnqueueAfterPlaceReservationsForSalesEvent
     private $reservationDataFactory;
 
     /**
+     * @var SourceReservationsConfig
+     */
+    private $sourceReservationsConfig;
+
+    /**
+     * @var GetStockIdsSharingSourcesWithStock
+     */
+    private $getStockIdsSharingSourcesWithStock;
+
+    /**
      * @param PublisherInterface $publisher
      * @param GetAssignedStockIdForWebsiteInterface $getAssignedStockIdForWebsite
      * @param ReservationDataFactory $reservationDataFactory
+     * @param SourceReservationsConfig $sourceReservationsConfig
+     * @param GetStockIdsSharingSourcesWithStock $getStockIdsSharingSourcesWithStock
      */
     public function __construct(
         PublisherInterface $publisher,
         GetAssignedStockIdForWebsiteInterface $getAssignedStockIdForWebsite,
-        ReservationDataFactory $reservationDataFactory
+        ReservationDataFactory $reservationDataFactory,
+        SourceReservationsConfig $sourceReservationsConfig,
+        GetStockIdsSharingSourcesWithStock $getStockIdsSharingSourcesWithStock
     ) {
         $this->publisher = $publisher;
         $this->getAssignedStockIdForWebsite = $getAssignedStockIdForWebsite;
         $this->reservationDataFactory = $reservationDataFactory;
+        $this->sourceReservationsConfig = $sourceReservationsConfig;
+        $this->getStockIdsSharingSourcesWithStock = $getStockIdsSharingSourcesWithStock;
     }
 
     /**
@@ -72,35 +90,39 @@ class EnqueueAfterPlaceReservationsForSalesEvent
         array $items,
         SalesChannelInterface $salesChannel
     ): void {
-        $this->publisher->publish(
-            self::TOPIC_RESERVATIONS_UPDATE_SALABILITY_STATUS,
-            $this->getReservationsDataObject($salesChannel, $items)
-        );
-    }
-
-    /**
-     * Build reservation data transfer objects.
-     *
-     * @param SalesChannelInterface $salesChannel
-     * @param ItemToSellInterface[] $items
-     *
-     * @return ReservationData
-     */
-    private function getReservationsDataObject(SalesChannelInterface $salesChannel, array $items): ReservationData
-    {
-        $stockId = $this->getAssignedStockIdForWebsite->execute($salesChannel->getCode());
         $skus = array_map(
             function (ItemToSellInterface $itemToSell): string {
                 return $itemToSell->getSku();
             },
             $items
         );
+        $stockId = $this->getAssignedStockIdForWebsite->execute($salesChannel->getCode());
+        foreach ($this->getStockIdsToUpdate($stockId, $skus) as $stockIdToUpdate) {
+            $this->publisher->publish(
+                self::TOPIC_RESERVATIONS_UPDATE_SALABILITY_STATUS,
+                $this->reservationDataFactory->create(['stock' => $stockIdToUpdate, 'skus' => $skus])
+            );
+        }
+    }
 
-        return $this->reservationDataFactory->create(
-            [
-                'stock' => $stockId,
-                'skus' => $skus
-            ]
+    /**
+     * Get the stocks whose index rows depend on the reservations placed in the given stock.
+     *
+     * @param int $stockId
+     * @param string[] $skus
+     *
+     * @return int[]
+     */
+    private function getStockIdsToUpdate(int $stockId, array $skus): array
+    {
+        if (!$this->sourceReservationsConfig->isEnabled()) {
+            return [$stockId];
+        }
+
+        return array_values(
+            array_unique(
+                array_merge([$stockId], $this->getStockIdsSharingSourcesWithStock->execute($stockId, $skus))
+            )
         );
     }
 }
