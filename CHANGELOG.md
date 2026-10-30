@@ -19,6 +19,29 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Re-enabling a child at website scope through the repository reindexes its configurable parents
+
+`SaveInventoryDataObserver` decided that the status of a product had not changed by comparing it with the value the product
+was loaded with. `ProductRepository::save` loads that product in the current store, so with the admin store active and the
+status written at website scope the comparison ran against the default value: a child disabled at website scope and
+re-enabled through the repository looked unchanged, nothing reindexed its parents, and a configurable stayed out of stock
+until the next full reindex. A new observer on `catalog_product_save_before` now reads the status persisted for the scope the
+product is written to, falling back to the default scope, and `SaveInventoryDataObserver` compares against that value. It
+costs one indexed `SELECT` (0.18 ms) per save of an existing product. Reindexing on every save that carries a status was
+measured and rejected: it adds about 25 to 30 ms and 61 statements to a save that takes about 105 ms and 193 statements,
+for every save that changes nothing. Tracked in [msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
+
+### A product import that changes a child's status reindexes the stock of its configurable parents
+
+`catalog_product_import_bunch_save_after` had no observer in msi-core, and `InventoryImportExport` only hooked
+`catalog_product_import_bunch_delete_after`. An import that enabled or disabled a child wrote the status attribute
+without touching any source item, so the stock index row of the configurable parent kept the salability it had before
+the import, in every stock that holds the child, until the next full reindex. `ReindexAfterStatusImportObserver` now
+reindexes, once per bunch, the SKUs of the rows that carry a status value, through the same service the mass attribute
+update uses, so the parents are recomputed in every stock. Rows without a `status` cell, or with it empty, are skipped.
+Direct SQL writes remain out of scope, as for every MSI index. Tracked in
+[msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
+
 ### A configurable product stops being salable in the same request once its children go out of stock
 
 In the frontend, GraphQL, REST and SOAP areas, `GetStockItemDataInterface` and `GetStockItemsDataInterface` keep the stock
