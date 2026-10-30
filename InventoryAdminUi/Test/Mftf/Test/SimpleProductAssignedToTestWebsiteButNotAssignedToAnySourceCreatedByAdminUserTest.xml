@@ -28,7 +28,7 @@
         </before>
         <after>
             <magentoCLI command="config:set {{StorefrontEnableAddStoreCodeToUrls.path}} {{StorefrontDisableAddStoreCodeToUrls.value}}" stepKey="setAddStoreCodeToUrlsToNo"/>
-            <magentoCLI stepKey="setDisplayOutOfStockProductAsYes" command="config:set cataloginventory/options/show_out_of_stock 1" />
+            <magentoCLI stepKey="restoreDisplayOutOfStockProduct" command="config:set cataloginventory/options/show_out_of_stock 0" />
             <actionGroup ref="AdminSetWebsiteAsDefaultActionGroup" stepKey="SetTheMainWebsiteAsDefault">
                 <argument name="WebsiteName" value="Main Website"/>
             </actionGroup>
