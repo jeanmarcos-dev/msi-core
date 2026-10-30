@@ -86,3 +86,68 @@ run_semver() {
     [ "$status" -ne 0 ]
     grep -qF 'The checker failed' "$OUT/summary.md"
 }
+
+@test "does not pass an allowed level and says no level was declared when there is no semver label" {
+    SEMVER_LABELS='ci bug' run_semver
+
+    [ "$status" -eq 0 ]
+    ! grep -qE "stage/after [1-3] " "$CALLS"
+    grep -qF 'Declared level: none' "$OUT/summary.md"
+}
+
+@test "passes the declared level to the tool as the allowed change level" {
+    SEMVER_LABELS='semver:patch' run_semver
+    grep -qF "stage/after 1 --log-output-location" "$CALLS"
+
+    SEMVER_LABELS='semver:minor' run_semver
+    grep -qF "stage/after 2 --log-output-location" "$CALLS"
+
+    SEMVER_LABELS='semver:major' run_semver
+    grep -qF "stage/after 3 --log-output-location" "$CALLS"
+}
+
+@test "ignores labels that are not semver labels" {
+    SEMVER_LABELS='ci semver:minor bug' run_semver
+
+    [ "$status" -eq 0 ]
+    grep -qF 'Declared level: **MINOR**' "$OUT/summary.md"
+}
+
+@test "succeeds when the reported level is within the declared level" {
+    SEMVER_LABELS='semver:minor' run_semver
+
+    [ "$status" -eq 0 ]
+    grep -qF 'Suggested level: **MINOR**' "$OUT/summary.md"
+    grep -qF 'Declared level: **MINOR**' "$OUT/summary.md"
+}
+
+@test "fails and keeps the report when the reported level is above the declared level" {
+    SEMVER_LABELS='semver:patch' FAKE_EXIT=1 run_semver
+
+    [ "$status" -ne 0 ]
+    grep -qF 'Suggested level: **MINOR**' "$OUT/summary.md"
+    grep -qF 'above the declared level **PATCH**' "$OUT/summary.md"
+    grep -qF 'Suggested version increase' "$OUT/summary.md"
+}
+
+@test "treats an exit status without a report as a tool failure even with a label" {
+    SEMVER_LABELS='semver:patch' FAKE_EXIT=1 FAKE_LOG= run_semver
+
+    [ "$status" -ne 0 ]
+    grep -qF 'The checker failed' "$OUT/summary.md"
+}
+
+@test "fails without running the tool when more than one semver label is set" {
+    SEMVER_LABELS='semver:patch semver:major' run_semver
+
+    [ "$status" -ne 0 ]
+    [ ! -f "$CALLS" ]
+    grep -qF 'More than one semver label' "$OUT/summary.md"
+    grep -qF 'semver:patch semver:major' "$OUT/summary.md"
+}
+
+@test "does not ask the tool for a changed files log" {
+    run_semver
+
+    ! grep -qF 'filechange-output-location' "$CALLS"
+}

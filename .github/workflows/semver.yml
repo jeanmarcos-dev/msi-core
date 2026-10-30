@@ -2,6 +2,7 @@ name: semver
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
     branches: ['main', 'next-release']
     paths-ignore:
       - 'docs/**'
@@ -62,6 +63,8 @@ jobs:
           composer install --no-dev --no-interaction --no-progress --working-dir="$RUNNER_TEMP/magento-semver"
 
       - name: Compare the base with the change
+        env:
+          SEMVER_LABELS: ${{ join(github.event.pull_request.labels.*.name, ' ') }}
         run: sh after/.github/scripts/ci-semver.sh "$RUNNER_TEMP/magento-semver" before after "$RUNNER_TEMP/semver"
 
       - name: Write the job summary
@@ -75,6 +78,5 @@ jobs:
           name: semver-report
           path: |
             ${{ runner.temp }}/semver/svc.log
-            ${{ runner.temp }}/semver/changed-files.log
           if-no-files-found: warn
           retention-days: 14
