@@ -42,6 +42,21 @@ update uses, so the parents are recomputed in every stock. Rows without a `statu
 Direct SQL writes remain out of scope, as for every MSI index. Tracked in
 [msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
 
+### A configurable product is salable only in the websites where one of its children is enabled, assigned and salable
+
+The stock index counted a configurable's children by their status in the default scope, and the storefront trusted the
+parent's row. `status` is a website attribute, so a child disabled in one website and enabled by default left the
+configurable salable there, and a child enabled in a website and disabled by default hid it. The row of a configurable now
+counts a child that is enabled in at least one website of the stock, by the website's value or else the default scope, and
+a stock without websites keeps the default scope. The storefront, GraphQL `stock_status` and the search index then answer
+for the current website: a configurable is salable only if one of its children is enabled in, assigned to and salable
+in that website, resolved for a whole listing in one query instead of one per product, and a row of 0 needs no query.
+Changing the websites of a stock reindexes the stocks involved, since the rows now depend on them. Reindex the
+`inventory` indexer after updating. The stock APIs that take a stock id answer for the whole stock, and two store views of
+one website with different `status` values, which only direct SQL can produce, are not supported. A configurable whose
+children are all disabled is not salable and is hidden from listings, as it was. Tracked in
+[msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89).
+
 ### A configurable product stops being salable in the same request once its children go out of stock
 
 In the frontend, GraphQL, REST and SOAP areas, `GetStockItemDataInterface` and `GetStockItemsDataInterface` keep the stock
