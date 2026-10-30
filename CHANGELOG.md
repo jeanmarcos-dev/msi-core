@@ -19,6 +19,17 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### A product import that changes a child's status reindexes the stock of its configurable parents
+
+`catalog_product_import_bunch_save_after` had no observer in msi-core, and `InventoryImportExport` only hooked
+`catalog_product_import_bunch_delete_after`. An import that enabled or disabled a child wrote the status attribute
+without touching any source item, so the stock index row of the configurable parent kept the salability it had before
+the import, in every stock that holds the child, until the next full reindex. `ReindexAfterStatusImportObserver` now
+reindexes, once per bunch, the SKUs of the rows that carry a status value, through the same service the mass attribute
+update uses, so the parents are recomputed in every stock. Rows without a `status` cell, or with it empty, are skipped.
+Direct SQL writes remain out of scope, as for every MSI index. Tracked in
+[msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
+
 ### A configurable product stops being salable in the same request once its children go out of stock
 
 In the frontend, GraphQL, REST and SOAP areas, `GetStockItemDataInterface` and `GetStockItemsDataInterface` keep the stock
