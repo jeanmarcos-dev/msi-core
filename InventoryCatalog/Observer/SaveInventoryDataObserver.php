@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Observer;
 
-use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product;
 use Magento\CatalogInventory\Api\StockConfigurationInterface;
 use Magento\CatalogInventory\Api\StockRegistryInterface;
@@ -16,6 +15,7 @@ use Magento\Framework\Event\Observer as EventObserver;
 use Magento\InventoryCatalog\Model\Cache\ProductIdsBySkusStorage;
 use Magento\InventoryCatalog\Model\Cache\ProductSkusByIdsStorage;
 use Magento\InventoryCatalog\Model\Cache\ProductTypesBySkusStorage;
+use Magento\InventoryCatalog\Model\Product\PersistedStatusStorage;
 use Magento\InventoryIndexer\Indexer\SourceItem\ReindexSourceItemsBySkus;
 
 /**
@@ -28,6 +28,7 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
      * @param ProductSkusByIdsStorage $productSkusByIdsStorage
      * @param ProductTypesBySkusStorage $productTypesBySkusStorage
      * @param ReindexSourceItemsBySkus $reindexSourceItemsBySkus
+     * @param PersistedStatusStorage $persistedStatusStorage
      * @param StockConfigurationInterface $stockConfiguration
      * @param StockRegistryInterface $stockRegistry
      * @param StockItemValidator $stockItemValidator
@@ -37,6 +38,7 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
         private readonly ProductSkusByIdsStorage $productSkusByIdsStorage,
         private readonly ProductTypesBySkusStorage $productTypesBySkusStorage,
         private readonly ReindexSourceItemsBySkus $reindexSourceItemsBySkus,
+        private readonly PersistedStatusStorage $persistedStatusStorage,
         StockConfigurationInterface $stockConfiguration,
         StockRegistryInterface $stockRegistry,
         StockItemValidator $stockItemValidator
@@ -67,19 +69,20 @@ class SaveInventoryDataObserver extends \Magento\CatalogInventory\Observer\SaveI
         if (!$product->isObjectNew() && $this->isStatusChanged($product)) {
             $this->reindexSourceItemsBySkus->execute([$sku]);
         }
+        $this->persistedStatusStorage->delete($product);
         parent::execute($observer);
     }
 
     /**
-     * Whether the product status differs from the one it was loaded with
+     * Whether the product status differs from the one persisted for the scope it is written to
      *
      * @param Product $product
      * @return bool
      */
     private function isStatusChanged(Product $product): bool
     {
-        $originalStatus = $product->getOrigData(ProductInterface::STATUS);
+        $persistedStatus = $this->persistedStatusStorage->get($product);
 
-        return $originalStatus !== null && (int) $product->getStatus() !== (int) $originalStatus;
+        return $persistedStatus !== null && (int) $product->getStatus() !== $persistedStatus;
     }
 }

@@ -9,4 +9,7 @@
     <event name="sales_quote_item_collection_products_after_load">
         <observer name="inventory_catalog_preload_cache" instance="Magento\InventoryCatalog\Observer\PreloadCache"/>
     </event>
+    <event name="catalog_product_save_before">
+        <observer name="inventory_catalog_capture_persisted_status" instance="Magento\InventoryCatalog\Observer\CapturePersistedStatusObserver"/>
+    </event>
 </config>
