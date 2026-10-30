@@ -24,6 +24,7 @@ run() {
 install_into() {
     mysql --host="${DB_HOST:-127.0.0.1}" --user="${DB_USER:-root}" --password="${DB_PASSWORD:-root}" \
         --execute="CREATE DATABASE IF NOT EXISTS \`$1\`"
+    rm -f "$magento/app/etc/env.php"
     DB_NAME="$1" sh "$here/ci-webapi-install.sh" "$magento" "$baseurl/"
 }
 

@@ -18,6 +18,7 @@ setup() {
 #!/bin/sh
 echo "marker=$(cat "$MAGENTO_ROOT/vendor/jeanmarcos/msi-core/Marker.php") $*" >> "$CALLS"
 case "$*" in
+    *setup:install*) test ! -e "$MAGENTO_ROOT/app/etc/env.php" || echo stale-env >> "$CALLS" ;;
     *upgrade-snapshot.php*)
         for out; do :; done
         count=$(cat "$SNAPSHOT_COUNT" 2>/dev/null || echo 0)
@@ -86,6 +87,16 @@ STUB
     LEDGER_STATUS=1 run sh "$SCRIPT" "$MAGENTO" "$PREVIOUS" "$CURRENT" "$WORK"
 
     [ "$status" -ne 0 ]
+}
+
+@test "forgets the connection of the previous install before the fresh one" {
+    mkdir -p "$MAGENTO/app/etc"
+    echo stale > "$MAGENTO/app/etc/env.php"
+
+    run sh "$SCRIPT" "$MAGENTO" "$PREVIOUS" "$CURRENT" "$WORK"
+
+    [ "$status" -eq 0 ]
+    ! grep -q "stale-env" "$CALLS"
 }
 
 @test "reindexes before taking the baseline snapshot" {

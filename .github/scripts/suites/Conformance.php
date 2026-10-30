@@ -582,8 +582,8 @@ class Conformance
     public static function salableSkus($om, array $skus, int $stockId): array
     {
         $salable = [];
-        $salable = $om->get(\Magento\InventorySalesApi\Api\AreProductsSalableInterface::class);
-        foreach ($salable->execute($skus, $stockId) as $r) {
+        $areSalable = $om->get(\Magento\InventorySalesApi\Api\AreProductsSalableInterface::class);
+        foreach ($areSalable->execute($skus, $stockId) as $r) {
             if ($r->isSalable()) {
                 $salable[] = $r->getSku();
             }
