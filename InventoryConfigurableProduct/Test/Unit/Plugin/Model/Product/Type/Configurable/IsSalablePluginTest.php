@@ -11,6 +11,7 @@ use Magento\Catalog\Model\Product;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\InventoryConfigurableProduct\Model\SalableChildren;
 use Magento\InventoryConfigurableProduct\Plugin\Model\Product\Type\Configurable\IsSalablePlugin;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\Store;
@@ -38,18 +39,25 @@ class IsSalablePluginTest extends TestCase
     private $configurableMock;
 
     /**
+     * @var SalableChildren|MockObject
+     */
+    private $salableChildrenMock;
+
+    /**
      * @inheritdoc
      */
     protected function setUp(): void
     {
         $this->storeManagerMock = $this->createMock(StoreManagerInterface::class);
         $this->configurableMock = $this->createMock(Configurable::class);
+        $this->salableChildrenMock = $this->createMock(SalableChildren::class);
+        $this->salableChildrenMock->method('exist')->willReturn(true);
 
         $storeMock = $this->createMock(StoreInterface::class);
         $storeMock->method('getId')->willReturn(self::CURRENT_STORE_ID);
         $this->storeManagerMock->method('getStore')->willReturn($storeMock);
 
-        $this->plugin = new IsSalablePlugin($this->storeManagerMock);
+        $this->plugin = new IsSalablePlugin($this->storeManagerMock, $this->salableChildrenMock);
     }
 
     public function testLoadedIsSalableIsUsedWithoutTouchingTheCore(): void
@@ -57,6 +65,62 @@ class IsSalablePluginTest extends TestCase
         $product = $this->createProduct(['status' => Status::STATUS_ENABLED, 'is_salable' => '1']);
 
         $this->assertTrue($this->plugin->aroundIsSalable($this->configurableMock, $this->failingProceed(), $product));
+    }
+
+    public function testRowSalableWithoutSalableChildrenInTheStoreIsNotSalable(): void
+    {
+        $salableChildren = $this->createMock(SalableChildren::class);
+        $salableChildren->method('exist')->willReturn(false);
+        $plugin = new IsSalablePlugin($this->storeManagerMock, $salableChildren);
+        $product = $this->createProduct(['status' => Status::STATUS_ENABLED, 'is_salable' => '1']);
+
+        $this->assertFalse($plugin->aroundIsSalable($this->configurableMock, $this->failingProceed(), $product));
+    }
+
+    public function testChildrenAreAskedForTheCurrentStore(): void
+    {
+        $salableChildren = $this->createMock(SalableChildren::class);
+        $product = $this->createProduct(['status' => Status::STATUS_ENABLED, 'is_salable' => '1']);
+        $salableChildren->expects(self::once())
+            ->method('exist')
+            ->with($product, self::CURRENT_STORE_ID)
+            ->willReturn(true);
+        $plugin = new IsSalablePlugin($this->storeManagerMock, $salableChildren);
+
+        $this->assertTrue($plugin->aroundIsSalable($this->configurableMock, $this->failingProceed(), $product));
+    }
+
+    public function testZeroRowIsExactAndSkipsTheChildren(): void
+    {
+        $salableChildren = $this->createMock(SalableChildren::class);
+        $salableChildren->expects(self::never())->method('exist');
+        $plugin = new IsSalablePlugin($this->storeManagerMock, $salableChildren);
+        $product = $this->createProduct(['status' => Status::STATUS_ENABLED, 'is_salable' => '0']);
+
+        $this->assertFalse($plugin->aroundIsSalable($this->configurableMock, $this->failingProceed(), $product));
+    }
+
+    public function testDisabledProductSkipsTheChildren(): void
+    {
+        $salableChildren = $this->createMock(SalableChildren::class);
+        $salableChildren->expects(self::never())->method('exist');
+        $plugin = new IsSalablePlugin($this->storeManagerMock, $salableChildren);
+        $product = $this->createProduct(['status' => Status::STATUS_DISABLED, 'is_salable' => '1']);
+
+        $this->assertFalse($plugin->aroundIsSalable($this->configurableMock, $this->failingProceed(), $product));
+    }
+
+    public function testProductOfAnotherStoreScopeSkipsTheChildren(): void
+    {
+        $salableChildren = $this->createMock(SalableChildren::class);
+        $salableChildren->expects(self::never())->method('exist');
+        $plugin = new IsSalablePlugin($this->storeManagerMock, $salableChildren);
+        $product = $this->createProduct(['status' => Status::STATUS_ENABLED, 'is_salable' => '1']);
+        $otherStore = $this->createMock(Store::class);
+        $otherStore->method('getId')->willReturn(7);
+        $this->configurableMock->method('getStoreFilter')->willReturn($otherStore);
+
+        $this->assertTrue($plugin->aroundIsSalable($this->configurableMock, static fn () => true, $product));
     }
 
     public function testLoadedIsSalableZeroMakesProductNotSalable(): void

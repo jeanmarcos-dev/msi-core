@@ -14,6 +14,7 @@
         "magento/module-eav": "102.1.*",
         "magento/module-inventory-indexer": "2.2.*",
         "magento/module-inventory-multi-dimensional-indexer-api": "1.2.*",
+        "magento/module-inventory-sales-api": "1.2.*",
         "magento/module-configurable-product": "100.4.*",
         "magento/module-inventory-configuration-api": "1.2.*",
         "magento/module-store": "101.1.*"

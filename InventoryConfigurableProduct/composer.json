@@ -23,7 +23,8 @@
     },
     "suggest": {
         "magento/module-inventory": "1.2.*",
-        "magento/module-inventory-api": "1.2.*"
+        "magento/module-inventory-api": "1.2.*",
+        "magento/module-inventory-graph-ql": "1.2.*"
     },
     "autoload": {
         "files": [

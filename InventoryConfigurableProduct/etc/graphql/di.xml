@@ -10,4 +10,7 @@
         <plugin name="Magento_ConfigurableProduct_Plugin_Model_ResourceModel_Attribute_InStockOptionSelectBuilder_GraphQl" type="Magento\InventoryConfigurableProduct\Plugin\Model\ResourceModel\Attribute\IsSalableOptionSelectBuilder"/>
         <plugin name="Magento_ConfigurableProduct_Plugin_Model_ResourceModel_Attribute_EnabledOptionSelectBuilder_GraphQl" type="Magento\InventoryConfigurableProduct\Plugin\Model\ResourceModel\Attribute\IsEnabledOptionSelectBuilder"/>
     </type>
+    <type name="Magento\InventoryGraphQl\Model\Resolver\StockStatusProvider">
+        <plugin name="inventory_configurable_product_stock_status_of_the_website" type="Magento\InventoryConfigurableProduct\Plugin\GraphQl\ConfigurableStockStatusPlugin"/>
+    </type>
 </config>

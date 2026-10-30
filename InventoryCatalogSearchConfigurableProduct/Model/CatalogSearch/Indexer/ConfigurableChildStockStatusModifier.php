@@ -83,9 +83,15 @@ class ConfigurableChildStockStatusModifier implements SelectModifierInterface
         )->where(
             "product_link_configurable.parent_id = e.{$linkField}"
         );
+        $store = $this->storeRepository->getById($storeId);
         $existsSelect->join(
             ['product_child' => $this->resourceConnection->getTableName('catalog_product_entity')],
             'product_child.entity_id = product_link_configurable.product_id',
+            []
+        )->join(
+            ['product_website' => $this->resourceConnection->getTableName('catalog_product_website')],
+            'product_website.product_id = product_child.entity_id'
+            . ' AND product_website.website_id = ' . (int)$store->getWebsiteId(),
             []
         );
 
@@ -106,7 +112,6 @@ class ConfigurableChildStockStatusModifier implements SelectModifierInterface
             'IFNULL(child_status_store.value, child_status_global.value) != ' . Status::STATUS_DISABLED
         );
 
-        $store = $this->storeRepository->getById($storeId);
         $this->stockStatusFilter->execute(
             $existsSelect,
             'product_child',
