@@ -14,7 +14,12 @@ foreach (glob(rtrim($directory, '/') . '/*-result.json') as $file) {
     if (!isset($result['fullName']) || !preg_match('/\\\\_([^\\\\]+)\\\\[^\\\\]+\\\\(\w+)Cest::/', $result['fullName'], $match)) {
         continue;
     }
-    $results[] = [
+    $key = $match[1] . ':' . $match[2];
+    if (isset($results[$key]) && $results[$key]['start'] > $result['start']) {
+        continue;
+    }
+    $results[$key] = [
+        'start' => $result['start'],
         'test' => $match[2],
         'suite' => $match[1],
         'status' => $result['status'],
@@ -27,6 +32,8 @@ if ($results === []) {
     echo "No MFTF result found in $directory\n";
     exit(0);
 }
+
+$results = array_values($results);
 
 usort($results, static fn (array $a, array $b): int => [$order[$a['status']] ?? 4, $a['test']] <=> [$order[$b['status']] ?? 4, $b['test']]);
 
