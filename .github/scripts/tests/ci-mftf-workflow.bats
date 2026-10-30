@@ -65,3 +65,12 @@ setup() {
 
     [ "$(cat "$BATS_TEST_TMPDIR/runner")" = "ubuntu-24.04" ]
 }
+
+@test "warms the static files after the instance is configured and before the tests run" {
+    warm=$(grep -n "ci-mftf-warmup.sh" "$WORKFLOW" | head -1 | cut -d: -f1)
+    configure=$(grep -n "ci-mftf-configure.sh" "$WORKFLOW" | head -1 | cut -d: -f1)
+    tests=$(grep -n "ci-mftf.sh" "$WORKFLOW" | head -1 | cut -d: -f1)
+    [ -n "$warm" ]
+    [ "$warm" -gt "$configure" ]
+    [ "$warm" -lt "$tests" ]
+}
