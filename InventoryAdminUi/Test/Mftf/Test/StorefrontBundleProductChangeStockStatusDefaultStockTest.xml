@@ -34,6 +34,9 @@
                 <requiredEntity createDataKey="bundleOption"/>
                 <requiredEntity createDataKey="product"/>
             </createData>
+            <actionGroup ref="CliCacheCleanActionGroup" stepKey="cleanCategoryTreeCache">
+                <argument name="tags" value="block_html"/>
+            </actionGroup>
             <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin"/>
             <!--Assign default stock to main website.-->
             <actionGroup ref="AssignWebsiteToStockActionGroup" stepKey="assignMainWebsiteToDefaultStock">
