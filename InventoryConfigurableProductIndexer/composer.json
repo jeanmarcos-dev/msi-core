@@ -12,8 +12,6 @@
         "magento/framework": "103.0.*",
         "magento/module-catalog": "104.0.*",
         "magento/module-eav": "102.1.*",
-        "magento/module-inventory-api": "1.2.*",
-        "magento/module-inventory-catalog-api": "1.3.*",
         "magento/module-inventory-indexer": "2.2.*",
         "magento/module-inventory-multi-dimensional-indexer-api": "1.2.*",
         "magento/module-configurable-product": "100.4.*",

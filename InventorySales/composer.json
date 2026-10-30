@@ -20,7 +20,6 @@
         "magento/module-inventory-sales-api": "1.2.*",
         "magento/module-inventory-source-deduction-api": "1.2.*",
         "magento/module-inventory-source-selection-api": "1.4.*",
-        "magento/module-quote": "101.2.*",
         "magento/module-sales-inventory": "100.4.*",
         "magento/module-store": "101.1.*",
         "magento/module-sales": "103.0.*"

@@ -16,7 +16,6 @@
         "magento/module-inventory-adjustment": "1.0.*",
         "magento/module-inventory-adjustment-api": "1.0.*",
         "magento/module-inventory-api": "1.2.*",
-        "magento/module-inventory-catalog-admin-ui": "1.2.*",
         "magento/module-ui": "101.2.*"
     },
     "autoload": {
