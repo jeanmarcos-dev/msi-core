@@ -54,6 +54,12 @@ STUB
     [ "$(grep -c 'setup:install' "$CALLS")" -eq 2 ]
 }
 
+@test "builds the catalog topology without the second website, whose tables the fresh install lacks" {
+    run sh "$SCRIPT" "$MAGENTO" "$PREVIOUS" "$CURRENT" "$WORK"
+
+    grep -q "topology.php 60 single" "$CALLS"
+}
+
 @test "compares the schema of the upgraded database with a fresh install of the current release" {
     run sh "$SCRIPT" "$MAGENTO" "$PREVIOUS" "$CURRENT" "$WORK"
 

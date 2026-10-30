@@ -92,43 +92,47 @@ foreach ($skus as $index => $sku) {
     Harness::setSourceQty($om, $sku, ['slr_a' => 50.0 + ($index % 100), 'slr_b' => 50.0 + ($index % 100)]);
 }
 
-$website = $om->create(\Magento\Store\Model\Website::class);
-$website->load(Harness::SECOND_WEBSITE_CODE, 'code');
-if (!$website->getId()) {
-    $website->setCode(Harness::SECOND_WEBSITE_CODE)->setName('SLR Web2')->setDefaultGroupId(0)->save();
-}
-$websiteId = (int)$website->getId();
-$group = $om->create(\Magento\Store\Model\Group::class);
-foreach ($group->getCollection() as $candidate) {
-    if ($candidate->getName() === 'SLR Web2 Group' && (int)$candidate->getWebsiteId() === $websiteId) {
-        $group = $candidate;
-        break;
+$websiteId = 0;
+$store = null;
+if (($argv[2] ?? '') !== 'single') {
+    $website = $om->create(\Magento\Store\Model\Website::class);
+    $website->load(Harness::SECOND_WEBSITE_CODE, 'code');
+    if (!$website->getId()) {
+        $website->setCode(Harness::SECOND_WEBSITE_CODE)->setName('SLR Web2')->setDefaultGroupId(0)->save();
     }
-}
-if (!$group->getId()) {
-    $group->setWebsiteId($websiteId)->setName('SLR Web2 Group')->setCode('slrw2_group')
-        ->setRootCategoryId(2)->setDefaultStoreId(0)->save();
-}
-$store = $om->create(\Magento\Store\Model\Store::class);
-$store->load('slrw2_view', 'code');
-if (!$store->getId()) {
-    $store->setCode('slrw2_view')->setName('SLR Web2 View')->setWebsiteId($websiteId)
-        ->setGroupId((int)$group->getId())->setIsActive(1)->setSortOrder(0)->save();
-}
-$website->setDefaultGroupId((int)$group->getId())->save();
-$group->setDefaultStoreId((int)$store->getId())->save();
+    $websiteId = (int)$website->getId();
+    $group = $om->create(\Magento\Store\Model\Group::class);
+    foreach ($group->getCollection() as $candidate) {
+        if ($candidate->getName() === 'SLR Web2 Group' && (int)$candidate->getWebsiteId() === $websiteId) {
+            $group = $candidate;
+            break;
+        }
+    }
+    if (!$group->getId()) {
+        $group->setWebsiteId($websiteId)->setName('SLR Web2 Group')->setCode('slrw2_group')
+            ->setRootCategoryId(2)->setDefaultStoreId(0)->save();
+    }
+    $store = $om->create(\Magento\Store\Model\Store::class);
+    $store->load('slrw2_view', 'code');
+    if (!$store->getId()) {
+        $store->setCode('slrw2_view')->setName('SLR Web2 View')->setWebsiteId($websiteId)
+            ->setGroupId((int)$group->getId())->setIsActive(1)->setSortOrder(0)->save();
+    }
+    $website->setDefaultGroupId((int)$group->getId())->save();
+    $group->setDefaultStoreId((int)$store->getId())->save();
 
-$configWriter = $om->get(\Magento\Framework\App\Config\Storage\WriterInterface::class);
-foreach (['web/unsecure/base_url', 'web/secure/base_url'] as $path) {
-    $configWriter->save($path, 'http://slrw2.local/', 'websites', $websiteId);
-}
-Harness::assignChannel($om, Harness::SECOND_WEBSITE_CODE, $siblingId);
+    $configWriter = $om->get(\Magento\Framework\App\Config\Storage\WriterInterface::class);
+    foreach (['web/unsecure/base_url', 'web/secure/base_url'] as $path) {
+        $configWriter->save($path, 'http://slrw2.local/', 'websites', $websiteId);
+    }
+    Harness::assignChannel($om, Harness::SECOND_WEBSITE_CODE, $siblingId);
 
-$link = $om->get(\Magento\Catalog\Api\Data\ProductWebsiteLinkInterfaceFactory::class)->create();
-$link->setSku(Harness::SKU_SPLIT);
-$link->setWebsiteId($websiteId);
-$om->get(\Magento\Catalog\Api\ProductWebsiteLinkRepositoryInterface::class)->save($link);
-$om->get(\Magento\Store\Model\StoreManagerInterface::class)->reinitStores();
+    $link = $om->get(\Magento\Catalog\Api\Data\ProductWebsiteLinkInterfaceFactory::class)->create();
+    $link->setSku(Harness::SKU_SPLIT);
+    $link->setWebsiteId($websiteId);
+    $om->get(\Magento\Catalog\Api\ProductWebsiteLinkRepositoryInterface::class)->save($link);
+    $om->get(\Magento\Store\Model\StoreManagerInterface::class)->reinitStores();
+}
 Harness::assignChannel($om, 'base', $stockId);
 
 printf(
@@ -136,6 +140,6 @@ printf(
     $stockId,
     $siblingId,
     $websiteId,
-    (int)$store->getId(),
+    $store ? (int)$store->getId() : 0,
     count($skus)
 );

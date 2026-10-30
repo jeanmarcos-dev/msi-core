@@ -40,7 +40,7 @@ sh "$here/ci-suites-swap.sh" "$magento" "$previous"
 install_into "$upgraded"
 cd "$magento"
 run "$suites/seed-catalog.php" 60
-run "$suites/topology.php" 60
+run "$suites/topology.php" 60 single
 php bin/magento config:set cataloginventory/source_reservations/enabled 1
 php bin/magento cache:flush
 run "$suites/upgrade-populate.php"

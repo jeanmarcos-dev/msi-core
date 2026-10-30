@@ -29,6 +29,15 @@ STUB
     [ "$status" -eq 0 ]
 }
 
+@test "reads the expected divergences from a path relative to where it is called" {
+    printf '  XX S14-config-write       source item status                 default=0 mirror=1\nDIVERGENT conformance: 160/161 probes identical, 1 divergences\n' > "$CONFORMANCE_OUTPUT"
+    cd "$BATS_TEST_TMPDIR"
+
+    run sh "$SCRIPT" "$MAGENTO" expected.txt
+
+    [ "$status" -eq 0 ]
+}
+
 @test "fails and shows the new divergence" {
     printf '  XX S14-config-write       source item status                 default=0 mirror=1\n  XX S02-zero-qty           qty                                default=0 mirror=1\nDIVERGENT conformance: 159/161 probes identical, 2 divergences\n' > "$CONFORMANCE_OUTPUT"
 

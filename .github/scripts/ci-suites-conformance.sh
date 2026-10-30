@@ -5,6 +5,7 @@ usage='usage: ci-suites-conformance.sh <magento-dir> <expected-divergences-file>
 magento=${1:?$usage}
 expected=${2:?$usage}
 magento=$(cd "$magento" && pwd)
+expected=$(cd "$(dirname "$expected")" && pwd)/$(basename "$expected")
 suites=$(cd "$(dirname "$0")/suites" && pwd)
 export MAGENTO_ROOT="$magento"
 
