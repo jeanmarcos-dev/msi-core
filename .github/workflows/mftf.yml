@@ -160,6 +160,9 @@ jobs:
       - name: Configure MFTF
         run: sh .github/scripts/ci-mftf-configure.sh "$RUNNER_TEMP/magento" "$MFTF_BASE_URL"
 
+      - name: Warm the static files
+        run: sh .github/scripts/ci-mftf-warmup.sh "$RUNNER_TEMP/magento"
+
       - name: MFTF tests, shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }}
         env:
           MFTF_TESTS: ${{ needs.plan.outputs.tests }}
