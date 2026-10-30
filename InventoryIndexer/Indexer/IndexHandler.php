@@ -11,6 +11,8 @@ use Magento\Framework\App\DeploymentConfig;
 use Magento\Framework\App\ObjectManager;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Indexer\SaveHandler\Batch;
+use Magento\InventoryApi\Model\CacheInterface;
+use Magento\InventoryIndexer\Model\ResourceModel\GetStockItemsDataCache;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexHandlerInterface;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexName;
 use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexNameResolverInterface;
@@ -46,6 +48,11 @@ class IndexHandler implements IndexHandlerInterface
     private $deploymentConfig;
 
     /**
+     * @var CacheInterface
+     */
+    private $stockItemDataCache;
+
+    /**
      * Deployment config path
      *
      * @var string
@@ -58,19 +65,23 @@ class IndexHandler implements IndexHandlerInterface
      * @param ResourceConnection $resourceConnection
      * @param int $batchSize
      * @param DeploymentConfig|null $deploymentConfig
+     * @param CacheInterface|null $stockItemDataCache
      */
     public function __construct(
         IndexNameResolverInterface $indexNameResolver,
         Batch $batch,
         ResourceConnection $resourceConnection,
         $batchSize,
-        ?DeploymentConfig $deploymentConfig = null
+        ?DeploymentConfig $deploymentConfig = null,
+        ?CacheInterface $stockItemDataCache = null
     ) {
         $this->indexNameResolver = $indexNameResolver;
         $this->batch = $batch;
         $this->resourceConnection = $resourceConnection;
         $this->batchSize = $batchSize;
         $this->deploymentConfig = $deploymentConfig ?: ObjectManager::getInstance()->get(DeploymentConfig::class);
+        $this->stockItemDataCache = $stockItemDataCache
+            ?: ObjectManager::getInstance()->get(GetStockItemsDataCache::class);
     }
 
     /**
@@ -89,6 +100,7 @@ class IndexHandler implements IndexHandlerInterface
 
         foreach ($this->batch->getItems($documents, $this->batchSize) as $batchDocuments) {
             $connection->insertOnDuplicate($tableName, $batchDocuments, $columns);
+            $this->stockItemDataCache->clean(array_column($batchDocuments, IndexStructure::SKU), null);
         }
     }
 
@@ -99,6 +111,8 @@ class IndexHandler implements IndexHandlerInterface
     {
         $connection = $this->resourceConnection->getConnection($connectionName);
         $tableName = $this->indexNameResolver->resolveName($indexName);
-        $connection->delete($tableName, ['sku IN (?)' => iterator_to_array($documents)]);
+        $skus = iterator_to_array($documents);
+        $connection->delete($tableName, ['sku IN (?)' => $skus]);
+        $this->stockItemDataCache->clean($skus, null);
     }
 }
