@@ -66,6 +66,7 @@
             <click selector="{{AdminProductFormActionSection.saveButton}}" stepKey="saveEditedSimpleProduct"/>
         </before>
         <after>
+            <magentoCLI command="config:set cataloginventory/source_selection_distance_based/provider google" stepKey="revertSelectionAlgorithm"/>
             <!--Disable created sources.-->
             <actionGroup ref="DisableAllSourcesActionGroup" stepKey="disableAllSources"/>
             <comment userInput="BIC workaround" stepKey="navigateToSourceList"/>
