@@ -8,7 +8,7 @@ log=${3:?$usage}
 router=$(cd "$(dirname "$0")" && pwd)/ci-mftf-router.php
 
 cd "$magento/pub"
-MAGENTO_ROOT=$magento PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS:-4} nohup php -d memory_limit=-1 -d opcache.enable_cli=1 -S "127.0.0.1:$port" -t "$magento/pub" "$router" > "$log" 2>&1 &
+MAGENTO_ROOT=$magento PHP_CLI_SERVER_WORKERS=${PHP_CLI_SERVER_WORKERS:-4} nohup php -d memory_limit=-1 -d opcache.enable_cli=1 -d opcache.revalidate_freq=0 -S "127.0.0.1:$port" -t "$magento/pub" "$router" > "$log" 2>&1 &
 
 attempts=0
 until curl --silent --output /dev/null "http://127.0.0.1:$port/"; do

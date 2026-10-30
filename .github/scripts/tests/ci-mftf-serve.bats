@@ -44,6 +44,17 @@ setup() {
     grep -qF -- "opcache.enable_cli=1" "$BATS_TEST_TMPDIR/php-args"
 }
 
+@test "rereads env.php on every request, since a test adds a downloadable domain by CLI and calls the API a second later" {
+    printf '#!/bin/sh\nexit 0\n' > "$BIN/curl"
+    chmod +x "$BIN/curl"
+
+    run sh "$SCRIPT" "$MAGENTO" 8099 "$BATS_TEST_TMPDIR/server.log"
+
+    [ "$status" -eq 0 ]
+    sleep 1
+    grep -qF -- "opcache.revalidate_freq=0" "$BATS_TEST_TMPDIR/php-args"
+}
+
 @test "fails with the server log when Magento never answers" {
     printf '#!/bin/sh\nexit 7\n' > "$BIN/curl"
     chmod +x "$BIN/curl"
