@@ -11,7 +11,6 @@
             <module name="Magento_Store"/>
             <module name="Magento_Inventory"/>
             <module name="Magento_InventoryCatalog"/>
-            <module name="Magento_Quote"/>
         </sequence>
     </module>
 </config>

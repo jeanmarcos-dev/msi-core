@@ -10,7 +10,6 @@
         <sequence>
             <module name="Magento_InventoryAdjustment"/>
             <module name="Magento_InventoryAdminUi"/>
-            <module name="Magento_InventoryCatalogAdminUi"/>
             <module name="Magento_Backend"/>
             <module name="Magento_Catalog"/>
             <module name="Magento_Ui"/>
