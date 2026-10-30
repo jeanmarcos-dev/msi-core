@@ -20,6 +20,18 @@ function messageOf(array $lines, int $from): string
     return '';
 }
 
+function moduleLines(array $lines): array
+{
+    $found = [];
+    foreach ($lines as $line) {
+        if (preg_match('/^Module \S+: (?:hard|soft) \[.*\]$/', trim($line))) {
+            $found[] = strtr(trim($line), '[]', '()');
+        }
+    }
+
+    return $found;
+}
+
 function failureKeys(string $test, string $text, string $magento): array
 {
     $lines = explode("\n", $text);
@@ -42,7 +54,11 @@ function failureKeys(string $test, string $text, string $magento): array
         }
         $keys[] = $test . ' | ' . normalize($set, $magento) . ' | ' . normalize(messageOf($lines, $next), $magento);
     }
-    if (!$inSet) {
+    if (!$inSet && ($modules = moduleLines($lines)) !== []) {
+        foreach ($modules as $module) {
+            $keys[] = $test . ' |  | ' . normalize($module, $magento);
+        }
+    } elseif (!$inSet) {
         $keys[] = $test . ' |  | ' . normalize(messageOf($lines, 0), $magento);
     }
 
