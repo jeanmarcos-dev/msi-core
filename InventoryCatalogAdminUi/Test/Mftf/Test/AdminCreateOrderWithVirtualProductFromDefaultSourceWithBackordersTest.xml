@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Sales-Backorder"/>
             <title value="Admin user set negative 'Out-of-Stock Threshold' in combination with backorders for virtual product on Default source"/>
-            <description value="You should be able to create order from Default Source with backorders in combination with negative out of stock threshold."/>
+            <description value="You should not be able to order above the stock of a virtual product from Default Source with backorders in combination with negative out of stock threshold, and should be able to order up to it."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/607680/scenarios/2068662"/>
             <severity value="CRITICAL"/>
             <group value="msi"/>
@@ -91,10 +91,10 @@
         <waitForPageLoad time="30" stepKey="waitForCategoryPageLoad"/>
         <click selector="{{StorefrontCategoryMainSection.specifiedProductItemInfo(VirtualProduct.name)}}" stepKey="openProductPage"/>
         <waitForAjaxLoad stepKey="waitForImageLoader"/>
-        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="1051" stepKey="fillWrongQuantity"/>
+        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="1001" stepKey="fillWrongQuantity"/>
         <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="wrongAddToCart"/>
-        <waitForPageLoad stepKey="waitForPageLoad1"/>
-        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="1050" stepKey="fillCorrectQuantity"/>
+        <waitForElementVisible selector="div.message-error" time="30" stepKey="waitForProductAddFailed"/>
+        <fillField selector="{{StorefrontProductPageSection.qtyInput}}" userInput="1000" stepKey="fillCorrectQuantity"/>
         <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="correctAddToCart"/>
         <waitForElementVisible selector="{{StorefrontProductPageSection.successMsg}}" time="30" stepKey="waitForProductAdded"/>
 

@@ -26,7 +26,7 @@
             </actionGroup>
         </before>
         <after>
-            <magentoCLI stepKey="setDisplayOutOfStockProductAsYes" command="config:set cataloginventory/options/show_out_of_stock 1" />
+            <magentoCLI stepKey="restoreDisplayOutOfStockProduct" command="config:set cataloginventory/options/show_out_of_stock 0" />
             <actionGroup ref="AdminDeleteStockActionGroup" stepKey="deleteCreatedStock">
                 <argument name="stockName" value="Test Stock 1"/>
             </actionGroup>
