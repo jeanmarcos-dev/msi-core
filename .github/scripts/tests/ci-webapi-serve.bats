@@ -37,3 +37,38 @@ setup() {
 
     [ "$status" -ne 0 ]
 }
+
+@test "caps the PHP memory at 2G by default" {
+    printf '#!/bin/sh\nexit 0\n' > "$BIN/curl"
+    chmod +x "$BIN/curl"
+
+    run sh "$SCRIPT" "$MAGENTO" 8099 "$BATS_TEST_TMPDIR/server.log"
+
+    [ "$status" -eq 0 ]
+    sleep 1
+    grep -qF -- "memory_limit=2G" "$BATS_TEST_TMPDIR/php-args"
+}
+
+@test "takes the PHP memory cap from WEBAPI_SERVE_MEMORY_LIMIT" {
+    printf '#!/bin/sh\nexit 0\n' > "$BIN/curl"
+    chmod +x "$BIN/curl"
+
+    WEBAPI_SERVE_MEMORY_LIMIT=512M run sh "$SCRIPT" "$MAGENTO" 8099 "$BATS_TEST_TMPDIR/server.log"
+
+    [ "$status" -eq 0 ]
+    sleep 1
+    grep -qF -- "memory_limit=512M" "$BATS_TEST_TMPDIR/php-args"
+}
+
+@test "lets the server dump core" {
+    [ "$(ulimit -H -c)" = "unlimited" ] || skip "hard core limit is not unlimited"
+    printf '#!/bin/sh\nulimit -c > "%s/core-limit"\n' "$BATS_TEST_TMPDIR" > "$BIN/php"
+    printf '#!/bin/sh\nexit 0\n' > "$BIN/curl"
+    chmod +x "$BIN/curl"
+
+    run sh "$SCRIPT" "$MAGENTO" 8099 "$BATS_TEST_TMPDIR/server.log"
+
+    [ "$status" -eq 0 ]
+    sleep 1
+    [ "$(cat "$BATS_TEST_TMPDIR/core-limit")" = "unlimited" ]
+}
