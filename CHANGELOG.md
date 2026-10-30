@@ -19,6 +19,18 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### A configurable product stops being salable in the same request once its children go out of stock
+
+In the frontend, GraphQL, REST and SOAP areas, `GetStockItemDataInterface` and `GetStockItemsDataInterface` keep the stock
+index rows they have read in memory for the rest of the request, and nothing dropped them when the index was rewritten.
+Saving the first child of a configurable loads its parent to extend the cache identities, which cached the parent's row
+before the reindex of the siblings changed it. Every read of the parent after that in the same request, `isSalable()`
+among them since the listing resolves it from the index, kept answering `true` for a parent whose children were all out
+of stock. `IndexHandler` now drops the cached rows of the SKUs it writes or deletes, for every stock, so a read after a
+reindex sees the reindexed row. The cached rows of other SKUs are untouched, and areas that do not cache stock rows are
+unaffected. A configurable whose children are disabled on a store view is a separate difference and is not changed.
+Tracked in [msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89).
+
 ### Composer no longer installs the upstream requisition list module next to msi-core
 
 `magento/module-inventory-requisition-list` and `mage-os/module-inventory-requisition-list` were missing from the
