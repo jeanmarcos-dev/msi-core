@@ -57,7 +57,7 @@ class ProductGenerationTest extends TestCase
         $this->resourceConnection = $objectManager->get(ResourceConnection::class);
         $this->productRepository = $objectManager->get(ProductRepositoryInterface::class);
         $this->getProductSalableQty = $objectManager->get(GetProductSalableQtyInterface::class);
-        $this->skuToken = substr(md5($this->name()), 0, 8);
+        $this->skuToken = substr(hash('sha256', $this->name()), 0, 8);
     }
 
     protected function tearDown(): void

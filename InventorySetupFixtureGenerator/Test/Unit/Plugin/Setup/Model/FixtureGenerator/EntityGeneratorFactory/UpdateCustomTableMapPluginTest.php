@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventorySetupFixtureGenerator\Test\Unit\Plugin\Setup\Model\FixtureGenerator\EntityGeneratorFactory;
 
-use Magento\InventorySetupFixtureGenerator\Plugin\Setup\Model\FixtureGenerator\EntityGeneratorFactory\UpdateCustomTableMapPlugin;
+use Magento\InventorySetupFixtureGenerator\Plugin\Setup\Model\FixtureGenerator as FixtureGeneratorPlugin;
 use Magento\Setup\Model\FixtureGenerator\EntityGenerator;
 use Magento\Setup\Model\FixtureGenerator\EntityGeneratorFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -22,13 +22,13 @@ class UpdateCustomTableMapPluginTest extends TestCase
     ];
 
     /**
-     * @var UpdateCustomTableMapPlugin
+     * @var FixtureGeneratorPlugin\EntityGeneratorFactory\UpdateCustomTableMapPlugin
      */
     private $plugin;
 
     protected function setUp(): void
     {
-        $this->plugin = new UpdateCustomTableMapPlugin();
+        $this->plugin = new FixtureGeneratorPlugin\EntityGeneratorFactory\UpdateCustomTableMapPlugin();
     }
 
     public function testMapsEveryInventoryTableWithoutEntityIdBinding(): void
