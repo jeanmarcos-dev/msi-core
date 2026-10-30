@@ -51,8 +51,11 @@ open, and places the compensating reservation afterwards: the stock of the sales
 but a sibling stock holding that source kept `is_salable = 0` in its row with the right quantity, until the next full
 reindex. The same gap left the sibling stock stale after placing, cancelling or refunding an order. The update is now
 enqueued for the stock of the sales channel and for each stock that shares a source holding one of the SKUs, with one
-indexed query per reservation, and only when source level reservations are on. Upstream 1.2.9 does not have the gap,
-because its reservations are scoped to the stock that placed them. The consumer of
+indexed query per reservation, and only when source level reservations are on. The reconciliation of reservations
+had the same gap: `ReconcileOrderReservations` writes the compensating reservation of an order that became cancelled,
+complete or closed outside the normal flow, and of an abandoned placement, directly, so no stock was updated, not even
+the stock of the order, and the reconciliation sweep inherited it. Both now enqueue the same update, through the same
+class, for every stock they compensated. The consumer of
 `inventory.reservations.updateSalabilityStatus` has to be running. Tracked in
 [msi-core#104](https://github.com/jeanmarcos-dev/msi-core/issues/104).
 
