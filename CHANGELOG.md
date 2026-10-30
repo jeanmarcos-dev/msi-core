@@ -32,6 +32,15 @@ now keeps it out of the template. The small profile and a three-source, two-stoc
 index rows are identical to the ones `indexer:reindex` computes, and the 15 template SKUs the generator leaves behind are
 removed by the existing `inventory.source.items.cleanup` consumer. Tracked in [msi-core#100](https://github.com/jeanmarcos-dev/msi-core/issues/100).
 
+### An upgrade recreates the legacy stock write triggers
+
+`DetectLegacyStockWrites` installs the `*_msi_detect_insert` and `*_msi_detect_update` triggers once, and a schema patch never
+runs twice. `31de595ce5f` changed their body from `NOW()` to `CURRENT_TIMESTAMP`, so a store upgrading from `1.1.3` kept the
+old text while a fresh install got the new one: the two behave the same, but their databases were no longer identical and a
+schema comparison reported four triggers as different. `RecreateLegacyStockWriteTriggers` now installs them again on upgrade,
+replacing whatever an earlier release left, and logs a warning instead of failing when the database refuses the `TRIGGER`
+privilege. Tracked in [msi-core#101](https://github.com/jeanmarcos-dev/msi-core/issues/101).
+
 ### Re-enabling a child at website scope through the repository reindexes its configurable parents
 
 `SaveInventoryDataObserver` decided that the status of a product had not changed by comparing it with the value the product
