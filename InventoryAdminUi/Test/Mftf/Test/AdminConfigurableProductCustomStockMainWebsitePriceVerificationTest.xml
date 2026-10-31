@@ -51,6 +51,9 @@
             <actionGroup ref="DisableSourceActionGroup" stepKey="disableSource2">
                 <argument name="sourceCode" value="$$source2.source[source_code]$$"/>
             </actionGroup>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
             <!--Delete category and stock.-->
             <deleteData createDataKey="category" stepKey="deleteCategory"/>

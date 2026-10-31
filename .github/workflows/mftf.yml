@@ -101,6 +101,7 @@ jobs:
           DISABLE_SECURITY_PLUGIN: 'true'
           DISABLE_INSTALL_DEMO_CONFIG: 'true'
           cluster.max_shards_per_node: '10000'
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
           OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
         ports:
           - 9200:9200
@@ -163,6 +164,11 @@ jobs:
       - name: Warm the static files
         run: sh .github/scripts/ci-mftf-warmup.sh "$RUNNER_TEMP/magento"
 
+      - name: Sample the indexes
+        run: |
+          mkdir -p "$RUNNER_TEMP/mftf-report/indexes"
+          nohup sh .github/scripts/ci-mftf-sampler.sh "$RUNNER_TEMP/mftf-report/indexes" > /dev/null 2>&1 &
+
       - name: MFTF tests, shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }}
         env:
           MFTF_TESTS: ${{ needs.plan.outputs.tests }}
@@ -172,6 +178,10 @@ jobs:
           [ -z "$MFTF_TESTS" ] || set -- "$@" --tests "$MFTF_TESTS"
           [ -z "$MFTF_GROUP" ] || set -- "$@" --group "$MFTF_GROUP"
           sh .github/scripts/ci-mftf.sh "$RUNNER_TEMP/magento" "${{ matrix.shard }}" "${{ needs.plan.outputs.shards }}" "$RUNNER_TEMP/mftf-report" "$@"
+
+      - name: Stop the index sampler
+        if: always()
+        run: pkill -f "[c]i-mftf-sampler.sh" || true
 
       - name: Summarize the results
         if: always()

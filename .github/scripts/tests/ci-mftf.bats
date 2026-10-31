@@ -106,3 +106,86 @@ STUB
 
     [ "$status" -ne 0 ]
 }
+
+retry_setup() {
+    printf '%s\n' InventoryMultiModeSuite:AdminBetaTest StorefrontGammaTest > "$BATS_TEST_TMPDIR/failed"
+    cat > "$BIN/php" <<'STUB'
+#!/bin/sh
+echo "$*" >> "$CALLS"
+case "$*" in
+    *ci-mftf-select.php*) cat "$SELECTION" ;;
+    *ci-mftf-retry.php*" failed "*) cat "$FAILED" ;;
+    *ci-mftf-retry.php*" flaky "*) echo "flaky section" ;;
+    *run:manifest*)
+        runs=$(grep -c "run:manifest" "$CALLS")
+        if [ "$runs" -eq 1 ]; then exit "${MANIFEST_STATUS:-0}"; fi
+        exit "${RETRY_STATUS:-0}" ;;
+esac
+STUB
+    export FAILED="$BATS_TEST_TMPDIR/failed"
+}
+
+@test "does not retry when the run passes" {
+    retry_setup
+
+    run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'run:manifest' "$CALLS")" -eq 1 ]
+}
+
+@test "retries only the tests that failed, from a clean generated directory" {
+    retry_setup
+
+    MANIFEST_STATUS=1 run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c 'run:manifest' "$CALLS")" -eq 2 ]
+    grep -qE 'generate:tests --force InventoryMultiModeSuite:AdminBetaTest StorefrontGammaTest$' "$CALLS"
+}
+
+@test "passes when the failed tests pass on the retry" {
+    retry_setup
+
+    MANIFEST_STATUS=1 RETRY_STATUS=0 run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 0 ]
+}
+
+@test "fails when a test fails on the retry too" {
+    retry_setup
+
+    MANIFEST_STATUS=1 RETRY_STATUS=1 run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 1 ]
+}
+
+@test "fails without a retry when the run left no failed test to retry" {
+    retry_setup
+    : > "$FAILED"
+
+    MANIFEST_STATUS=1 run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 1 ]
+    [ "$(grep -c 'run:manifest' "$CALLS")" -eq 1 ]
+}
+
+@test "writes the flaky tests to the step summary" {
+    retry_setup
+
+    GITHUB_STEP_SUMMARY="$BATS_TEST_TMPDIR/summary" MANIFEST_STATUS=1 run sh "$SCRIPT" "$MAGENTO" 5 20 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    grep -q "flaky section" "$BATS_TEST_TMPDIR/summary"
+    grep -qE 'ci-mftf-retry.php flaky .* 5$' "$CALLS"
+}
+
+@test "keeps the first run's results next to the retry's in the report" {
+    retry_setup
+    echo first > "$MAGENTO/dev/tests/acceptance/tests/_output/allure-results/first-result.json"
+
+    MANIFEST_STATUS=1 run sh "$SCRIPT" "$MAGENTO" 1 4 "$REPORT"
+
+    [ "$status" -eq 0 ]
+    [ -f "$REPORT/_output/allure-results/first-result.json" ]
+}

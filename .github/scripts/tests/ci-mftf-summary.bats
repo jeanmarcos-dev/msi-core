@@ -60,3 +60,14 @@ setup() {
 
     [ "$status" -eq 2 ]
 }
+
+@test "counts a retried test once, by its last result" {
+    result four 'Magento\\AcceptanceTest\\_InventoryMultiModeSuite\\Backend\\AdminBetaTestCest::AdminBetaTest' passed 1200000 1230000 null
+
+    run php "$SCRIPT" "$RESULTS"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"3 tests: 2 passed, 0 failed, 1 broken, 0 skipped"* ]]
+    [[ "$output" == *"| AdminBetaTest | InventoryMultiModeSuite | passed | 30.0 |"* ]]
+    [[ "$output" != *"Element not found"* ]]
+}

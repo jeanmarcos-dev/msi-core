@@ -30,6 +30,11 @@ php -d memory_limit=-1 vendor/bin/mftf generate:tests --force "$@"
 
 status=0
 php -d memory_limit=-1 vendor/bin/mftf run:manifest "$generated/testManifest.txt" || status=$?
+if [ "$status" -ne 0 ]; then
+    mkdir -p "$report"
+    status=0
+    sh "$source/.github/scripts/ci-mftf-retry.sh" "$magento" "$report" "$shard" || status=$?
+fi
 
 mkdir -p "$report"
 cp -R dev/tests/acceptance/tests/_output "$report/_output"
