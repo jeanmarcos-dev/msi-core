@@ -19,6 +19,17 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Saving a stock that drops a website no longer leaves the website without a stock
+
+Saving a stock without one of its websites, for example to move the main website off a custom stock, failed with
+`Could not replace Sales Channels for Stock` and left the dropped website linked to no stock. The reindex that
+`ReplaceSalesChannelsForStockInterface::execute()` runs for the stocks whose websites change fired between the two
+replacements of the stock save, while the dropped website had no stock, and the search indexer threw
+`No linked stock found` when it resolved that website. The second replacement, which moves the dropped website to the
+Default Stock, never ran. The stocks to reindex are now collected while `StockRepositoryInterface::save()` runs and
+reindexed once, after both replacements. A replacement outside a stock save, such as a direct call or the web API, still
+reindexes right after it. Tracked in [msi-core#110](https://github.com/jeanmarcos-dev/msi-core/issues/110).
+
 ### Reservations without object metadata count toward the salable quantity and are never cleaned
 
 The reservation cleanup groups rows by the `object_id` or `object_increment_id` in their metadata, so a reservation appended

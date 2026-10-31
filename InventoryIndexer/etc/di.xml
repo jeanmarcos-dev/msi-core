@@ -66,6 +66,14 @@
     <type name="Magento\InventoryConfigurationApi\Api\SaveStockItemConfigurationInterface">
         <plugin name="reindex_after_stock_item_configuration_save" type="Magento\InventoryIndexer\Plugin\InventoryConfigurationApi\ReindexAfterStockItemConfigurationSavePlugin"/>
     </type>
+    <type name="Magento\InventoryApi\Api\StockRepositoryInterface">
+        <plugin name="reindex_after_stock_save" type="Magento\InventoryIndexer\Plugin\InventoryApi\ReindexAfterStockSavePlugin" sortOrder="5"/>
+    </type>
+    <type name="Magento\InventoryIndexer\Plugin\InventoryApi\ReindexAfterStockSavePlugin">
+        <arguments>
+            <argument name="stockIndexer" xsi:type="object">Magento\InventoryIndexer\Indexer\Stock\StockIndexer\Proxy</argument>
+        </arguments>
+    </type>
     <type name="Magento\InventorySalesApi\Model\ReplaceSalesChannelsForStockInterface">
         <plugin name="reindex_after_sales_channels_replace" type="Magento\InventoryIndexer\Plugin\InventorySalesApi\ReindexAfterSalesChannelsReplacePlugin"/>
     </type>
