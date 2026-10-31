@@ -1,0 +1,348 @@
+name: suites
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths:
+      - 'InventorySales*/**'
+      - 'InventoryReservations*/**'
+      - 'InventoryShipping*/**'
+      - 'InventoryIndexer*/**'
+      - 'InventoryCatalog*/**'
+      - '**/Setup/Patch/**'
+      - '**/etc/db_schema.xml'
+      - '.github/scripts/suites/**'
+      - '.github/scripts/ci-suites-*.sh'
+      - '.github/suites/**'
+      - '.github/workflows/suites.yml'
+  push:
+    branches: ['main', 'next-release']
+    paths:
+      - 'InventorySales*/**'
+      - 'InventoryReservations*/**'
+      - 'InventoryShipping*/**'
+      - 'InventoryIndexer*/**'
+      - 'InventoryCatalog*/**'
+      - '**/Setup/Patch/**'
+      - '**/etc/db_schema.xml'
+      - '.github/scripts/suites/**'
+      - '.github/scripts/ci-suites-*.sh'
+      - '.github/suites/**'
+      - '.github/workflows/suites.yml'
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Which suite to run
+        type: choice
+        default: all
+        options:
+          - all
+          - upgrade
+          - stress
+          - gap-h
+
+concurrency:
+  group: suites-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  upgrade:
+    name: upgrade and schema comparison
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'upgrade'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+      WEBAPI_BASE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Accept the mail the orders send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
+      - name: Check out the last release
+        run: |
+          tag=$(sh .github/scripts/ci-suites-release.sh .)
+          echo "last release: $tag"
+          git worktree add --detach "$RUNNER_TEMP/previous" "$tag"
+
+      - name: Install the last release, upgrade to this commit and compare the schema
+        env:
+          DB_NAME: magento_suites_upgrade
+          FRESH_DB_NAME: magento_suites_fresh
+        run: sh .github/scripts/ci-suites-upgrade.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/previous" "$GITHUB_WORKSPACE" "$RUNNER_TEMP/upgrade-reports"
+
+      - name: Upload the snapshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: suites-upgrade-snapshots
+          path: ${{ runner.temp }}/upgrade-reports
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Upload Magento logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: suites-logs-upgrade
+          path: ${{ runner.temp }}/magento/var/log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  stress:
+    name: stress, e2e, checkout, cancel, ledger and conformance
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'stress'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+      WEBAPI_BASE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Accept the mail the orders send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
+      - name: Create the database and install the Magento instance
+        env:
+          DB_NAME: magento_suites_stress
+        run: |
+          mysql --host=127.0.0.1 --user=root --password=root --execute='CREATE DATABASE IF NOT EXISTS magento_suites_stress'
+          sh .github/scripts/ci-webapi-install.sh "$RUNNER_TEMP/magento" "$WEBAPI_BASE_URL/"
+
+      - name: Seed the catalog
+        env:
+          MAGENTO_ROOT: ${{ runner.temp }}/magento
+        run: php -d memory_limit=-1 .github/scripts/suites/seed-catalog.php 300
+
+      - name: Conformance
+        run: sh .github/scripts/ci-suites-conformance.sh "$RUNNER_TEMP/magento" .github/suites/conformance-divergences.txt
+
+      - name: Stress, e2e, checkout, cancel and ledger
+        run: sh .github/scripts/ci-suites-stress.sh "$RUNNER_TEMP/magento"
+
+      - name: Upload Magento logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: suites-logs-stress
+          path: ${{ runner.temp }}/magento/var/log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  gap-h:
+    name: gap-H cross-stock oversell
+    if: github.event_name != 'workflow_dispatch' || inputs.suite == 'all' || inputs.suite == 'gap-h'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+      WEBAPI_BASE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Accept the mail the orders send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
+      - name: Create the database and install the Magento instance
+        env:
+          DB_NAME: magento_suites_gaph
+        run: |
+          mysql --host=127.0.0.1 --user=root --password=root --execute='CREATE DATABASE IF NOT EXISTS magento_suites_gaph'
+          sh .github/scripts/ci-webapi-install.sh "$RUNNER_TEMP/magento" "$WEBAPI_BASE_URL/"
+
+      - name: Build the topology
+        env:
+          MAGENTO_ROOT: ${{ runner.temp }}/magento
+        run: |
+          php -d memory_limit=-1 .github/scripts/suites/topology.php 1
+          cd "$MAGENTO_ROOT"
+          php bin/magento config:set cataloginventory/source_reservations/enabled 1
+          php bin/magento cache:flush
+          php bin/magento indexer:reindex inventory
+
+      - name: Race two checkouts for one unit
+        run: sh .github/scripts/ci-suites-gaph.sh "$RUNNER_TEMP/magento" 10
+
+      - name: Upload Magento logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: suites-logs-gap-h
+          path: ${{ runner.temp }}/magento/var/log
+          if-no-files-found: ignore
+          retention-days: 14
