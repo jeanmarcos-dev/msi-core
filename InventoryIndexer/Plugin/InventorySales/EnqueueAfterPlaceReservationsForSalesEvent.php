@@ -7,9 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryIndexer\Plugin\InventorySales;
 
-use Magento\Framework\MessageQueue\PublisherInterface;
-use Magento\InventoryIndexer\Model\Queue\ReservationData;
-use Magento\InventoryIndexer\Model\Queue\ReservationDataFactory;
+use Magento\InventoryIndexer\Model\Queue\EnqueueSalabilityUpdate;
 use Magento\InventorySalesApi\Api\Data\ItemToSellInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
@@ -21,38 +19,25 @@ use Magento\InventorySalesApi\Model\GetAssignedStockIdForWebsiteInterface;
 class EnqueueAfterPlaceReservationsForSalesEvent
 {
     /**
-     * Queue topic name.
-     */
-    private const TOPIC_RESERVATIONS_UPDATE_SALABILITY_STATUS = 'inventory.reservations.updateSalabilityStatus';
-
-    /**
-     * @var PublisherInterface
-     */
-    private $publisher;
-
-    /**
      * @var GetAssignedStockIdForWebsiteInterface
      */
     private $getAssignedStockIdForWebsite;
 
     /**
-     * @var ReservationDataFactory
+     * @var EnqueueSalabilityUpdate
      */
-    private $reservationDataFactory;
+    private $enqueueSalabilityUpdate;
 
     /**
-     * @param PublisherInterface $publisher
      * @param GetAssignedStockIdForWebsiteInterface $getAssignedStockIdForWebsite
-     * @param ReservationDataFactory $reservationDataFactory
+     * @param EnqueueSalabilityUpdate $enqueueSalabilityUpdate
      */
     public function __construct(
-        PublisherInterface $publisher,
         GetAssignedStockIdForWebsiteInterface $getAssignedStockIdForWebsite,
-        ReservationDataFactory $reservationDataFactory
+        EnqueueSalabilityUpdate $enqueueSalabilityUpdate
     ) {
-        $this->publisher = $publisher;
         $this->getAssignedStockIdForWebsite = $getAssignedStockIdForWebsite;
-        $this->reservationDataFactory = $reservationDataFactory;
+        $this->enqueueSalabilityUpdate = $enqueueSalabilityUpdate;
     }
 
     /**
@@ -72,35 +57,15 @@ class EnqueueAfterPlaceReservationsForSalesEvent
         array $items,
         SalesChannelInterface $salesChannel
     ): void {
-        $this->publisher->publish(
-            self::TOPIC_RESERVATIONS_UPDATE_SALABILITY_STATUS,
-            $this->getReservationsDataObject($salesChannel, $items)
-        );
-    }
-
-    /**
-     * Build reservation data transfer objects.
-     *
-     * @param SalesChannelInterface $salesChannel
-     * @param ItemToSellInterface[] $items
-     *
-     * @return ReservationData
-     */
-    private function getReservationsDataObject(SalesChannelInterface $salesChannel, array $items): ReservationData
-    {
-        $stockId = $this->getAssignedStockIdForWebsite->execute($salesChannel->getCode());
         $skus = array_map(
             function (ItemToSellInterface $itemToSell): string {
                 return $itemToSell->getSku();
             },
             $items
         );
-
-        return $this->reservationDataFactory->create(
-            [
-                'stock' => $stockId,
-                'skus' => $skus
-            ]
+        $this->enqueueSalabilityUpdate->execute(
+            $this->getAssignedStockIdForWebsite->execute($salesChannel->getCode()),
+            $skus
         );
     }
 }
