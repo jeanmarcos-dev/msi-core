@@ -15,6 +15,7 @@ use Magento\Framework\Indexer\IndexerRegistry;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\Stock\StockIndexer;
+use Magento\InventoryIndexer\Model\StockReindexBatch;
 use Magento\InventoryIndexer\Plugin\InventorySalesApi\ReindexAfterSalesChannelsReplacePlugin;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Model\ReplaceSalesChannelsForStockInterface;
@@ -46,6 +47,11 @@ class ReindexAfterSalesChannelsReplacePluginTest extends TestCase
     private $subject;
 
     /**
+     * @var StockReindexBatch
+     */
+    private StockReindexBatch $stockReindexBatch;
+
+    /**
      * @var ReindexAfterSalesChannelsReplacePlugin
      */
     private ReindexAfterSalesChannelsReplacePlugin $plugin;
@@ -69,12 +75,14 @@ class ReindexAfterSalesChannelsReplacePluginTest extends TestCase
         $indexerRegistry = $this->createMock(IndexerRegistry::class);
         $indexerRegistry->method('get')->with(InventoryIndexer::INDEXER_ID)->willReturn($this->inventoryIndexer);
         $this->subject = $this->createMock(ReplaceSalesChannelsForStockInterface::class);
+        $this->stockReindexBatch = new StockReindexBatch();
 
         $this->plugin = new ReindexAfterSalesChannelsReplacePlugin(
             $resourceConnection,
             $this->stockIndexer,
             $defaultStockProvider,
-            $indexerRegistry
+            $indexerRegistry,
+            $this->stockReindexBatch
         );
     }
 
@@ -143,7 +151,8 @@ class ReindexAfterSalesChannelsReplacePluginTest extends TestCase
             $resourceConnection,
             $this->stockIndexer,
             $this->createMock(DefaultStockProviderInterface::class),
-            $indexerRegistry
+            $indexerRegistry,
+            new StockReindexBatch()
         );
         $this->stockIndexer->expects(self::never())->method('executeList');
         $proceeded = 0;
@@ -153,6 +162,37 @@ class ReindexAfterSalesChannelsReplacePluginTest extends TestCase
         }, [$this->website('base')], 2);
 
         self::assertSame(1, $proceeded);
+    }
+
+    public function testChannelsReplacedDuringAStockSaveAreHeldForTheEndOfTheSave(): void
+    {
+        $this->connection->method('fetchPairs')->willReturn(['base' => '2', 'eu' => '2']);
+        $this->stockIndexer->expects(self::never())->method('executeList');
+        $this->stockReindexBatch->open();
+
+        $this->execute([$this->website('base')], 2, $this->proceedingOnce());
+
+        self::assertSame([2, self::DEFAULT_STOCK_ID], $this->stockReindexBatch->close());
+    }
+
+    public function testUnchangedChannelsDuringAStockSaveHoldNothing(): void
+    {
+        $this->connection->method('fetchPairs')->willReturn(['base' => '2']);
+        $this->stockReindexBatch->open();
+
+        $this->execute([$this->website('base')], 2, $this->proceedingOnce());
+
+        self::assertSame([], $this->stockReindexBatch->close());
+    }
+
+    public function testChannelsReplacedAfterTheStockSaveEndedAreReindexedAtOnce(): void
+    {
+        $this->connection->method('fetchPairs')->willReturn([]);
+        $this->stockReindexBatch->open();
+        $this->stockReindexBatch->close();
+        $this->stockIndexer->expects(self::once())->method('executeList')->with([2]);
+
+        $this->execute([$this->website('base')], 2, $this->proceedingOnce());
     }
 
     public function testFailureOfTheReplacementDoesNotReindex(): void

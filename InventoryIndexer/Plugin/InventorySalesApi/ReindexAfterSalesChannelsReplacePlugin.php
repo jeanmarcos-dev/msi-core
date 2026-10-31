@@ -12,6 +12,7 @@ use Magento\Framework\Indexer\IndexerRegistry;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Indexer\InventoryIndexer;
 use Magento\InventoryIndexer\Indexer\Stock\StockIndexer;
+use Magento\InventoryIndexer\Model\StockReindexBatch;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Model\ReplaceSalesChannelsForStockInterface;
 
@@ -25,17 +26,19 @@ class ReindexAfterSalesChannelsReplacePlugin
      * @param StockIndexer $stockIndexer
      * @param DefaultStockProviderInterface $defaultStockProvider
      * @param IndexerRegistry $indexerRegistry
+     * @param StockReindexBatch $stockReindexBatch
      */
     public function __construct(
         private readonly ResourceConnection $resourceConnection,
         private readonly StockIndexer $stockIndexer,
         private readonly DefaultStockProviderInterface $defaultStockProvider,
-        private readonly IndexerRegistry $indexerRegistry
+        private readonly IndexerRegistry $indexerRegistry,
+        private readonly StockReindexBatch $stockReindexBatch
     ) {
     }
 
     /**
-     * Reindex the stocks that gain or lose a website once the channels are replaced.
+     * Reindex the stocks that gain or lose a website once the channels are replaced, or once the stock save ends.
      *
      * @param ReplaceSalesChannelsForStockInterface $subject
      * @param callable $proceed
@@ -60,9 +63,16 @@ class ReindexAfterSalesChannelsReplacePlugin
         $proceed($salesChannels, $stockId);
 
         $affectedStockIds = $this->getAffectedStockIds($websiteCodes, $stockIdsBefore, $stockId);
-        if ($affectedStockIds) {
-            $this->stockIndexer->executeList($affectedStockIds);
+        if (!$affectedStockIds) {
+            return;
         }
+
+        if ($this->stockReindexBatch->isOpen()) {
+            $this->stockReindexBatch->add($affectedStockIds);
+            return;
+        }
+
+        $this->stockIndexer->executeList($affectedStockIds);
     }
 
     /**
