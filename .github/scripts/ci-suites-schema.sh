@@ -9,7 +9,7 @@ allowlist=${3:?$usage}
 normalize() {
     mysqldump --host="${DB_HOST:-127.0.0.1}" --user="${DB_USER:-root}" --password="${DB_PASSWORD:-root}" \
         --no-data --skip-comments --skip-add-drop-table --skip-set-charset --routines --triggers "$1" \
-        | sed -E 's/ AUTO_INCREMENT=[0-9]+//' \
+        | sed -E 's/ AUTO_INCREMENT=[0-9]+//; /^\/\*!(40101|50503) SET /d' \
         | awk -v allowlist="$allowlist" '
             BEGIN {
                 while ((getline pattern < allowlist) > 0) {

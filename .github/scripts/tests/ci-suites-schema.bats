@@ -39,6 +39,21 @@ table() {
     [ "$status" -eq 0 ]
 }
 
+preamble() {
+    printf '/*!40101 SET @saved_cs_client     = @@character_set_client */;\n/*!50503 SET character_set_client = utf8mb4 */;\n'
+    table "$1" "$2"
+    printf '/*!40101 SET character_set_client = @saved_cs_client */;\n'
+}
+
+@test "drops the session boilerplate mysqldump writes around an excluded table" {
+    { preamble inventory_stock_1 1; preamble inventory_stock_2 1; preamble inventory_source 1; } > "$DUMPS/a.sql"
+    { preamble inventory_stock_1 1; preamble inventory_source 1; } > "$DUMPS/b.sql"
+
+    run sh "$SCRIPT" a b "$ALLOWLIST"
+
+    [ "$status" -eq 0 ]
+}
+
 @test "fails and names a table that only one database has" {
     { table inventory_stock_1 1; table inventory_reservation_order_balance 1; } > "$DUMPS/a.sql"
     { table inventory_stock_1 1; } > "$DUMPS/b.sql"
