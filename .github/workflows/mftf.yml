@@ -164,6 +164,11 @@ jobs:
       - name: Warm the static files
         run: sh .github/scripts/ci-mftf-warmup.sh "$RUNNER_TEMP/magento"
 
+      - name: Sample the indexes
+        run: |
+          mkdir -p "$RUNNER_TEMP/mftf-report/diag"
+          nohup sh .github/scripts/ci-mftf-diag.sh "$RUNNER_TEMP/mftf-report/diag" > /dev/null 2>&1 &
+
       - name: MFTF tests, shard ${{ matrix.shard }} of ${{ needs.plan.outputs.shards }}
         env:
           MFTF_TESTS: ${{ needs.plan.outputs.tests }}
@@ -173,6 +178,10 @@ jobs:
           [ -z "$MFTF_TESTS" ] || set -- "$@" --tests "$MFTF_TESTS"
           [ -z "$MFTF_GROUP" ] || set -- "$@" --group "$MFTF_GROUP"
           sh .github/scripts/ci-mftf.sh "$RUNNER_TEMP/magento" "${{ matrix.shard }}" "${{ needs.plan.outputs.shards }}" "$RUNNER_TEMP/mftf-report" "$@"
+
+      - name: Stop the index sampler
+        if: always()
+        run: pkill -f "[c]i-mftf-diag.sh" || true
 
       - name: Summarize the results
         if: always()
