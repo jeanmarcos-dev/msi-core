@@ -1,16 +1,16 @@
 #!/bin/sh
 set -eu
 
-usage='usage: ci-mftf-diag.sh <output-dir>'
+usage='usage: ci-mftf-sampler.sh <output-dir>'
 out=${1:?$usage}
 interval=${MFTF_DIAG_INTERVAL:-10}
 mkdir -p "$out"
-log=$out/diag.log
+log=$out/indexes.log
 last=$out/.last
 current=$out/.current
 
 query() {
-    mysql --host="${DB_HOST:-127.0.0.1}" --user="${DB_USER:-root}" --password="${DB_PASSWORD:-root}" "${DB_NAME:-magento_mftf}" --batch "$@" 2>&1 || true
+    MYSQL_PWD="${DB_PASSWORD:-root}" mysql --host="${DB_HOST:-127.0.0.1}" --user="${DB_USER:-root}" "${DB_NAME:-magento_mftf}" --batch "$@" 2>&1 || true
 }
 
 section() {
