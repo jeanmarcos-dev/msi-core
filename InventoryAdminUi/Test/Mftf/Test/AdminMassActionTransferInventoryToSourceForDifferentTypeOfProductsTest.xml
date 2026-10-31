@@ -196,6 +196,7 @@
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$$createDownloadableProduct.product[sku]$$"/>
         </actionGroup>
+        <moveMouseOver selector="{{AdminDataGridHeaderSection.search}}" stepKey="moveMouseAwayFromQuantityPerSource"/>
         <click selector="{{AdminGridRow.editByValue($$createDownloadableProduct.product[sku]$$)}}" stepKey="clickOnEditDownloadableProduct"/>
         <waitForPageLoad time="30" stepKey="waitForDownloadableProductPageLoad"/>
         <see selector="{{AdminProductSourcesGrid.rowStatus('1')}}" userInput="In Stock" stepKey="seeCreatedSourceIsInStockForDownloadableProduct"/>

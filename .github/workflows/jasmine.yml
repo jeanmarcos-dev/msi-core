@@ -1,0 +1,118 @@
+name: jasmine
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths:
+      - '**/view/**/*.js'
+      - '**/view/**/*.html'
+      - 'dev/tests/js/**'
+      - '.github/workflows/jasmine.yml'
+      - '.github/scripts/ci-jasmine*'
+      - '.github/scripts/tests/ci-jasmine*'
+  push:
+    branches: ['main', 'next-release']
+    paths:
+      - '**/view/**/*.js'
+      - '**/view/**/*.html'
+      - 'dev/tests/js/**'
+      - '.github/workflows/jasmine.yml'
+      - '.github/scripts/ci-jasmine*'
+      - '.github/scripts/tests/ci-jasmine*'
+
+concurrency:
+  group: jasmine-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  jasmine:
+    name: jasmine
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: magento_jasmine
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Install the Magento database
+        working-directory: ${{ runner.temp }}/magento
+        run: >-
+          php -d memory_limit=-1 bin/magento setup:install
+          --base-url=http://localhost/
+          --db-host=127.0.0.1 --db-name=magento_jasmine --db-user=root --db-password=root
+          --search-engine=opensearch --opensearch-host=127.0.0.1 --opensearch-port=9200
+          --admin-firstname=Admin --admin-lastname=User --admin-email=admin@example.com
+          --admin-user=admin --admin-password=Admin12345!
+
+      - name: Deploy the luma static content
+        working-directory: ${{ runner.temp }}/magento
+        run: php -d memory_limit=-1 bin/magento setup:static-content:deploy --force --area frontend --language en_US --theme Magento/luma
+
+      - name: Deploy the backend static content
+        working-directory: ${{ runner.temp }}/magento
+        run: php -d memory_limit=-1 bin/magento setup:static-content:deploy --force --area adminhtml --language en_US --theme Magento/backend
+
+      - name: Jasmine specs
+        run: sh .github/scripts/ci-jasmine.sh "$RUNNER_TEMP/magento" luma backend
+
+      - name: Upload JUnit reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: jasmine-junit
+          path: ${{ runner.temp }}/magento/var/log/js-unit
+          if-no-files-found: warn
+          retention-days: 14

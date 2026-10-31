@@ -20,6 +20,8 @@ use Magento\InventoryStockVisualizer\Model\Level;
 
 /**
  * Product-page "Availability" panel.
+ *
+ * @api
  */
 class StockVisualizer extends Template implements IdentityInterface
 {

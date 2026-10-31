@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Grouped Product Custom Stock."/>
             <title value="Enable Backorder on Configuration for Grouped Product on Custom Stock."/>
-            <description value="Verify admin able to place order with grouped product on custom stock with backorders enabled."/>
+            <description value="Verify that a grouped product on custom stock cannot be ordered above the stock of its virtual product with backorders enabled, and that an order up to that stock is placed."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/735263/scenarios/1619872"/>
             <severity value="CRITICAL"/>
             <group value="msi"/>
@@ -90,6 +90,11 @@
         <amOnPage url="{{StorefrontProductPage.url($$groupedProduct.custom_attributes[url_key]$$)}}" stepKey="navigateToGroupedPDP"/>
         <fillField selector="{{StorefrontProductPageSection.qtyInputWithProduct($$product.name$$)}}" userInput="101" stepKey="fillQuantity"/>
         <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="addToCart"/>
+        <waitForElementVisible selector="{{StorefrontProductPageSection.errorMsg}}" stepKey="waitForErrorMessage"/>
+        <see selector="{{StorefrontProductPageSection.errorMsg}}" userInput="Not enough items for sale" stepKey="verifyErrorMessage"/>
+        <fillField selector="{{StorefrontProductPageSection.qtyInputWithProduct($$product.name$$)}}" userInput="100" stepKey="fillAvailableQuantity"/>
+        <click selector="{{StorefrontProductPageSection.addToCartBtn}}" stepKey="addAvailableToCart"/>
+        <waitForElementVisible selector="{{StorefrontProductPageSection.successMsg}}" stepKey="waitForProductAdded"/>
         <!--Place order.-->
         <conditionalClick selector="{{StorefrontMinicartSection.showCart}}" dependentSelector="{{StorefrontMinicartSection.miniCartOpened}}" visible="false" stepKey="openMiniCart"/>
         <click selector="{{StorefrontMinicartSection.goToCheckout}}" stepKey="goToCheckout"/>
@@ -106,7 +111,7 @@
             <argument name="entityId" value="{$orderId}"/>
         </actionGroup>
         <waitForElementVisible selector="{{AdminOrderItemsOrderedSection.itemQty('1')}}" stepKey="waitForViewOrderedQuantity"/>
-        <see selector="{{AdminOrderItemsOrderedSection.itemQty('1')}}" userInput="Ordered 101" stepKey="orderedQuantity"/>
+        <see selector="{{AdminOrderItemsOrderedSection.itemQty('1')}}" userInput="Ordered 100" stepKey="orderedQuantity"/>
         <see selector="{{AdminOrderDetailsInformationSection.orderStatus}}" userInput="Pending" stepKey="seeOrderStatus"/>
     </test>
 </tests>

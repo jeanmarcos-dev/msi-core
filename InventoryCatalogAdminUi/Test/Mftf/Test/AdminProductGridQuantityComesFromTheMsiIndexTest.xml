@@ -38,7 +38,7 @@
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$product.sku$"/>
         </actionGroup>
-        <see selector="{{AdminProductGridSection.quantity('1')}}" userInput="{{SimpleProduct.quantity}}" stepKey="seeQuantityFromIndex"/>
+        <see selector="{{AdminProductGridSection.productQuantityExact('1')}}" userInput="{{SimpleProduct.quantity}}" stepKey="seeQuantityFromIndex"/>
 
         <actionGroup ref="AdminProductPageOpenByIdActionGroup" stepKey="openProductToEdit">
             <argument name="productId" value="$product.id$"/>
@@ -55,6 +55,6 @@
             <argument name="selector" value="AdminProductGridFilterSection.skuFilter"/>
             <argument name="value" value="$product.sku$"/>
         </actionGroup>
-        <see selector="{{AdminProductGridSection.quantity('1')}}" userInput="55" stepKey="seeUpdatedQuantityFromIndex"/>
+        <see selector="{{AdminProductGridSection.productQuantityExact('1')}}" userInput="55" stepKey="seeUpdatedQuantityFromIndex"/>
     </test>
 </tests>

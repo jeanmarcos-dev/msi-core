@@ -10,23 +10,27 @@ namespace Magento\InventoryConfigurableProduct\Plugin\Model\Product\Type\Configu
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product\Attribute\Source\Status;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable;
+use Magento\InventoryConfigurableProduct\Model\SalableChildren;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 
 /**
- * Resolve configurable salability from the stock index instead of counting salable children per product.
+ * Resolve configurable salability from the stock index row and one batched check of the children of the website.
  */
 class IsSalablePlugin
 {
     /**
      * @param StoreManagerInterface $storeManager
+     * @param SalableChildren $salableChildren
      */
-    public function __construct(private readonly StoreManagerInterface $storeManager)
-    {
+    public function __construct(
+        private readonly StoreManagerInterface $storeManager,
+        private readonly SalableChildren $salableChildren
+    ) {
     }
 
     /**
-     * Replace the per-product salable children count with the aggregate the stock index already holds.
+     * Replace the per-product salable children count with the stock index row and the batched children check.
      *
      * @param Configurable $subject
      * @param callable $proceed
@@ -39,16 +43,16 @@ class IsSalablePlugin
             if (!$product->hasData('is_salable') || !$this->isCurrentStoreScope($subject, $product)) {
                 return (bool)$proceed($product);
             }
+            $storeId = (int)$this->storeManager->getStore()->getId();
         } catch (\Throwable $exception) {
             return (bool)$proceed($product);
         }
 
-        $salable = $product->getStatus() == Status::STATUS_ENABLED;
-        if ($salable) {
-            $salable = $product->getData('is_salable');
+        if ($product->getStatus() != Status::STATUS_ENABLED || !(int)$product->getData('is_salable')) {
+            return false;
         }
 
-        return (bool)(int)$salable;
+        return $this->salableChildren->exist($product, $storeId);
     }
 
     /**

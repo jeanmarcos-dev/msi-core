@@ -5,6 +5,7 @@
  */
 declare(strict_types=1);
 
+use Magento\CatalogInventory\Model\StockRegistryStorage;
 use Magento\Framework\Registry;
 use Magento\Store\Model\Website;
 use Magento\TestFramework\Helper\Bootstrap;
@@ -44,6 +45,8 @@ foreach ($urlRewrites as $urlRewrite) {
         // already removed
     }
 }
+
+Bootstrap::getObjectManager()->get(StockRegistryStorage::class)->clean();
 
 $registry->unregister('isSecureArea');
 $registry->register('isSecureArea', false);

@@ -1,0 +1,37 @@
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | * | The following dependencies are missing in root 'composer.json'*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | * | Following dependencies are not declared in the root composer.json*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/* | Command "validate" failed*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/[!I]* | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/I[!n]* | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/In[!v]* | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/i18n/* | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/design/* | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | lib/internal/Magento/* | Version must not be specified*
+Magento\Test\Integrity\App\Language\ConfigTest::testSchemaUsingInvalidXml |  | Failed asserting that Element 'code': 'e_GB' is not a valid value of t*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryApi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryCatalogApi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryDistanceBasedSourceSelectionAdminUi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryInStorePickupShippingApi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryInStorePickupWebapiExtension | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryLowQuantityNotificationApi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryMultiDimensionalIndexerApi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventorySetupFixtureGenerator | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventorySwatchesFrontendUi | Version must not be specified*
+Magento\Test\Integrity\ComposerTest::testValidComposerJson | app/code/Magento/InventoryWishlist | Version must not be specified*
+Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/Plugin/Model/Adapter/BatchDataMapper/ProductDataMapperPlugin.php | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
+Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/Plugin/Model/Adapter/FieldMapper/AdditionalFieldMapperPlugin.php | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
+Magento\Test\Integrity\DependencyTest::testDirectExtensionDependencies | app/code/Magento/InventoryElasticsearch/etc/di.xml | Module "Magento\InventoryElasticsearch" has dependency on: "Magento\El*
+Magento\Test\Integrity\Magento\Backend\ControllerAclTest::testAcl |  | Backend controller Magento\ReleaseNotification\Controller\Adminhtml\No*
+Magento\Test\Integrity\Magento\Framework\Search\RequestConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'metric', attribute 'type': 'sumasdasd' *
+Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
+Magento\Test\Integrity\Magento\Webapi\Model\ConfigTest::testFileSchemaUsingInvalidXml |  | Failed asserting that Element 'route', attribute 'method': 'PATCH' is *
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryAdjustment: hard (Magento\Config)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryCatalogAdminUi: hard (Magento\Config, Magento\Inventory)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryInStorePickupSalesAdminUi: hard (Magento\Config)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryInStorePickupSalesApi: hard (Magento\Sales)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryInStorePickupShippingAdminUi: hard (Magento\Config)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryLowQuantityNotificationAdminUi: hard (Magento\CatalogInventory)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventorySalesAdminUi: hard (Magento\Inventory)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryStockVisualizer: hard (Magento\Config, Magento\InventoryCache)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryAdjustmentAdminUi: hard (Magento\InventoryAdminUi)
+Magento\Test\Integrity\DependencyTest::testRedundant |  | Module Magento\InventoryConfigurableProductIndexer: hard (Magento\ConfigurableProduct)

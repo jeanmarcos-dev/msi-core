@@ -23,6 +23,9 @@
             <magentoCLI command="config:set {{TurnOnManageStockConfig.path}} {{TurnOnManageStockConfig.value}}" stepKey="enableStockManagement1"/>
 
             <createData entity="_defaultCategory" stepKey="createPreReqCategory1"/>
+            <actionGroup ref="CliCacheCleanActionGroup" stepKey="cleanCategoryTreeCache">
+                <argument name="tags" value="block_html"/>
+            </actionGroup>
             <actionGroup ref="AdminLoginActionGroup" stepKey="loginAsAdmin1"/>
         </before>
         <after>

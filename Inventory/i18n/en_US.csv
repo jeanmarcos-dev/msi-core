@@ -19,3 +19,4 @@
 """%field"" should be greater then 0.","""%field"" should be greater then 0."
 "Some error","Some error"
 """%field"" can not contain leading or trailing spaces.","""%field"" can not contain leading or trailing spaces."
+"Source code ""%1"" does not match the stored source code ""%2"".","Source code ""%1"" does not match the stored source code ""%2""."

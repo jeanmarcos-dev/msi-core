@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Test\Integration\IsProductSalable;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\CatalogInventory\Api\StockItemCriteriaInterfaceFactory;
 use Magento\CatalogInventory\Api\StockItemRepositoryInterface;
@@ -92,6 +93,16 @@ class IsSalableWithReservationsConditionTest extends TestCase
         $this->sourceItemRepository = Bootstrap::getObjectManager()->get(SourceItemRepositoryInterface::class);
         $this->searchCriteriaBuilder = Bootstrap::getObjectManager()->get(SearchCriteriaBuilder::class);
         $this->sourceItemsSave = Bootstrap::getObjectManager()->get(SourceItemsSaveInterface::class);
+    }
+
+    protected function tearDown(): void
+    {
+        $resource = Bootstrap::getObjectManager()->get(ResourceConnection::class);
+        $resource->getConnection()->delete(
+            $resource->getTableName('inventory_reservation'),
+            ['metadata IS NULL', 'stock_id = ?' => 10, 'sku = ?' => 'SKU-1']
+        );
+        parent::tearDown();
     }
 
     /**

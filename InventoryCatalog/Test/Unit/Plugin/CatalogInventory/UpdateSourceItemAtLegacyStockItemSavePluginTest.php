@@ -22,6 +22,7 @@ use Magento\InventoryCatalogApi\Model\IsSingleSourceModeInterface;
 use Magento\InventoryConfiguration\Model\LegacyStockItem\CacheStorage;
 use Magento\InventoryConfiguration\Model\ProjectLegacyStockItemToConfiguration;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForProductTypeInterface;
+use Magento\InventoryIndexer\Indexer\CompositeProductsIndexer;
 use Magento\InventoryIndexer\Model\ReindexSourceItemsBySkus;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -56,6 +57,16 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
      */
     private $projectLegacyStockItemToConfiguration;
 
+    /**
+     * @var string
+     */
+    private $productType;
+
+    /**
+     * @var CompositeProductsIndexer|MockObject
+     */
+    private $compositeProductsIndexer;
+
     protected function setUp(): void
     {
         $this->stockRegistryStorage = $this->createMock(StockRegistryStorage::class);
@@ -63,6 +74,7 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
             UpdateSourceItemBasedOnLegacyStockItem::class
         );
         $this->reindexSourceItemsBySkus = $this->createMock(ReindexSourceItemsBySkus::class);
+        $this->compositeProductsIndexer = $this->createMock(CompositeProductsIndexer::class);
 
         $resourceConnection = $this->createMock(ResourceConnection::class);
         $resourceConnection->method('getConnection')->willReturn($this->createMock(AdapterInterface::class));
@@ -71,12 +83,16 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
         $getSkusByProductIds->method('execute')->willReturn([self::PRODUCT_ID => self::SKU]);
 
         $getProductTypesBySkus = $this->createMock(GetProductTypesBySkusInterface::class);
-        $getProductTypesBySkus->method('execute')->willReturn([self::SKU => 'simple']);
+        $this->productType = 'simple';
+        $getProductTypesBySkus->method('execute')->willReturnCallback(
+            fn (): array => [self::SKU => $this->productType]
+        );
 
         $isSourceItemManagementAllowed = $this->createMock(
             IsSourceItemManagementAllowedForProductTypeInterface::class
         );
-        $isSourceItemManagementAllowed->method('execute')->willReturn(true);
+        $isSourceItemManagementAllowed->method('execute')
+            ->willReturnCallback(static fn (string $typeId): bool => $typeId !== 'configurable');
 
         $isSingleSourceMode = $this->createMock(IsSingleSourceModeInterface::class);
         $isSingleSourceMode->method('execute')->willReturn(false);
@@ -97,7 +113,8 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
             $isSingleSourceMode,
             $this->projectLegacyStockItemToConfiguration,
             $this->stockRegistryStorage,
-            $this->reindexSourceItemsBySkus
+            $this->reindexSourceItemsBySkus,
+            $this->compositeProductsIndexer
         );
     }
 
@@ -126,6 +143,40 @@ class UpdateSourceItemAtLegacyStockItemSavePluginTest extends TestCase
         $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(true);
         $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(true);
         $this->reindexSourceItemsBySkus->expects(self::never())->method('execute');
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
+    }
+
+    public function testItReindexesACompositeProductWithoutSourceItemsThroughTheCompositeIndexer(): void
+    {
+        $this->productType = 'configurable';
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(true);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(false);
+        $this->compositeProductsIndexer->expects(self::once())->method('reindexList')->with([self::SKU]);
+        $this->reindexSourceItemsBySkus->expects(self::never())->method('execute');
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
+    }
+
+    public function testItDoesNotReindexACompositeProductWhenTheSaveTouchedNothingTheIndexReads(): void
+    {
+        $this->productType = 'configurable';
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(false);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(false);
+        $this->compositeProductsIndexer->expects(self::never())->method('reindexList');
+        $this->reindexSourceItemsBySkus->expects(self::never())->method('execute');
+
+        $subject = $this->createMock(ItemResourceModel::class);
+        $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());
+    }
+
+    public function testItDoesNotSendAProductWithSourceItemsToTheCompositeIndexer(): void
+    {
+        $this->projectLegacyStockItemToConfiguration->method('execute')->willReturn(true);
+        $this->updateSourceItemBasedOnLegacyStockItem->method('execute')->willReturn(false);
+        $this->compositeProductsIndexer->expects(self::never())->method('reindexList');
 
         $subject = $this->createMock(ItemResourceModel::class);
         $this->plugin->aroundSave($subject, fn () => $subject, $this->legacyStockItem());

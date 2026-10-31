@@ -48,6 +48,7 @@ class ProjectLegacyStockItemToConfiguration
      * @var string[]
      */
     private const FIELDS_THE_INDEX_READS = [
+        'is_in_stock',
         'manage_stock',
         'use_config_manage_stock',
         'backorders',

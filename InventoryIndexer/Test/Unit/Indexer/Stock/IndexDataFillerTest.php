@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Magento\InventoryIndexer\Test\Unit\Indexer\Stock;
 
+use Magento\Framework\App\ResourceConnection;
+use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryConfigurationApi\Model\GetAllowedProductTypesForSourceItemManagementInterface;
 use Magento\InventoryIndexer\Indexer\SiblingProductsProvidersPool;
@@ -62,6 +64,16 @@ class IndexDataFillerTest extends TestCase
     private $siblingProductsProvidersPoolMock;
 
     /**
+     * @var AdapterInterface|MockObject
+     */
+    private $connectionMock;
+
+    /**
+     * @var string[]
+     */
+    private $calls = [];
+
+    /**
      * @var string
      */
     private $connectionName;
@@ -85,6 +97,10 @@ class IndexDataFillerTest extends TestCase
 
         $getSourceItemManagementProductTypesMock->method('execute')->willReturn(['simple']);
         $this->connectionName = 'default';
+        $this->connectionMock = $this->createMock(AdapterInterface::class);
+        $resourceConnectionMock = $this->createMock(ResourceConnection::class);
+        $resourceConnectionMock->method('getConnection')->with($this->connectionName)
+            ->willReturn($this->connectionMock);
 
         $this->indexDataFiller = new IndexDataFiller(
             $this->reservationsIndexTableMock,
@@ -94,6 +110,7 @@ class IndexDataFillerTest extends TestCase
             $this->dataProviderMock,
             $this->indexStructureHandlerMock,
             $this->siblingProductsProvidersPoolMock,
+            $resourceConnectionMock,
         );
     }
 
@@ -365,5 +382,172 @@ class IndexDataFillerTest extends TestCase
             );
 
         $this->indexDataFiller->fillIndex($indexNameMock, $skuListInStockMock, $this->connectionName);
+    }
+
+    public function testPartialReindexRunsEachPairInItsOwnTransaction(): void
+    {
+        $this->prepareSimpleAndGroupedReindex();
+        $this->connectionMock->method('getTransactionLevel')->willReturn(0);
+        $this->connectionMock->method('beginTransaction')->willReturnCallback(
+            function () {
+                $this->calls[] = 'begin';
+                return $this->connectionMock;
+            }
+        );
+        $this->connectionMock->method('commit')->willReturnCallback(
+            function () {
+                $this->calls[] = 'commit';
+                return $this->connectionMock;
+            }
+        );
+        $this->connectionMock->expects(self::never())->method('rollBack');
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, ['simple-1', 'grouped-1']),
+            $this->connectionName
+        );
+
+        self::assertSame(
+            ['begin', 'clean', 'save', 'commit', 'begin', 'clean', 'save', 'commit'],
+            $this->calls
+        );
+    }
+
+    public function testFailedSaveRollsBackOwnTransactionAndRethrowsSameException(): void
+    {
+        $failure = new \RuntimeException('deadlock');
+        $this->prepareSimpleReindexWithFailingSave($failure);
+        $this->connectionMock->method('getTransactionLevel')->willReturn(0);
+        $this->connectionMock->expects(self::once())->method('beginTransaction');
+        $this->connectionMock->expects(self::never())->method('commit');
+        $this->connectionMock->expects(self::once())->method('rollBack');
+
+        $this->expectExceptionObject($failure);
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, ['simple-1']),
+            $this->connectionName
+        );
+    }
+
+    public function testFailedRollbackDoesNotMaskTheSaveException(): void
+    {
+        $failure = new \RuntimeException('deadlock');
+        $this->prepareSimpleReindexWithFailingSave($failure);
+        $this->connectionMock->method('getTransactionLevel')->willReturn(0);
+        $this->connectionMock->method('rollBack')->willThrowException(new \PDOException('gone away'));
+
+        $this->expectExceptionObject($failure);
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, ['simple-1']),
+            $this->connectionName
+        );
+    }
+
+    public function testPartialReindexJoinsTheTransactionOfTheCaller(): void
+    {
+        $this->prepareSimpleAndGroupedReindex();
+        $this->connectionMock->method('getTransactionLevel')->willReturn(1);
+        $this->connectionMock->expects(self::never())->method('beginTransaction');
+        $this->connectionMock->expects(self::never())->method('commit');
+        $this->connectionMock->expects(self::never())->method('rollBack');
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, ['simple-1', 'grouped-1']),
+            $this->connectionName
+        );
+    }
+
+    public function testFailedSaveInsideTheTransactionOfTheCallerIsNotRolledBack(): void
+    {
+        $failure = new \RuntimeException('deadlock');
+        $this->prepareSimpleReindexWithFailingSave($failure);
+        $this->connectionMock->method('getTransactionLevel')->willReturn(1);
+        $this->connectionMock->expects(self::never())->method('beginTransaction');
+        $this->connectionMock->expects(self::never())->method('commit');
+        $this->connectionMock->expects(self::never())->method('rollBack');
+
+        $this->expectExceptionObject($failure);
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, ['simple-1']),
+            $this->connectionName
+        );
+    }
+
+    public function testFullReindexOpensNoTransaction(): void
+    {
+        $this->dataProviderMock->method('getData')->with(2)->willReturn(
+            ['simple-1' => ['sku' => 'simple-1', 'quantity' => 10, 'is_salable' => true]]
+        );
+        $this->siblingProductsProvidersPoolMock->method('getSiblingsGroupedByType')->willReturn([]);
+        $this->indexStructureHandlerMock->expects(self::never())->method('cleanIndex');
+        $this->indexStructureHandlerMock->expects(self::once())->method('saveIndex');
+        $this->connectionMock->expects(self::never())->method('beginTransaction');
+        $this->connectionMock->expects(self::never())->method('commit');
+        $this->connectionMock->expects(self::never())->method('rollBack');
+
+        $this->indexDataFiller->fillIndex(
+            $this->createIndexName(),
+            $this->createSkuListInStock(2, []),
+            $this->connectionName
+        );
+    }
+
+    private function createIndexName(): IndexName
+    {
+        $aliasMock = $this->createMock(IndexAliasModel::class);
+        $aliasMock->method('getValue')->willReturn(IndexAlias::MAIN->value);
+        $indexNameMock = $this->createMock(IndexName::class);
+        $indexNameMock->method('getAlias')->willReturn($aliasMock);
+
+        return $indexNameMock;
+    }
+
+    private function createSkuListInStock(int $stockId, array $skuList): SkuListInStock
+    {
+        $skuListInStockMock = $this->createMock(SkuListInStock::class);
+        $skuListInStockMock->method('getStockId')->willReturn($stockId);
+        $skuListInStockMock->method('getSkuList')->willReturn($skuList);
+
+        return $skuListInStockMock;
+    }
+
+    private function prepareSimpleReindexWithFailingSave(\Throwable $failure): void
+    {
+        $this->getProductTypesBySkusMock->method('execute')->willReturn(['simple-1' => 'simple']);
+        $this->dataProviderMock->method('getData')->willReturn(
+            ['simple-1' => ['sku' => 'simple-1', 'quantity' => 10, 'is_salable' => true]]
+        );
+        $this->indexStructureHandlerMock->method('saveIndex')->willThrowException($failure);
+    }
+
+    private function prepareSimpleAndGroupedReindex(): void
+    {
+        $this->getProductTypesBySkusMock->method('execute')->willReturn(['simple-1' => 'simple']);
+        $this->dataProviderMock->method('getData')->willReturn(
+            ['simple-1' => ['sku' => 'simple-1', 'quantity' => 10, 'is_salable' => true]]
+        );
+        $this->siblingProductsProvidersPoolMock->method('getSiblingsGroupedByType')
+            ->willReturn(['grouped' => ['grouped-1']]);
+        $this->dataProviderMock->method('getSiblingsData')->willReturn(
+            ['grouped-1' => ['sku' => 'grouped-1', 'quantity' => 10, 'is_salable' => true]]
+        );
+        $this->indexStructureHandlerMock->method('cleanIndex')->willReturnCallback(
+            function () {
+                $this->calls[] = 'clean';
+            }
+        );
+        $this->indexStructureHandlerMock->method('saveIndex')->willReturnCallback(
+            function () {
+                $this->calls[] = 'save';
+            }
+        );
     }
 }

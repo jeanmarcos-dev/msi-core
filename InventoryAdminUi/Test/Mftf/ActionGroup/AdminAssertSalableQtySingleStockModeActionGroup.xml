@@ -16,7 +16,7 @@
             <argument name="quantity" type="string" defaultValue="{{defaultProductQty.value}}"/>
             <argument name="stockName" type="string" defaultValue="{{_defaultStock.name}}"/>
         </arguments>
-        <waitForText selector="{{AdminProductGridSection.quantity('1')}}" userInput="{{quantity}}" stepKey="checkProductQty"/>
+        <waitForText selector="{{AdminProductGridSection.productQuantityExact('1')}}" userInput="{{quantity}}" stepKey="checkProductQty"/>
         <waitForText selector="{{AdminProductGridSection.singleStockSalableQuantity('1', stockName)}}" userInput="{{quantity}}" stepKey="checkSalableQty"/>
     </actionGroup>
 </actionGroups>

@@ -11,4 +11,7 @@
         <observer name="delete_source_items_observer" instance="Magento\InventoryImportExport\Observer\DeleteSourceItemsAfterProductDeleteObserver" />
         <observer name="process_reservations" instance="Magento\InventoryImportExport\Observer\ProcessReservationsAfterProductImportObserver" />
     </event>
+    <event name="catalog_product_import_bunch_save_after">
+        <observer name="reindex_after_status_import" instance="Magento\InventoryImportExport\Observer\ReindexAfterStatusImportObserver" />
+    </event>
 </config>

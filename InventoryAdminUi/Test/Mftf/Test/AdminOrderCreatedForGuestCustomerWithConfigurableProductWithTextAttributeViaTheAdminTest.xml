@@ -46,6 +46,9 @@
                 <argument name="customerEmail" value="MsiCustomer1.email"/>
             </actionGroup>
             <actionGroup ref="AdminResetFilterInManageSourcesGridActionGroup" stepKey="resetManageSourcesGridFilters"/>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin1"/>
             <deleteData createDataKey="simpleCategory1" stepKey="deleteCategory1"/>
         </after>

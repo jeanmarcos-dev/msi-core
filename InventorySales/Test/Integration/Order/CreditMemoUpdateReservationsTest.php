@@ -174,14 +174,15 @@ class CreditMemoUpdateReservationsTest extends TestCase
         $invoice->register();
         $invoice->setIncrementId($order->getIncrementId());
 
-        $this->assertCount(1, $this->getReservationBySku($productSKU));
+        $incrementId = (string)$order->getIncrementId();
+        $this->assertCount(1, $this->getReservationBySku($productSKU, $incrementId));
 
         $creditMemo = $this->creditMemoFactory->createByOrder($order);
         $this->creditMemoRepositoryInterface->save($creditMemo);
-        $this->assertCount(2, $this->getReservationBySku($productSKU));
+        $this->assertCount(2, $this->getReservationBySku($productSKU, $incrementId));
 
         $this->creditMemoRepositoryInterface->save($creditMemo);
-        $this->assertCount(2, $this->getReservationBySku($productSKU));
+        $this->assertCount(2, $this->getReservationBySku($productSKU, $incrementId));
     }
 
     /**
@@ -221,15 +222,19 @@ class CreditMemoUpdateReservationsTest extends TestCase
     }
 
     /**
-     * Get product reservations by the sku
+     * Get product reservations of an order by the sku
      *
      * @param string $sku
+     * @param string $incrementId
      * @return array
      */
-    private function getReservationBySku(string $sku): array
+    private function getReservationBySku(string $sku, string $incrementId): array
     {
         $connect = $this->resourceConnection->getConnection();
-        $select = $connect->select()->from('inventory_reservation')->where('sku = ?', $sku);
+        $select = $connect->select()
+            ->from('inventory_reservation')
+            ->where('sku = ?', $sku)
+            ->where("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.object_increment_id')) = ?", $incrementId);
         $result = $connect->fetchAll($select);
 
         return $result ?: [];

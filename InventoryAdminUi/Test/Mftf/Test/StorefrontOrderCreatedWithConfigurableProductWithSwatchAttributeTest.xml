@@ -42,6 +42,9 @@
             <!-- Delete all products via API using ProductApiHelper -->
             <helper class="Magento\Catalog\Test\Mftf\Helper\ProductApiHelper" method="deleteAllProductsApi" stepKey="deleteAllProductsViaApi"/>
             <actionGroup ref="AdminResetFilterInManageSourcesGridActionGroup" stepKey="resetManageSourcesGridFilters"/>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin1"/>
             <deleteData createDataKey="simpleCategory1" stepKey="deleteCategory1"/>
         </after>

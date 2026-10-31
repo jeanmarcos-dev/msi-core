@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventorySales\Test\Integration\StockManagement;
 
+use Magento\Framework\App\ResourceConnection;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\CatalogInventory\Model\StockManagement;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
@@ -77,6 +78,15 @@ class ReservationPlacingDuringBackItemQtyTest extends TestCase
      */
     protected function tearDown(): void
     {
+        $resource = Bootstrap::getObjectManager()->get(ResourceConnection::class);
+        $resource->getConnection()->delete(
+            $resource->getTableName('inventory_reservation'),
+            [
+                "(metadata IS NULL OR JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.event_type')) = ?)" => 'back_item_qty',
+                'stock_id = ?' => 10,
+                'sku = ?' => 'SKU-1',
+            ]
+        );
         $this->cleanupReservations->execute();
     }
 

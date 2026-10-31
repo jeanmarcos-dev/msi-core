@@ -52,9 +52,10 @@ class LegacyStockWriteTriggers
                     sprintf(
                         'CREATE TRIGGER %s AFTER %s ON %s FOR EACH ROW '
                         . 'INSERT INTO %s (table_name, operation, write_count, sample_product_id, '
-                        . 'first_detected_at, last_detected_at) VALUES (%s, %s, 1, NEW.product_id, NOW(), NOW()) '
+                        . 'first_detected_at, last_detected_at) '
+                        . 'VALUES (%s, %s, 1, NEW.product_id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) '
                         . 'ON DUPLICATE KEY UPDATE write_count = write_count + 1, '
-                        . 'sample_product_id = NEW.product_id, last_detected_at = NOW()',
+                        . 'sample_product_id = NEW.product_id, last_detected_at = CURRENT_TIMESTAMP',
                         $connection->quoteIdentifier($this->triggerName($realTable, $operation)),
                         strtoupper($operation),
                         $connection->quoteIdentifier($realTable),

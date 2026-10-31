@@ -26,14 +26,16 @@
         <after>
             <!-- Unassigned by hand rather than with UnassignSourceFromStockActionGroup:
                  it feeds the stock name into a parameterised selector, and "Default
-                 Stock" carries a space that the selector parser does not survive.
-                 The source itself stays behind, MSI has no API to delete one. -->
+                 Stock" carries a space that the selector parser does not survive. -->
             <actionGroup ref="AdminManageStockGridClearFiltersActionGroup" stepKey="backToStockGrid"/>
             <click selector="{{AdminGridRow.editByValue(_defaultStock.name)}}" stepKey="editDefaultStockAgain"/>
             <waitForPageLoad time="30" stepKey="waitForDefaultStockFormAgain"/>
             <click selector="{{AdminEditStockSourcesSection.rowSourceDelete('1')}}" stepKey="unassignSource"/>
             <waitForPageLoad time="30" stepKey="waitForSourceUnassigned"/>
             <actionGroup ref="AdminSaveAndContinueEditStockPageActionGroup" stepKey="saveAfterUnassign"/>
+            <actionGroup ref="DisableSourceActionGroup" stepKey="disableCustomSource">
+                <argument name="sourceCode" value="$$source.source[source_code]$$"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
         </after>
 

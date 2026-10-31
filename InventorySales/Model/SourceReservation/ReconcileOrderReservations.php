@@ -128,7 +128,7 @@ class ReconcileOrderReservations
                 ->build();
         }
 
-        if (!$dryRun && !empty($reservations)) {
+        if (!$dryRun) {
             $this->appendReservations->execute($reservations);
         }
 

@@ -12,7 +12,6 @@
         "magento/framework": "103.0.*",
         "magento/module-catalog": "104.0.*",
         "magento/module-inventory-catalog": "1.3.*",
-        "magento/module-inventory-configuration": "1.2.*",
         "magento/module-inventory-sales-api": "1.2.*",
         "magento/module-inventory-catalog-api": "1.3.*",
         "magento/module-inventory-indexer": "2.2.*",
@@ -24,7 +23,8 @@
     },
     "suggest": {
         "magento/module-inventory": "1.2.*",
-        "magento/module-inventory-api": "1.2.*"
+        "magento/module-inventory-api": "1.2.*",
+        "magento/module-inventory-graph-ql": "1.2.*"
     },
     "autoload": {
         "files": [

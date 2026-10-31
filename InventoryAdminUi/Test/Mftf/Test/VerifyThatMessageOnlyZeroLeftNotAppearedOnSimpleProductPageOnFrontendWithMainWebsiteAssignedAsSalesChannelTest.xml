@@ -28,7 +28,10 @@
                           after="goToStockGridFilterResultsByInputEditStock1"/>
         </before>
         <after>
-            <remove keyForRemoval="deleteStock"/>
+            <actionGroup ref="AssignWebsiteToStockActionGroup" stepKey="assignMainWebsiteToDefaultStock" before="deleteStock">
+                <argument name="stockName" value="{{_defaultStock.name}}"/>
+                <argument name="websiteName" value="{{_defaultWebsite.name}}"/>
+            </actionGroup>
         </after>
         <remove keyForRemoval="setSimpleProductOutOfStockStatus"/>
         <click selector="{{AdminProductSourcesGrid.rowDelete('0')}}" stepKey="deleteDefaultSourceFromCreatedProduct"

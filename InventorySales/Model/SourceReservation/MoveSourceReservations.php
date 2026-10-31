@@ -92,14 +92,11 @@ class MoveSourceReservations
             if (!$servedStocks[$stockId]) {
                 throw new ValidationException(
                     __(
-                        'Source %destination is not assigned to stock %stock, which holds reservations at '
-                        . '%origin for order %order.',
-                        [
-                            'destination' => $destinationSourceCode,
-                            'stock' => $stockId,
-                            'origin' => $originSourceCode,
-                            'order' => $row['object_increment_id'],
-                        ]
+                        'Source %1 is not assigned to stock %2, which holds reservations at %3 for order %4.',
+                        $destinationSourceCode,
+                        $stockId,
+                        $originSourceCode,
+                        $row['object_increment_id']
                     )
                 );
             }

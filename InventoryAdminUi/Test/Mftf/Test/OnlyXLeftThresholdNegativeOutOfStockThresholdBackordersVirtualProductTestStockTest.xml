@@ -12,7 +12,7 @@
         <annotations>
             <stories value="Virtual Product Custom Stock."/>
             <title value="Only X Left with Backorders and Negative 'Out Of Stock' Threshold with Virtual Product on Custom Stock."/>
-            <description value="Verify, 'Only X Left' message appears on storefront with backorders and negative 'Out of Stock' threshold combination on custom stock with virtual product."/>
+            <description value="Verify that backorders and a negative 'Out of Stock' threshold do not let a virtual product on custom stock be ordered above its stock, and that 'Only X Left' message appears on storefront after an order up to that stock."/>
             <testCaseId value="https://app.hiptest.com/projects/69435/test-plan/folders/607680/scenarios/2079469"/>
             <severity value="MAJOR"/>
             <group value="msi"/>

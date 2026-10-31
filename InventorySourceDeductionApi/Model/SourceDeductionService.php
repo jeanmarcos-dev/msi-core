@@ -21,11 +21,6 @@ use Magento\InventorySalesApi\Api\GetStockBySalesChannelInterface;
 class SourceDeductionService implements SourceDeductionServiceInterface
 {
     /**
-     * Constant for zero stock quantity value.
-     */
-    private const ZERO_STOCK_QUANTITY = 0.0;
-
-    /**
      * @var GetSourceItemBySourceCodeAndSku
      */
     private $getSourceItemBySourceCodeAndSku;
@@ -94,22 +89,23 @@ class SourceDeductionService implements SourceDeductionServiceInterface
             }
 
             $sourceItem = $this->getSourceItemBySourceCodeAndSku->execute($sourceCode, $itemSku);
-            if (($sourceItem->getQuantity() - $qty) >= 0) {
-                $sourceItem->setQuantity($sourceItem->getQuantity() - $qty);
-                $stockStatus = $this->getSourceStockStatus(
-                    $stockItemConfiguration,
-                    $sourceItem
-                );
-                $sourceItem->setStatus($stockStatus);
-                $sourceItemDecrementData[] = [
-                    'source_item' => $sourceItem,
-                    'qty_to_decrement' => $qty
-                ];
-            } else {
+            $quantityAfter = $sourceItem->getQuantity() - $qty;
+            if ($quantityAfter < 0) {
                 throw new LocalizedException(
                     __('Not all of your products are available in the requested quantity.')
                 );
             }
+            $status = $this->getStatusChange($stockItemConfiguration, $sourceItem, $qty, $quantityAfter);
+            $sourceItem->setQuantity($quantityAfter);
+            $decrementData = [
+                'source_item' => $sourceItem,
+                'qty_to_decrement' => $qty
+            ];
+            if ($status !== null) {
+                $sourceItem->setStatus($status);
+                $decrementData['status'] = $status;
+            }
+            $sourceItemDecrementData[] = $decrementData;
         }
 
         if (!empty($sourceItemDecrementData)) {
@@ -118,30 +114,31 @@ class SourceDeductionService implements SourceDeductionServiceInterface
     }
 
     /**
-     * Get source item stock status after quantity deduction.
+     * Get the status a deduction or a return moves the source item to, or null when it keeps its own.
      *
      * @param StockItemConfigurationInterface $stockItemConfiguration
      * @param SourceItemInterface $sourceItem
-     * @return int
+     * @param float $qty
+     * @param float $quantityAfter
+     * @return int|null
      */
-    private function getSourceStockStatus(
+    private function getStatusChange(
         StockItemConfigurationInterface $stockItemConfiguration,
-        SourceItemInterface $sourceItem
-    ): int {
-        $sourceItemQty = $sourceItem->getQuantity() ?: self::ZERO_STOCK_QUANTITY;
-        $currentStatus = (int)$stockItemConfiguration->getExtensionAttributes()->getIsInStock();
-        $calculatedStatus =  SourceItemInterface::STATUS_IN_STOCK;
-
-        if ($sourceItemQty === $stockItemConfiguration->getMinQty() && !$stockItemConfiguration->getBackorders()) {
-            $calculatedStatus = SourceItemInterface::STATUS_OUT_OF_STOCK;
+        SourceItemInterface $sourceItem,
+        float $qty,
+        float $quantityAfter
+    ): ?int {
+        $minQty = (float)$stockItemConfiguration->getMinQty();
+        if ($qty > 0 && $quantityAfter <= $minQty && !$stockItemConfiguration->getBackorders()) {
+            return SourceItemInterface::STATUS_OUT_OF_STOCK;
         }
-
-        if ($this->inventoryConfiguration->isCanBackInStock() && $sourceItemQty > $stockItemConfiguration->getMinQty()
-            && $currentStatus === SourceItemInterface::STATUS_OUT_OF_STOCK
+        if ($qty < 0 && $quantityAfter > $minQty
+            && (int)$sourceItem->getStatus() === SourceItemInterface::STATUS_OUT_OF_STOCK
+            && $this->inventoryConfiguration->isCanBackInStock()
         ) {
             return SourceItemInterface::STATUS_IN_STOCK;
         }
 
-        return $currentStatus === SourceItemInterface::STATUS_OUT_OF_STOCK ? $currentStatus : $calculatedStatus;
+        return null;
     }
 }

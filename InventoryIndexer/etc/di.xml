@@ -66,6 +66,23 @@
     <type name="Magento\InventoryConfigurationApi\Api\SaveStockItemConfigurationInterface">
         <plugin name="reindex_after_stock_item_configuration_save" type="Magento\InventoryIndexer\Plugin\InventoryConfigurationApi\ReindexAfterStockItemConfigurationSavePlugin"/>
     </type>
+    <type name="Magento\InventoryApi\Api\StockRepositoryInterface">
+        <plugin name="reindex_after_stock_save" type="Magento\InventoryIndexer\Plugin\InventoryApi\ReindexAfterStockSavePlugin" sortOrder="5"/>
+    </type>
+    <type name="Magento\InventoryIndexer\Plugin\InventoryApi\ReindexAfterStockSavePlugin">
+        <arguments>
+            <argument name="stockIndexer" xsi:type="object">Magento\InventoryIndexer\Indexer\Stock\StockIndexer\Proxy</argument>
+        </arguments>
+    </type>
+    <type name="Magento\InventorySalesApi\Model\ReplaceSalesChannelsForStockInterface">
+        <plugin name="reindex_after_sales_channels_replace" type="Magento\InventoryIndexer\Plugin\InventorySalesApi\ReindexAfterSalesChannelsReplacePlugin"/>
+    </type>
+    <type name="Magento\InventoryIndexer\Plugin\InventorySalesApi\ReindexAfterSalesChannelsReplacePlugin">
+        <arguments>
+            <argument name="stockIndexer" xsi:type="object">Magento\InventoryIndexer\Indexer\Stock\StockIndexer\Proxy</argument>
+            <argument name="defaultStockProvider" xsi:type="object">Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface\Proxy</argument>
+        </arguments>
+    </type>
     <!-- Source -->
     <type name="Magento\InventoryApi\Api\SourceRepositoryInterface">
         <plugin name="invalidate_after_enabling_or_disabling_source" type="Magento\InventoryIndexer\Plugin\InventoryApi\InvalidateAfterEnablingOrDisablingSourcePlugin"/>
@@ -88,6 +105,12 @@
     </type>
     <type name="Magento\InventorySales\Model\SourceReservation\PlaceReservationsForSalesEventRouter">
         <plugin name="schedule_reservation_place" type="Magento\InventoryIndexer\Plugin\InventorySales\EnqueueAfterPlaceReservationsForSalesEvent"/>
+    </type>
+    <type name="Magento\InventorySales\Model\SourceReservation\ReconcileOrderReservations">
+        <plugin name="schedule_reservation_reconcile" type="Magento\InventoryIndexer\Plugin\InventorySales\EnqueueAfterReconcileOrderReservations"/>
+    </type>
+    <type name="Magento\InventorySales\Model\SourceReservation\ReconcileReservationsSweep">
+        <plugin name="reindex_after_reconcile_reservations_sweep" type="Magento\InventoryIndexer\Plugin\InventorySales\ReindexAfterReconcileReservationsSweepPlugin"/>
     </type>
     <type name="Magento\InventoryIndexer\Model\ResourceModel\GetProductIdsByStockIds">
         <arguments>

@@ -17,6 +17,399 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.2.0 — 2026-10-31
+
+The main fixes: a configurable product is salable only in the websites where one of its children is enabled, assigned
+and salable ([msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89)); stocks that share a source keep the
+right salability after an order, a shipment or a reconciliation
+([msi-core#104](https://github.com/jeanmarcos-dev/msi-core/issues/104)); and saving a stock that drops a website no
+longer leaves that website without a stock ([msi-core#110](https://github.com/jeanmarcos-dev/msi-core/issues/110)).
+Two releases of one order can no longer release its stock twice, and saving thousands of existing source items is about
+four times faster.
+
+When upgrading from 1.1.x:
+
+- Deploy in maintenance mode. `setup:upgrade` creates `inventory_reservation_order_balance` and reinstalls the legacy
+  stock write triggers.
+- Reindex `inventory` afterwards.
+- Keep the `inventory.reservations.updateSalabilityStatus` consumer running.
+- Read the behaviour changes below before you deploy: a source that a shipment empties goes out of stock, virtual and
+  downloadable products with managed stock no longer take backorders, a source code that differs from the stored one
+  only in case is rejected, and Composer no longer installs the upstream requisition list module.
+
+### Saving a stock that drops a website no longer leaves the website without a stock
+
+Saving a stock without one of its websites, for example to move the main website off a custom stock, failed with
+`Could not replace Sales Channels for Stock` and left the dropped website linked to no stock. The reindex that
+`ReplaceSalesChannelsForStockInterface::execute()` runs for the stocks whose websites change fired between the two
+replacements of the stock save, while the dropped website had no stock, and the search indexer threw
+`No linked stock found` when it resolved that website. The second replacement, which moves the dropped website to the
+Default Stock, never ran. The stocks to reindex are now collected while `StockRepositoryInterface::save()` runs and
+reindexed once, after both replacements. A replacement outside a stock save, such as a direct call or the web API, still
+reindexes right after it. Tracked in [msi-core#110](https://github.com/jeanmarcos-dev/msi-core/issues/110).
+
+### Reservations without object metadata count toward the salable quantity and are never cleaned
+
+The reservation cleanup groups rows by the `object_id` or `object_increment_id` in their metadata, so a reservation appended
+without either key counts toward the salable quantity but is never deleted. That was already the behaviour, but the docs
+did not state it and `CreditMemoUpdateReservationsTest` counted every reservation of `SKU-1`, so it failed whenever an
+earlier test left metadata-less rows behind. The feature page now states the rule and the test counts only the
+reservations of its own order. No product code changed.
+Tracked in [msi-core#109](https://github.com/jeanmarcos-dev/msi-core/issues/109).
+
+### Magento's Performance Toolkit generates its fixtures on a store with msi-core
+
+`bin/magento setup:performance:generate-fixtures` stopped at the first simple product with `The entity ID field for the
+"inventory_stock_item_configuration" table wasn't found`. The generator copies the rows a template product writes by
+entity id, and `InventorySetupFixtureGenerator` only mapped `inventory_source_item`. msi-core keys
+`inventory_stock_item_configuration` and `inventory_source_item_adjustment` by SKU, and the Default Stock index
+`inventory_stock_1` is a table instead of a view over `cataloginventory_stock_status`, so each of them has to be
+rewritten to the SKU of the generated product, once per SKU. The synchronous stock reindex also refreshes
+`catalog_product_index_website` while the template is saved, a table written once per website; a plugin on `SqlCollector`
+now keeps it out of the template. The small profile and a three-source, two-stock profile complete, the generated stock
+index rows are identical to the ones `indexer:reindex` computes, and the 15 template SKUs the generator leaves behind are
+removed by the existing `inventory.source.items.cleanup` consumer. Tracked in [msi-core#100](https://github.com/jeanmarcos-dev/msi-core/issues/100).
+
+### An upgrade recreates the legacy stock write triggers
+
+`DetectLegacyStockWrites` installs the `*_msi_detect_insert` and `*_msi_detect_update` triggers once, and a schema patch never
+runs twice. `31de595ce5f` changed their body from `NOW()` to `CURRENT_TIMESTAMP`, so a store upgrading from `1.1.3` kept the
+old text while a fresh install got the new one: the two behave the same, but their databases were no longer identical and a
+schema comparison reported four triggers as different. `RecreateLegacyStockWriteTriggers` now installs them again on upgrade,
+replacing whatever an earlier release left, and logs a warning instead of failing when the database refuses the `TRIGGER`
+privilege. Tracked in [msi-core#101](https://github.com/jeanmarcos-dev/msi-core/issues/101).
+
+### A shipment refreshes the salability of every stock that shares the shipped source
+
+With source level reservations on, the index row of a stock counts the reservations of every source linked to it, so a
+reservation placed through one stock changes the row of every other stock that shares a source. The salability update
+after `PlaceReservationsForSalesEventInterface` was enqueued only for the stock of the sales channel. A shipment
+deducts the source item first, which reindexes every stock of the source while the reservation of the order is still
+open, and places the compensating reservation afterwards: the stock of the sales channel was corrected by the queue,
+but a sibling stock holding that source kept `is_salable = 0` in its row with the right quantity, until the next full
+reindex. The same gap left the sibling stock stale after placing, cancelling or refunding an order. The update is now
+enqueued for the stock of the sales channel and for each stock that shares a source holding one of the SKUs, with one
+indexed query per reservation, and only when source level reservations are on. The reconciliation of reservations
+had the same gap: `ReconcileOrderReservations` writes the compensating reservation of an order that became cancelled,
+complete or closed outside the normal flow, and of an abandoned placement, directly, so no stock was updated, not even
+the stock of the order, and the reconciliation sweep inherited it. Both now enqueue the same update, through the same
+class, for every stock they compensated. The consumer of
+`inventory.reservations.updateSalabilityStatus` has to be running. Tracked in
+[msi-core#104](https://github.com/jeanmarcos-dev/msi-core/issues/104).
+
+### Re-enabling a child at website scope through the repository reindexes its configurable parents
+
+`SaveInventoryDataObserver` decided that the status of a product had not changed by comparing it with the value the product
+was loaded with. `ProductRepository::save` loads that product in the current store, so with the admin store active and the
+status written at website scope the comparison ran against the default value: a child disabled at website scope and
+re-enabled through the repository looked unchanged, nothing reindexed its parents, and a configurable stayed out of stock
+until the next full reindex. A new observer on `catalog_product_save_before` now reads the status persisted for the scope the
+product is written to, falling back to the default scope, and `SaveInventoryDataObserver` compares against that value. It
+costs one indexed `SELECT` (0.18 ms) per save of an existing product. Reindexing on every save that carries a status was
+measured and rejected: it adds about 25 to 30 ms and 61 statements to a save that takes about 105 ms and 193 statements,
+for every save that changes nothing. Tracked in [msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
+
+### A product import that changes a child's status reindexes the stock of its configurable parents
+
+`catalog_product_import_bunch_save_after` had no observer in msi-core, and `InventoryImportExport` only hooked
+`catalog_product_import_bunch_delete_after`. An import that enabled or disabled a child wrote the status attribute
+without touching any source item, so the stock index row of the configurable parent kept the salability it had before
+the import, in every stock that holds the child, until the next full reindex. `ReindexAfterStatusImportObserver` now
+reindexes, once per bunch, the SKUs of the rows that carry a status value, through the same service the mass attribute
+update uses, so the parents are recomputed in every stock. Rows without a `status` cell, or with it empty, are skipped.
+Direct SQL writes remain out of scope, as for every MSI index. Tracked in
+[msi-core#95](https://github.com/jeanmarcos-dev/msi-core/issues/95).
+
+### A configurable product is salable only in the websites where one of its children is enabled, assigned and salable
+
+The stock index counted a configurable's children by their status in the default scope, and the storefront trusted the
+parent's row. `status` is a website attribute, so a child disabled in one website and enabled by default left the
+configurable salable there, and a child enabled in a website and disabled by default hid it. The row of a configurable now
+counts a child that is enabled in at least one website of the stock, by the website's value or else the default scope, and
+a stock without websites keeps the default scope. The storefront, GraphQL `stock_status` and the search index then answer
+for the current website: a configurable is salable only if one of its children is enabled in, assigned to and salable
+in that website, resolved for a whole listing in one query instead of one per product, and a row of 0 needs no query.
+Changing the websites of a stock reindexes the stocks involved, since the rows now depend on them. Reindex the
+`inventory` indexer after updating. The stock APIs that take a stock id answer for the whole stock, and two store views of
+one website with different `status` values, which only direct SQL can produce, are not supported. A configurable whose
+children are all disabled is not salable and is hidden from listings, as it was. Tracked in
+[msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89).
+
+### A configurable product stops being salable in the same request once its children go out of stock
+
+In the frontend, GraphQL, REST and SOAP areas, `GetStockItemDataInterface` and `GetStockItemsDataInterface` keep the stock
+index rows they have read in memory for the rest of the request, and nothing dropped them when the index was rewritten.
+Saving the first child of a configurable loads its parent to extend the cache identities, which cached the parent's row
+before the reindex of the siblings changed it. Every read of the parent after that in the same request, `isSalable()`
+among them since the listing resolves it from the index, kept answering `true` for a parent whose children were all out
+of stock. `IndexHandler` now drops the cached rows of the SKUs it writes or deletes, for every stock, so a read after a
+reindex sees the reindexed row. The cached rows of other SKUs are untouched, and areas that do not cache stock rows are
+unaffected. A configurable whose children are disabled on a store view is a separate difference and is not changed.
+Tracked in [msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89).
+
+### Composer no longer installs the upstream requisition list module next to msi-core
+
+`magento/module-inventory-requisition-list` and `mage-os/module-inventory-requisition-list` were missing from the
+`replace` section of `composer.json`, although the inventory metapackage requires them. A Composer install therefore
+brought the upstream module in next to msi-core, 1.2.7 on Magento 2.4.9 and 3.6.0 on Mage-OS 3.6, and left an
+upstream MSI module running against msi-core's code. Both packages are now replaced, so Composer does not install
+them. A store that relied on the upstream module's requisition list integration loses it. Tracked in
+[msi-core#36](https://github.com/jeanmarcos-dev/msi-core/issues/36).
+
+### `inventory-sales` no longer depends on `inventory-indexer`
+
+`ReconcileReservationsSweep` in `InventorySales` called `Magento\InventoryIndexer\Indexer\Stock\StockIndexer` itself, so
+`inventory-sales` and `inventory-indexer` required each other. The reindex that follows a reconcile now lives in an
+`after` plugin on the sweep in `InventoryIndexer`, like the other indexer hooks, and `InventorySales/composer.json` no
+longer requires `magento/module-inventory-indexer`. The sweep still returns the `stock_ids` it compensated, the plugin
+reindexes them unless the run was a dry run, and the result of the sweep is unchanged.
+Tracked in [msi-core#35](https://github.com/jeanmarcos-dev/msi-core/issues/35).
+
+### Saving existing source items writes them in batches instead of one row at a time
+
+`SaveMultiple::updateExistentItems` ran one `UPDATE inventory_source_item ... WHERE source_item_id = ?` per
+existing source item, so saving many items that already exist made one round trip, and without a surrounding
+transaction one commit, per item. Existing items are now written in batches of 1,000 with
+`INSERT ... ON DUPLICATE KEY UPDATE` keyed on `source_item_id`, so every row keeps its id, the auto increment
+does not move and the order of the writes is unchanged. Nothing listens to `inventory_source_item` writes at
+database level, and the plugins around the save read the table before and after the write, so they are not
+affected. Measured saving 10,000 existing source items in one `SourceItemsSaveInterface::execute` call on MySQL
+8.4 (median of 5): the whole save went from 2.40 s to 1.47 s, `SaveMultiple` with its plugins from 1.62 s to
+0.71 s, and the writes alone, inside the transaction the adjustment recorder opens, from 1.08 s to 0.24 s.
+Tracked in [msi-core#41](https://github.com/jeanmarcos-dev/msi-core/issues/41).
+
+### Five modules declare the modules their code uses
+
+`InventoryAdjustment`, `InventoryBundleProductIndexer`, `InventoryImportExport`, `InventorySalesAdminUi` and
+`InventoryStockVisualizer` used modules that their `composer.json` did not require, so a Composer install could
+leave the code calling a class or script that was not there. `magento/framework-message-queue`,
+`magento/module-catalog-import-export`, `magento/module-sales` and `magento/module-ui` are now in `require`, the
+first and last for the first time and the other two moved from `suggest`. `magento/module-tax` is also in
+`require` for the bundle indexer: its use is guarded by `isEnabled('Magento_Tax')`, but the Integrity
+`DependencyTest` counts that reference as a hard dependency and the package already arrives through
+`magento/module-bundle` and `magento/module-catalog`, so declaring it changes nothing at install time. The five
+entries are removed from the static Integrity baseline. Tracked in
+[msi-core#56](https://github.com/jeanmarcos-dev/msi-core/issues/56).
+
+### The adjustment grids no longer remove the data sources of the other admin grids
+
+Since 1.1.0, `InventoryAdjustmentAdminUi` registered its two grid data sources in `etc/adminhtml/di.xml`, in the
+`collections` argument of `UiComponent\DataProvider\CollectionFactory`. Magento merges each argument of an area
+configuration with `array_replace`, so in `adminhtml` that list replaced the global one: the order, invoice,
+shipment and credit memo grids lost their data sources and failed with `Not registered handle
+sales_order_grid_data_source`, as did any other listing that uses the factory. The two data sources and their
+virtual type now live in `etc/di.xml`, where Magento's own modules register theirs, so they are added to the
+global list instead of replacing it. Tracked in [msi-core#58](https://github.com/jeanmarcos-dev/msi-core/issues/58).
+
+### A stock status set through the stock item API reaches the stock and price indexes of composite products
+
+`StockRegistryInterface::updateStockItemBySku()`, which `PUT /V1/products/{sku}/stockItems/{itemId}` calls,
+left a configurable, bundle or grouped product stale on a single-source installation. Marking the composite
+product itself out of stock saved the flag in `inventory_stock_item_configuration` but never rebuilt its row in
+`inventory_stock_1`, because the reindex went through the source items of the SKU and a composite product has
+none. Returning a child to stock saved the parent back in stock through `ChangeParentStockStatus`, whose save
+reported no change because `is_in_stock` was not among the fields the index reads, so the parent was never
+reindexed: its price had already been reindexed while it was still unsalable, and it stayed out of
+`catalog_product_index_price` and the category listings. A save that only moved the configuration of a composite
+product now rebuilds its stock row through the composite indexer, which also queues its price, and `is_in_stock`
+counts as a field the index reads. Tracked in [msi-core#51](https://github.com/jeanmarcos-dev/msi-core/issues/51).
+
+### A partial reindex never leaves a SKU without a row in the stock index
+
+A partial reindex replaced the rows of a SKU in `inventory_stock_<id>` with two statements that
+committed on their own: a `DELETE` and then an `INSERT ... ON DUPLICATE KEY UPDATE`, once for the
+simple products and again for each composite type. A reader that came in between found no row and
+read the SKU as not salable, as the storefront or the salability consumer can. An insert that failed
+after the delete, with a deadlock between two concurrent reindexes, left the SKU without a row until
+the next reindex. Each delete and insert pair now runs in one transaction, so a reader sees the
+previous row or the new one, and a failed insert restores the previous rows before the error
+propagates. The stock 1 table is covered too. When the caller already has a transaction open, the
+reindex joins it without opening another level, so an error it raises does not mark the caller's
+transaction as rolled back; a caller that catches that error and commits still commits the SKU
+without a row, as before. A full reindex is unchanged. Tracked in
+[msi-core#29](https://github.com/jeanmarcos-dev/msi-core/issues/29), from
+[magento/inventory#3462](https://github.com/magento/inventory/issues/3462) and
+[magento/inventory#3443](https://github.com/magento/inventory/issues/3443).
+
+### Two releases of one order can no longer release its stock twice
+
+A cancel, credit memo, shipment or manual compensation is capped at what its order still reserves.
+The cap read that balance without a lock, under an advisory lock that was released before the
+transaction committed and that gave up after 10 seconds. Two releases of the same order that
+overlapped could each read the balance before the other committed, and both write: a credit memo
+that commits after the online refund, a shipment saved while the order is cancelled, or any release
+that waited out the lock. The order then reserved less than nothing, and the extra unit stayed
+salable for good: reconciliation only releases what an order still holds, and the cleanup only
+deletes groups that add up to zero. Each order now keeps its balance per stock, SKU and source in
+`inventory_reservation_order_balance`, written in the same transaction as its reservations, and a
+release locks that row until it commits. Placements never wait for it. When the row stays locked
+beyond `innodb_lock_wait_timeout`, that release is not written and an error is logged; the order
+operation completes and reconciliation releases the balance once the order is final. A source
+transfer that meets such a row fails whole instead, stock included, and can be run again.
+
+`setup:upgrade` creates the table empty; orders placed before the upgrade are covered from their
+first release on. Deploy in maintenance mode, and if you ever truncate `inventory_reservation`,
+truncate the new table with it. See [Upgrade](https://jeanmarcos-dev.github.io/msi-core/start/upgrade/#upgrading-between-msi-core-versions)
+and [Source reservations](https://jeanmarcos-dev.github.io/msi-core/features/source-reservations/#reconciliation).
+
+### The shipping plugins move to the modules they plug into
+
+Inventory Sales registered plugins on Inventory Shipping and Inventory Shipping Admin UI without
+declaring either module. Their load order was undefined, and removing either module left a plugin on
+a class that no longer existed. Each plugin now lives in the module it plugs into: the one that ships
+from the reserved source moves to Inventory Shipping, and the one on the admin shipment form to
+Inventory Shipping Admin UI. Both modules now declare Inventory Sales, and Inventory Sales no longer
+refers to either. Each shipping module can still be disabled or removed on its own, and its plugin
+goes with it. Declaring them from Inventory Sales would have meant that `Magento_InventoryShipping`
+could only be disabled together with every module that depends on Inventory Sales. The plugins keep
+their names; their classes are now
+`Magento\InventoryShipping\Plugin\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin` and
+`Magento\InventoryShippingAdminUi\Plugin\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin`.
+Raised by Ryan Hoerr in review of
+[rhoerr/mage-os.inventory#1](https://github.com/rhoerr/mage-os.inventory/pull/1).
+
+### Saving a shipment again keeps the source it shipped from
+
+A shipment that was loaded without its `source_code` extension attribute, as a shipment collection
+loads it, and then saved again through the shipment resource model had its stored source replaced
+with `default`. The stock had already left the source it was shipped from, so returns to stock and
+the admin's per-source views read a source that shipped nothing. Saving now writes the source only
+when the shipment carries one, and otherwise keeps the stored one. A new shipment still always gets
+a source: it is resolved before the save, or the save is rejected. A shipment with no stored source
+no longer gets `default` when it is saved again. Tracked in
+[msi-core#11](https://github.com/jeanmarcos-dev/msi-core/issues/11), from
+[magento/inventory#3317](https://github.com/magento/inventory/issues/3317).
+
+### A source that a shipment empties goes out of stock
+
+**This changes behaviour.** Shipping, or invoicing virtual items, lowered a source item's quantity
+but never wrote its status: the deduction computed one and dropped it, so a source shipped down to
+its out-of-stock threshold stayed In Stock. The deduction now writes the status in the same update
+as the quantity, and only when the source changes state:
+
+- a deduction that leaves the quantity at or below the product's out-of-stock threshold, for a
+  product without backorders, sets the source item Out of Stock;
+- a return to stock that lifts an Out of Stock source item above the threshold sets it In Stock,
+  only when *Set Items' Status to be In Stock When Order is Cancelled*
+  (`cataloginventory/options/can_back_in_stock`, on by default) is on. This includes a source that
+  was marked Out of Stock by hand;
+- anything else leaves the status alone, so a source marked Out of Stock by hand stays that way
+  through later shipments. Upstream's proposed fix writes the computed status on every deduction,
+  which would undo it.
+
+Whether a return brings a source back now depends on the source item's own status, no longer on the
+product's stock status. The status change is recorded in the same adjustment history row as the
+quantity. With a threshold above 0, a source that a deduction leaves Out of Stock keeps its
+remaining units, and they no longer count towards the salable quantity, as when a merchant marks the
+source Out of Stock by hand. [Differences from upstream][d12-upstream] compares it with upstream.
+Tracked in [msi-core#12](https://github.com/jeanmarcos-dev/msi-core/issues/12), from
+[magento/inventory#3478](https://github.com/magento/inventory/issues/3478).
+
+[d12-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#a-source-that-a-shipment-empties-goes-out-of-stock
+
+### The admin ships an unmanaged item together with a managed one
+
+On the admin source selection page, **Proceed to Shipment** rejected an order that mixed a product
+with managed stock and one without, when the source held none of the unmanaged one:
+`Qty of <sku> should be less or equal to 0`. The form posts `isManageStock` as the string `"false"`,
+which PHP reads as true, so the unmanaged item was checked against the source's quantity. The value
+is now read as a boolean, and an unmanaged item is checked against its quantity to ship. Tracked in
+[msi-core#15](https://github.com/jeanmarcos-dev/msi-core/issues/15), from
+[magento/inventory#3408](https://github.com/magento/inventory/issues/3408).
+
+### Virtual and downloadable products are sold only up to their stock
+
+**This changes behaviour.** A virtual or downloadable product with managed stock and backorders on
+was sold with its source at 0. Invoicing it had nothing to deduct, so the order completed with its
+reservation still open, and that reservation lowered the product's salable quantity for good.
+msi-core keeps physical stock at 0 or above, and a backorder waits for stock before it ships, but
+these products have nothing to ship. With managed stock, they now count as having backorders *No*
+and an out-of-stock threshold of 0 or above, whatever their own or the global configuration says.
+This holds in the salable check, the salable quantity, the stock index, the cart and order
+placement. Physical products keep their backorders. The types are a list in `di.xml`, and
+[Differences from upstream][d4-upstream] explains how to take one out. The stored configuration is
+not changed, so taking a type out restores its backorders as they were.
+
+**Upgrade:** reindex `inventory` so the stock index stops listing these products as salable without
+stock. Orders sold this way before the change keep their open reservation. Once they are complete or
+closed, `bin/magento inventory:reservation:reconcile` writes the compensation that releases it. Run it
+with `--dry-run` first to see the orders it would change. Tracked in
+[msi-core#16](https://github.com/jeanmarcos-dev/msi-core/issues/16), from
+[magento/inventory#3418](https://github.com/magento/inventory/issues/3418), which reports the same for
+Adobe Commerce eGift cards.
+
+[d4-upstream]: https://jeanmarcos-dev.github.io/msi-core/reference/upstream-differences/#virtual-and-downloadable-products-do-not-admit-backorders
+
+### A source item whose source code differs from the stored one only in case is rejected
+
+`POST /V1/inventory/source-items` accepted a `source_code` that differed from the stored one only in
+case, `Warehouse_Bravo` for `warehouse_bravo`, because the foreign key compares without regard to
+case, and saved the row exactly as it arrived. The product grid in the admin then failed with
+"Undefined array key", since it looks the source up by exact code. **This changes behavior:** such a
+save is now rejected with a validation error that names the stored code, `Source code
+"Warehouse_Bravo" does not match the stored source code "warehouse_bravo".`, and nothing in the
+batch is saved. A client that sends a code in another case has to send it as it is stored. A code
+that matches no source still fails as before. The grid also looks the source up without regard to
+case and skips a row it cannot resolve, so rows saved with another case before this change no longer
+break it. Those rows are not rewritten. Costs one more query per save on `inventory_source`, for
+the distinct codes of the batch. Tracked in
+[msi-core#30](https://github.com/jeanmarcos-dev/msi-core/issues/30), adapted from
+[magento/inventory#3471](https://github.com/magento/inventory/pull/3471) by
+[lbajsarowicz](https://github.com/lbajsarowicz), which saves the stored code instead of rejecting
+the save.
+
+### Separating new from existing source items no longer compares every pair
+
+Saving source items matched each item of the batch against each stored row, so the time grew with
+the product of the two. Saving 10,000 items that already existed took a median of 12.5 seconds,
+9.6 of them in the separation; with this change it takes 2.9 seconds, 0.1 of them in the
+separation. It now indexes the batch by source and SKU and walks the stored rows once. The upstream
+patch rebuilt the list of new items from arrays keyed by source and SKU: `array_merge` kept only one
+item when the same non-numeric SKU was new in two sources of the same save, and the new rows were
+inserted grouped by source instead of in the order they came in. The new items are now the ones
+left in the batch, in their original order, and tests cover both cases. Tracked in
+[msi-core#31](https://github.com/jeanmarcos-dev/msi-core/issues/31), from
+[magento/inventory#3464](https://github.com/magento/inventory/pull/3464) by
+[stollr](https://github.com/stollr).
+
+### The web API honours the sort of a pickup location search
+
+`GET` and `POST /V1/inventory/in-store-pickup/pickup-locations/` rejected any `searchRequest[sort]`
+over REST and SOAP with `"Sort" is not supported`. Since magento/magento2@8075ae1942 the web API
+passes a constructor argument to a data object only when its type is simple or lives in an
+`Api\Data` namespace, so it fell back to a setter for `sort`, and `SearchRequestInterface` had
+none. `SearchRequestInterface` and `SearchRequest` now declare `setSort()`, and the pickup
+locations come back sorted by the given fields. GraphQL was not affected, because it builds the
+request through `SearchRequestBuilder`. `setSort()` adds a method to an `@api` interface, which
+[`VERSIONING.md`](VERSIONING.md) allows in a minor release. Tracked in
+[msi-core#50](https://github.com/jeanmarcos-dev/msi-core/issues/50).
+
+### Credit for the fixes taken from open upstream pull requests
+
+Since 1.0.0, msi-core carries five pull requests that are still open in `magento/inventory`. They
+were taken before this changelog started, and two of them were committed under the maintainer's
+name, so the history did not credit their authors:
+
+- [magento/inventory#3241](https://github.com/magento/inventory/pull/3241), by
+  [nikita-shcherbatykh](https://github.com/nikita-shcherbatykh): disabled child products no longer
+  keep a configurable in stock.
+- [magento/inventory#3294](https://github.com/magento/inventory/pull/3294), by
+  [vlmed](https://github.com/vlmed): the distance-based source selection admin uses
+  `OptionSourceInterface` instead of the deprecated `ArrayInterface`.
+- [magento/inventory#3368](https://github.com/magento/inventory/pull/3368), by
+  [adamphh](https://github.com/adamphh): the stock sources import declares its valid columns, so
+  its validation errors are clear.
+- [magento/inventory#3425](https://github.com/magento/inventory/pull/3425), by
+  [thomas-kl1](https://github.com/thomas-kl1): the "Only X left" message applies its threshold and
+  display settings in the right order.
+- [magento/inventory#3457](https://github.com/magento/inventory/pull/3457), by
+  [igorwulff](https://github.com/igorwulff): `UpdateIsSalable` binds the SKU as a string, so the
+  query uses the index instead of scanning the table.
+
+From now on, a fix taken from an upstream pull request keeps its author in the commit.
+
+---
+
 # msi-core 1.1.3 — 2026-10-27
 
 ### Shipments without a source accept items with unmanaged stock again

@@ -62,7 +62,7 @@ class Validate extends Action implements HttpPostActionInterface
                 }
                 foreach ($item['sources'] as $source) {
                     if ($source['sourceCode'] == $sourceCode) {
-                        if ($item['isManageStock']) {
+                        if (filter_var($item['isManageStock'], FILTER_VALIDATE_BOOLEAN)) {
                             $qtyToCompare = (float)$source['qtyAvailable'];
                         } else {
                             $qtyToCompare = (float)$item['qtyToShip'];

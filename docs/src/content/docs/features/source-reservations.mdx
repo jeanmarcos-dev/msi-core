@@ -100,6 +100,32 @@ cancelled or refunded, and the dropped quantity is logged as a warning
 ([`ClampCompensationReservationsPlugin`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Plugin/InventoryReservationsApi/ClampCompensationReservationsPlugin.php),
 [`testDropsReleaseWithNoOutstandingBalance`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Test/Unit/Plugin/InventoryReservationsApi/ClampCompensationReservationsPluginTest.php)).
 
+The cap holds when several releases of one order run at once. Each order keeps a balance per stock,
+SKU and source in `inventory_reservation_order_balance`, written in the same transaction as its
+reservations. A release locks that row until its transaction ends, so a second release of the same
+order, SKU and source waits for the first to commit or roll back, and is capped against what the
+first wrote. The cap uses the less negative of the row and the reservations, so a truncated
+`inventory_reservation` grants nothing. Placements never wait for a release: a release only locks
+rows of its own order
+([`OrderBalanceGuard`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Model/ResourceModel/SourceReservation/OrderBalanceGuard.php),
+[`testClampsToTheCommittedBalanceWhenItIsBelowTheLedger`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Test/Unit/Plugin/InventoryReservationsApi/ClampCompensationReservationsPluginTest.php)).
+
+When another operation on the same order holds the row beyond `innodb_lock_wait_timeout` (50 s by
+default), the release for that SKU and source is not written, the error *compensation not written,
+its order balance stayed locked* is logged with the order, SKU, source and time waited, and the
+cancel, credit memo or shipment completes. Once the order is final,
+`inventory:reservation:reconcile` or the sweep releases that balance. A source transfer that cannot
+lock one of its rows fails instead and rolls back whole, stock included, so it never moves an
+order's reservation halfway; run it again.
+
+The daily reservation cleanup deletes the rows that are back to zero. It groups them by the
+`object_id` or `object_increment_id` in their metadata, so a reservation written without either key
+still counts toward the salable quantity but the cleanup never deletes it. Code that appends
+reservations must set that metadata, or remove its own rows. Reservations written straight
+to `inventory_reservation`, without `AppendReservationsInterface`, do not update the row. The cap
+against the reservations still keeps them from releasing too much; at worst a release falls short,
+and reconciliation releases the rest after the next cleanup.
+
 | Setting | Default | Effect |
 |---|---|---|
 | `cataloginventory/source_reservations/reconcile_cancel_refund` | `0` | When an order reaches a final state, append any release its cancel or credit memo observer failed to write. Bounded so it can never over-release. |

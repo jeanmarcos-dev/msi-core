@@ -1,0 +1,121 @@
+name: static tests
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  push:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: static-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    name: static tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BASE_REF: ${{ github.base_ref }}
+      PUSH_BEFORE: ${{ github.event.before }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-static-8.3-${{ hashFiles('composer.json') }}
+          restore-keys: composer-static-8.3-
+
+      - name: Install the Magento source with msi-core in app/code/Magento
+        id: project
+        run: sh .github/scripts/ci-static-project.sh "$RUNNER_TEMP/magento"
+
+      - name: List the changed and the added files
+        id: lists
+        run: |
+          mkdir -p "$RUNNER_TEMP/lists"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF"
+            base=$(git merge-base "origin/$BASE_REF" HEAD)
+          else
+            base=$PUSH_BEFORE
+          fi
+          sh .github/scripts/ci-static-lists.sh "$base" "$RUNNER_TEMP/lists"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Point the static tests at the changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static-changed.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/changed.txt" "$RUNNER_TEMP/lists/added.txt"
+
+      - name: Copyright notices on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' }}
+        env:
+          BASE: ${{ steps.lists.outputs.base }}
+        run: sh .github/scripts/ci-static-copyright.sh "$BASE" "$RUNNER_TEMP/lists/changed.txt" "$RUNNER_TEMP/lists/added.txt"
+
+      - name: Strict types on added files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" strict-types
+
+      - name: PHPStan on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" phpstan
+
+      - name: Legacy on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        env:
+          INCREMENTAL_BUILD: '1'
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" legacy
+
+      - name: XML coding standard on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" xml
+
+      - name: HTML coding standard on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" html
+
+      - name: Less coding standard on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" less
+
+      - name: GraphQL coding standard on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static.sh "$RUNNER_TEMP/magento" graphql
+
+      - name: Code integrity against the baseline
+        if: ${{ !cancelled() && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static-integrity.sh "$RUNNER_TEMP/magento" .github/static-integrity-baseline.txt
+
+      - name: JavaScript coding standard on changed files
+        if: ${{ !cancelled() && steps.lists.outcome == 'success' && steps.project.outcome == 'success' }}
+        run: sh .github/scripts/ci-static-js.sh "$RUNNER_TEMP/magento" "$RUNNER_TEMP/lists/changed.txt"

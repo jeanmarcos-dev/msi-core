@@ -44,6 +44,9 @@
             <actionGroup ref="DisableSourceActionGroup" stepKey="disableAdditionalWebsiteSource">
                 <argument name="sourceCode" value="$$additionalSourceMainWebsite.source[source_code]$$"/>
             </actionGroup>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
             <!--Delete category and stock.-->
             <deleteData createDataKey="category" stepKey="deleteCategory"/>

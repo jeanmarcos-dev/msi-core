@@ -47,6 +47,8 @@
             <createData entity="SpecialStockForAdminSelectDeselectManipulationsInManageStocksGridTest" stepKey="createStock22"/>
         </before>
         <after>
+            <amOnPage url="{{AdminManageStockPage.url}}" stepKey="goToStockGridToClearFilters"/>
+            <actionGroup ref="ClearFiltersAdminDataGridActionGroup" stepKey="clearStockGridFilters"/>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
 
             <deleteData createDataKey="createStock1" stepKey="deleteStock1"/>
@@ -79,13 +81,17 @@
         <click selector="{{AdminGridDefaultViewControls.viewByName(DefaultGridView.name)}}" stepKey="clickOnDefaultViewMenuOption1"/>
         <conditionalClick selector="{{AdminDataGridHeaderSection.clearFilters}}" dependentSelector="{{AdminDataGridHeaderSection.clearFilters}}" visible="true" stepKey="clickClearFilters"/>
         <waitForPageLoad time="30" stepKey="waitFilterCleared"/>
+        <actionGroup ref="AdminGridFilterSearchResultsByInput" stepKey="filterStocksCreatedByTheTest">
+            <argument name="selector" value="AdminManageStockGridFilterControls.name"/>
+            <argument name="value" value="Unique Stock"/>
+        </actionGroup>
+        <waitForPageLoad time="30" stepKey="waitFilterApplied"/>
         <actionGroup ref="AdminDataGridSelectPerPageActionGroup" stepKey="select20StocksPerPage">
             <argument name="perPage" value="20"/>
         </actionGroup>
         <waitForPageLoad time="30" stepKey="waitSelectPerPageApplied"/>
         <click selector="{{AdminManageStockGridControls.multicheckDropdown}}" stepKey="openDropdownToSelectAll"/>
         <click selector="{{AdminManageStockGridControls.multicheckOption('Select All')}}" stepKey="selectAll"/>
-        <seeCheckboxIsChecked selector="#idscheck1" stepKey="checkDefaultStockSelectedOnFirstPage"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock1.return$$)}}" stepKey="checkStockSelectedOnFirstPage1"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock2.return$$)}}" stepKey="checkStockSelectedOnFirstPage2"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock3.return$$)}}" stepKey="checkStockSelectedOnFirstPage3"/>
@@ -105,19 +111,17 @@
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock17.return$$)}}" stepKey="checkStockSelectedOnFirstPage17"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock18.return$$)}}" stepKey="checkStockSelectedOnFirstPage18"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock19.return$$)}}" stepKey="checkStockSelectedOnFirstPage19"/>
+        <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockSelectedOnFirstPage20"/>
         <click selector="{{AdminDataGridPaginationSection.nextPage}}" stepKey="goToNextPage"/>
         <waitForPageLoad time="30" stepKey="waitNextGridPageOpened"/>
-        <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockSelectedOnSecondPage1"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock21.return$$)}}" stepKey="checkStockSelectedOnSecondPage2"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock22.return$$)}}" stepKey="checkStockSelectedOnSecondPage3"/>
         <click selector="{{AdminManageStockGridControls.multicheckDropdown}}" stepKey="openDropdownToDeselectAll"/>
         <click selector="{{AdminManageStockGridControls.multicheckOption('Deselect All')}}" stepKey="deselectAll"/>
-        <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage1"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock21.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage2"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock22.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage3"/>
         <click selector="{{AdminDataGridPaginationSection.previousPage}}" stepKey="goToPreviousPage"/>
         <waitForPageLoad time="30" stepKey="waitPrevGridPageOpened"/>
-        <dontSeeCheckboxIsChecked selector="#idscheck1" stepKey="checkDefaultStockSNotelectedOnFirstPage"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock1.return$$)}}" stepKey="checkStockSNotelectedOnFirstPage1"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock2.return$$)}}" stepKey="checkStockSNotelectedOnFirstPage2"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock3.return$$)}}" stepKey="checkStockSNotelectedOnFirstPage3"/>
@@ -137,9 +141,9 @@
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock17.return$$)}}" stepKey="checkStockNotSelectedOnFirstPage17"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock18.return$$)}}" stepKey="checkStockNotSelectedOnFirstPage18"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock19.return$$)}}" stepKey="checkStockNotSelectedOnFirstPage19"/>
+        <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockNotSelectedOnFirstPage20"/>
         <click selector="{{AdminManageStockGridControls.multicheckDropdown}}" stepKey="openDropdownToSelectAllOnPage"/>
         <click selector="{{AdminManageStockGridControls.multicheckOption('Select All on This Page')}}" stepKey="selectAllOnPage"/>
-        <seeCheckboxIsChecked selector="#idscheck1" stepKey="checkDefaultStockSelectedOnFirstPage2"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock1.return$$)}}" stepKey="checkStockSelectedOnFirstPage21"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock2.return$$)}}" stepKey="checkStockSelectedOnFirstPage22"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock3.return$$)}}" stepKey="checkStockSelectedOnFirstPage23"/>
@@ -159,9 +163,9 @@
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock17.return$$)}}" stepKey="checkStockSelectedOnFirstPage37"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock18.return$$)}}" stepKey="checkStockSelectedOnFirstPage38"/>
         <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock19.return$$)}}" stepKey="checkStockSelectedOnFirstPage39"/>
+        <seeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockSelectedOnFirstPage40"/>
         <click selector="{{AdminDataGridPaginationSection.nextPage}}" stepKey="openNextPage"/>
         <waitForPageLoad time="30" stepKey="waitNextPageOpened"/>
-        <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock20.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage4"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock21.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage5"/>
         <dontSeeCheckboxIsChecked selector="{{AdminManageStockGridBody.stockSelectedCheckbox($$createStock22.return$$)}}" stepKey="checkStockNotSelectedOnSecondPage6"/>
     </test>

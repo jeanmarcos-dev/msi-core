@@ -19,9 +19,7 @@
         "magento/module-inventory-configuration": "1.2.*",
         "magento/module-inventory-indexer": "2.2.*",
         "magento/module-inventory-sales-api": "1.2.*",
-        "magento/module-catalog-inventory": "100.4.*"
-    },
-    "suggest": {
+        "magento/module-catalog-inventory": "100.4.*",
         "magento/module-catalog-import-export": "101.1.*"
     },
     "autoload": {

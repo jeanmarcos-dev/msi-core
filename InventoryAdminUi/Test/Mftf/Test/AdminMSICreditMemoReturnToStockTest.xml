@@ -14,6 +14,9 @@
             <title value="Credit memo for order with 2 Simple products on Test stock after full invoice and shipment created in Admin"/>
             <description value="Admin validates credit memo for order with two Simple products on Test stock after full invoice and shipment created"/>
             <testCaseId value="AC-6589"/>
+            <skip>
+                <issueId value="https://github.com/magento/magento2/issues/41750">Skipped: the Credit Memos grid fails on rows of a store deleted by an earlier test; Magento core keeps them without a foreign key.</issueId>
+            </skip>
             <severity value="CRITICAL"/>
             <group value="msi"/>
             <group value="WYSIWYGDisabled"/>

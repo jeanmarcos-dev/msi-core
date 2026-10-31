@@ -1,0 +1,91 @@
+name: tests
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+  push:
+    branches: ['main', 'next-release']
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: unit (${{ matrix.platform }}, PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ['magento', 'mage-os']
+        php: ['8.3', '8.5']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: composer:v2
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ matrix.platform }}-${{ matrix.php }}-${{ hashFiles('composer.json') }}
+          restore-keys: composer-${{ matrix.platform }}-${{ matrix.php }}-
+
+      - name: Install ${{ matrix.platform }} with msi-core
+        run: sh .github/scripts/ci-magento-project.sh ${{ matrix.platform }} "$RUNNER_TEMP/magento"
+
+      - name: Unit tests
+        run: sh .github/scripts/ci-unit.sh "$RUNNER_TEMP/magento"
+
+      - name: setup:di:compile
+        if: matrix.php == '8.5'
+        run: sh .github/scripts/ci-di-compile.sh "$RUNNER_TEMP/magento"
+
+  scripts:
+    name: CI script tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install bats
+        run: sudo apt-get update -q && sudo apt-get install -y --no-install-recommends bats
+
+      - name: Run the script tests under dash
+        run: bats .github/scripts/tests
+
+  dependencies:
+    name: module dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check that every module declares the modules it uses
+        run: php .github/scripts/check-module-dependencies.php .
+
+  passed:
+    name: tests passed
+    if: always()
+    needs: [unit, scripts, dependencies]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check every test job
+        run: |
+          test "${{ needs.unit.result }}" = "success"
+          test "${{ needs.scripts.result }}" = "success"
+          test "${{ needs.dependencies.result }}" = "success"

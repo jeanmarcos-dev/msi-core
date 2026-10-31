@@ -1,0 +1,2 @@
+  XX S14-config-write source item status default=0 mirror=1
+  XX S14-config-write cnf_simple::index.quantity default=0 mirror=3

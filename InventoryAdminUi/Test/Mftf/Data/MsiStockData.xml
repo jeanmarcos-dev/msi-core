@@ -39,6 +39,18 @@
         <data key="website">Main Website</data>
         <requiredEntity type="stock_extension_attribute">MsiStockWebsite1</requiredEntity>
     </entity>
+    <entity name="SortOrderStock1" type="stock">
+        <data key="name" unique="suffix">Sorting Stock 1 </data>
+    </entity>
+    <entity name="SortOrderStock2" type="stock">
+        <data key="name" unique="suffix">Sorting Stock 2 </data>
+    </entity>
+    <entity name="SortOrderStock3" type="stock">
+        <data key="name" unique="suffix">Sorting Stock 3 </data>
+    </entity>
+    <entity name="SortOrderStock4" type="stock">
+        <data key="name" unique="suffix">Sorting Stock 4 </data>
+    </entity>
     <!-- Please don't use this entity in your tests otherwise AdminPaginationWorkedInManageStocksGridTest will fail -->
     <entity name="SpecialStockForAdminPaginationWorkedInManageStocksGridTest" type="stock">
         <data key="name" unique="suffix">Special Stock </data>

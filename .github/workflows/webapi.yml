@@ -1,0 +1,136 @@
+name: webapi
+
+on:
+  pull_request:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  push:
+    branches: ['main', 'next-release']
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: webapi-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  webapi:
+    name: webapi (${{ matrix.adapter }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: [rest, soap, graphql]
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: magento_webapi_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:3
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_INSTALL_DEMO_CONFIG: 'true'
+          cluster.max_shards_per_node: '10000'
+          OPENSEARCH_JAVA_OPTS: -Xms1g -Xmx1g
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl --fail --silent http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      DB_HOST: 127.0.0.1
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: magento_webapi_tests
+      OPENSEARCH_HOST: 127.0.0.1
+      OPENSEARCH_PORT: '9200'
+      WEBAPI_BASE_URL: http://127.0.0.1:8080
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          coverage: none
+          tools: composer:v2
+          ini-values: memory_limit=-1
+          extensions: bcmath, ctype, curl, dom, gd, iconv, intl, mbstring, pdo_mysql, simplexml, soap, sockets, sodium, xsl, zip
+
+      - name: Cache Composer
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-magento-8.5-${{ hashFiles('composer.json') }}
+          restore-keys: composer-magento-8.5-
+
+      - name: Install magento with msi-core
+        run: sh .github/scripts/ci-magento-project.sh magento "$RUNNER_TEMP/magento"
+
+      - name: Let MySQL create the triggers msi-core installs
+        run: mysql --host=127.0.0.1 --user=root --password=root --execute='SET GLOBAL log_bin_trust_function_creators = 1'
+
+      - name: Accept the mail the tests send
+        run: |
+          printf '#!/bin/sh\ncat > /dev/null\n' | sudo tee /usr/sbin/sendmail > /dev/null
+          sudo chmod +x /usr/sbin/sendmail
+
+      - name: Install the Magento instance the tests call
+        run: sh .github/scripts/ci-webapi-install.sh "$RUNNER_TEMP/magento" "$WEBAPI_BASE_URL/"
+
+      - name: Let a crashed PHP worker leave a core file
+        run: |
+          mkdir -m 777 "$RUNNER_TEMP/cores"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" || true
+
+      - name: Serve Magento over HTTP
+        run: sh .github/scripts/ci-webapi-serve.sh "$RUNNER_TEMP/magento" 8080 "$RUNNER_TEMP/php-server.log"
+
+      - name: Web API tests (${{ matrix.adapter }})
+        run: sh .github/scripts/ci-webapi.sh "$RUNNER_TEMP/magento" "${{ matrix.adapter }}" --log-junit "$RUNNER_TEMP/webapi-reports/${{ matrix.adapter }}.xml"
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: webapi-junit-${{ matrix.adapter }}
+          path: ${{ runner.temp }}/webapi-reports
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Collect crash diagnostics
+        if: failure()
+        run: sh .github/scripts/ci-webapi-diagnostics.sh "$RUNNER_TEMP/webapi-diagnostics" "$RUNNER_TEMP/cores"
+
+      - name: Upload Magento logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: webapi-logs-${{ matrix.adapter }}
+          path: |
+            ${{ runner.temp }}/magento/var/log
+            ${{ runner.temp }}/php-server.log
+            ${{ runner.temp }}/webapi-diagnostics
+          if-no-files-found: ignore
+          retention-days: 14

@@ -51,6 +51,7 @@
             <actionGroup ref="ClearFiltersAdminDataGridActionGroup" stepKey="clearGridFilters"/>
             <!--Disable 'In Store Pickup' shipping method.-->
             <magentoCLI command="config:set {{DisableInStorePickup.path}} {{DisableInStorePickup.value}}" stepKey="enableInStorePickupMethod"/>
+            <magentoCLI command="config:set {{OnlineDistanceProviderForDistanceBasedSSA.path}} {{OnlineDistanceProviderForDistanceBasedSSA.value}}" stepKey="setDistanceProviderToOnline"/>
 
             <deleteData createDataKey="createStock" stepKey="deleteStock"/>
 

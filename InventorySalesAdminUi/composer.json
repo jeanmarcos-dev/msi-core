@@ -21,9 +21,9 @@
         "magento/module-inventory-configuration-api": "1.2.*",
         "magento/module-catalog": "104.0.*",
         "magento/module-store": "101.1.*",
-        "magento/module-ui": "101.2.*"
-    },
-    "suggest": {
+        "magento/module-ui": "101.2.*",
+        "magento/module-inventory": "1.2.*",
+        "magento/module-inventory-shipping-admin-ui": "1.2.*",
         "magento/module-sales": "103.0.*"
     },
     "autoload": {

@@ -33,4 +33,18 @@
             <column name="object_increment_id"/>
         </index>
     </table>
+    <table name="inventory_reservation_order_balance" resource="default" engine="innodb">
+        <column xsi:type="varchar" name="object_increment_id" nullable="false" length="32"/>
+        <column xsi:type="int" name="stock_id" unsigned="true" nullable="false" identity="false"/>
+        <column xsi:type="varchar" name="sku" nullable="false" length="64"/>
+        <column xsi:type="varchar" name="source_code" nullable="false" length="255" default=""/>
+        <column xsi:type="decimal" name="balance" scale="4" precision="10" unsigned="false" nullable="false"
+                default="0"/>
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="object_increment_id"/>
+            <column name="stock_id"/>
+            <column name="sku"/>
+            <column name="source_code"/>
+        </constraint>
+    </table>
 </schema>

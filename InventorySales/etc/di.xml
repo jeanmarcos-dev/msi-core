@@ -32,6 +32,10 @@
         <plugin name="prevent_append_reservation_on_not_manage_items_in_stock" type="Magento\InventorySales\Plugin\InventoryReservationsApi\PreventAppendReservationOnNotManageItemsInStockPlugin"/>
         <plugin name="clamp_compensation_reservations" type="Magento\InventorySales\Plugin\InventoryReservationsApi\ClampCompensationReservationsPlugin" sortOrder="20"/>
         <plugin name="reject_overselling_reservations" type="Magento\InventorySales\Plugin\InventoryReservationsApi\RejectOversellingReservationsPlugin" sortOrder="30"/>
+        <plugin name="record_order_balance" type="Magento\InventorySales\Plugin\InventoryReservationsApi\RecordOrderBalancePlugin" sortOrder="40"/>
+    </type>
+    <type name="Magento\InventoryReservationsApi\Model\CleanupReservationsInterface">
+        <plugin name="delete_settled_order_balances" type="Magento\InventorySales\Plugin\InventoryReservationsApi\DeleteSettledOrderBalancesPlugin"/>
     </type>
     <type name="Magento\InventoryApi\Api\SourceItemsSaveInterface">
         <plugin name="detect_oversell_on_source_items_save" type="Magento\InventorySales\Plugin\InventoryApi\DetectOversellOnSourceItemsSavePlugin"/>
@@ -46,12 +50,6 @@
     <type name="Magento\InventoryCatalog\Model\ResourceModel\TransferInventoryPartially">
         <plugin name="detect_oversell_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\DetectOversellOnTransferInventoryPartiallyPlugin"/>
         <plugin name="validate_salable_qty_on_transfer_inventory_partially" type="Magento\InventorySales\Plugin\InventoryCatalog\ValidateSalableQtyOnTransferInventoryPartiallyPlugin"/>
-    </type>
-    <type name="Magento\InventoryShipping\Model\ResolveShipmentSourceCode">
-        <plugin name="prefer_allocated_source_on_resolve_shipment_source_code" type="Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourceOnResolveShipmentSourceCodePlugin"/>
-    </type>
-    <type name="Magento\InventoryShippingAdminUi\Ui\DataProvider\GetSourcesByOrderIdSkuAndQty">
-        <plugin name="prefer_allocated_sources_on_get_sources_by_order_id_sku_and_qty" type="Magento\InventorySales\Plugin\InventoryShipping\PreferAllocatedSourcesOnGetSourcesByOrderIdSkuAndQtyPlugin"/>
     </type>
     <type name="Magento\InventoryCatalogApi\Api\BulkPartialInventoryTransferInterface">
         <plugin name="lock_source_items_on_bulk_partial_inventory_transfer" type="Magento\InventorySales\Plugin\InventoryCatalog\LockSourceItemsOnBulkPartialInventoryTransferPlugin"/>
