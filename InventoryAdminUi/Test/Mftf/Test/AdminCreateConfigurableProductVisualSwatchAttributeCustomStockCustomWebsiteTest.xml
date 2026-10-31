@@ -72,6 +72,9 @@
             <actionGroup ref="DisableSourceActionGroup" stepKey="disableAdditionalWebsiteSource">
                 <argument name="sourceCode" value="$$additionalSourceAdditionalWebsite.source[source_code]$$"/>
             </actionGroup>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
             <!--Delete category, stock and revert configuration.-->
             <magentoCLI command="config:set {{StorefrontDisableAddStoreCodeToUrls.path}} {{StorefrontDisableAddStoreCodeToUrls.value}}" stepKey="addStoreCodeToUrlDisable"/>

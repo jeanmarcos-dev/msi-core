@@ -86,6 +86,9 @@
             <!--Clear filters and logout.-->
             <amOnPage url="{{ProductCatalogPage.url}}" stepKey="openProductPage"/>
             <actionGroup ref="ClearFiltersAdminProductGridActionGroup" stepKey="clearProductGridFilter"/>
+            <actionGroup ref="AdminDeleteProductAttributeByLabelActionGroup" stepKey="deleteVisualSwatchAttribute">
+                <argument name="productAttributeLabel" value="{{visualSwatchAttribute.name}}"/>
+            </actionGroup>
             <actionGroup ref="AdminLogoutActionGroup" stepKey="logoutOfAdmin"/>
             <!--Delete category, stocks and revert configuration.-->
             <magentoCLI command="config:set {{StorefrontDisableAddStoreCodeToUrls.path}} {{StorefrontDisableAddStoreCodeToUrls.value}}" stepKey="addStoreCodeToUrlDisable"/>
