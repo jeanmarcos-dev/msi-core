@@ -19,6 +19,15 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 # msi-core — unreleased
 
+### Reservations without object metadata count toward the salable quantity and are never cleaned
+
+The reservation cleanup groups rows by the `object_id` or `object_increment_id` in their metadata, so a reservation appended
+without either key counts toward the salable quantity but is never deleted. That was already the behaviour, but the docs
+did not state it and `CreditMemoUpdateReservationsTest` counted every reservation of `SKU-1`, so it failed whenever an
+earlier test left metadata-less rows behind. The feature page now states the rule and the test counts only the
+reservations of its own order. No product code changed.
+Tracked in [msi-core#109](https://github.com/jeanmarcos-dev/msi-core/issues/109).
+
 ### Magento's Performance Toolkit generates its fixtures on a store with msi-core
 
 `bin/magento setup:performance:generate-fixtures` stopped at the first simple product with `The entity ID field for the

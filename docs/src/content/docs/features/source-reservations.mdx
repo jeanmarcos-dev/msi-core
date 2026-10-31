@@ -118,7 +118,10 @@ cancel, credit memo or shipment completes. Once the order is final,
 lock one of its rows fails instead and rolls back whole, stock included, so it never moves an
 order's reservation halfway; run it again.
 
-The daily reservation cleanup deletes the rows that are back to zero. Reservations written straight
+The daily reservation cleanup deletes the rows that are back to zero. It groups them by the
+`object_id` or `object_increment_id` in their metadata, so a reservation written without either key
+still counts toward the salable quantity but the cleanup never deletes it. Code that appends
+reservations must set that metadata, or remove its own rows. Reservations written straight
 to `inventory_reservation`, without `AppendReservationsInterface`, do not update the row. The cap
 against the reservations still keeps them from releasing too much; at worst a release falls short,
 and reconciliation releases the rest after the next cleanup.
