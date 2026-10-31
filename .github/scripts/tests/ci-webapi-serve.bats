@@ -72,3 +72,15 @@ setup() {
     sleep 1
     [ "$(cat "$BATS_TEST_TMPDIR/core-limit")" = "unlimited" ]
 }
+
+@test "serves with the JIT disabled and OPcache left on" {
+    printf '#!/bin/sh\nexit 0\n' > "$BIN/curl"
+    chmod +x "$BIN/curl"
+
+    run sh "$SCRIPT" "$MAGENTO" 8099 "$BATS_TEST_TMPDIR/server.log"
+
+    [ "$status" -eq 0 ]
+    sleep 1
+    grep -qF -- "opcache.jit=disable" "$BATS_TEST_TMPDIR/php-args"
+    ! grep -qF -- "opcache.enable=0" "$BATS_TEST_TMPDIR/php-args"
+}
