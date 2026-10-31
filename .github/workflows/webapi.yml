@@ -99,6 +99,11 @@ jobs:
       - name: Install the Magento instance the tests call
         run: sh .github/scripts/ci-webapi-install.sh "$RUNNER_TEMP/magento" "$WEBAPI_BASE_URL/"
 
+      - name: Let a crashed PHP worker leave a core file
+        run: |
+          mkdir -m 777 "$RUNNER_TEMP/cores"
+          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" || true
+
       - name: Serve Magento over HTTP
         run: sh .github/scripts/ci-webapi-serve.sh "$RUNNER_TEMP/magento" 8080 "$RUNNER_TEMP/php-server.log"
 
@@ -114,6 +119,10 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Collect crash diagnostics
+        if: failure()
+        run: sh .github/scripts/ci-webapi-diagnostics.sh "$RUNNER_TEMP/webapi-diagnostics" "$RUNNER_TEMP/cores"
+
       - name: Upload Magento logs
         if: failure()
         uses: actions/upload-artifact@v7
@@ -122,5 +131,6 @@ jobs:
           path: |
             ${{ runner.temp }}/magento/var/log
             ${{ runner.temp }}/php-server.log
+            ${{ runner.temp }}/webapi-diagnostics
           if-no-files-found: ignore
           retention-days: 14
