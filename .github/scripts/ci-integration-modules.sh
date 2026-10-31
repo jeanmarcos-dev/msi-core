@@ -14,13 +14,23 @@ here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$reports"
 reports=$(cd "$reports" && pwd)
 
+hidden_errors() {
+    if [ ! -f "$1" ]; then
+        echo "no events log at $1" >&2
+        return 0
+    fi
+    grep -E '^Test (Errored|Failed) \(' "$1"
+}
+
 failed=
 for module in "$@"; do
+    events="$reports/$module.events.txt"
     echo "::group::$module"
     if sh "$here/ci-integration.sh" "$magento" \
         --fail-on-empty-test-suite \
         --filter "Magento\\\\${module}\\\\Test\\\\" \
-        --log-junit "$reports/$module.xml"; then
+        --log-junit "$reports/$module.xml" \
+        --log-events-text "$events" && ! hidden_errors "$events"; then
         echo "passed: $module"
     else
         echo "failed: $module"
