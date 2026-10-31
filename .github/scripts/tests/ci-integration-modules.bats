@@ -11,6 +11,25 @@ setup() {
 case "$1" in
     -d)
         printf '%s\n' "phpunit $*" >> "$CALLS"
+        events=
+        previous=
+        for argument in "$@"; do
+            [ "$previous" = "--log-events-text" ] && events=$argument
+            previous=$argument
+        done
+        if [ -n "$events" ] && [ -z "${NO_EVENTS_LOG:-}" ]; then
+            printf '%s\n' "Test Suite Started (CLI Arguments, 1 test)" "Test Passed (Clean::testOk)" > "$events"
+            for hidden in ${ERRORED_MODULES:-}; do
+                case "$*" in
+                    *"\\$hidden\\"*) printf '%s\n' "Test Errored (Magento\\$hidden\\Test\\Integration\\SomeTest::testBroken)" "Rollback exploded" >> "$events" ;;
+                esac
+            done
+            for broken in ${FAILED_MODULES:-}; do
+                case "$*" in
+                    *"\\$broken\\"*) printf '%s\n' "Test Failed (Magento\\$broken\\Test\\Integration\\SomeTest::testBroken)" >> "$events" ;;
+                esac
+            done
+        fi
         for failing in ${FAILING_MODULES:-}; do
             case "$*" in
                 *"\\$failing\\"*) exit 2 ;;
@@ -81,4 +100,44 @@ STUB
     [ "$status" -eq 2 ]
     [[ "$output" == *"usage: ci-integration-modules.sh"* ]]
     [ ! -e "$CALLS" ]
+}
+
+@test "asks phpunit for an events log next to each JUnit report" {
+    run "$TEST_SH" .github/scripts/ci-integration-modules.sh "$MAGENTO" "$BATS_TEST_TMPDIR/reports" InventoryCatalog
+
+    [ "$status" -eq 0 ]
+    grep -qF -- "--log-junit $BATS_TEST_TMPDIR/reports/InventoryCatalog.xml --log-events-text $BATS_TEST_TMPDIR/reports/InventoryCatalog.events.txt" "$CALLS"
+}
+
+@test "fails a module whose events log has an errored test even when phpunit exits with 0" {
+    ERRORED_MODULES="InventorySales" run "$TEST_SH" .github/scripts/ci-integration-modules.sh "$MAGENTO" "$BATS_TEST_TMPDIR/reports" InventoryCatalog InventorySales
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"passed: InventoryCatalog"* ]]
+    [[ "$output" == *"failed: InventorySales"* ]]
+    [[ "$output" == *"failed modules: InventorySales"* ]]
+    [[ "$output" == *"Test Errored (Magento\\InventorySales\\Test\\Integration\\SomeTest::testBroken)"* ]]
+}
+
+@test "fails a module whose events log has a failed test even when phpunit exits with 0" {
+    FAILED_MODULES="InventoryCatalog" run "$TEST_SH" .github/scripts/ci-integration-modules.sh "$MAGENTO" "$BATS_TEST_TMPDIR/reports" InventoryCatalog InventorySales
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"failed modules: InventoryCatalog"* ]]
+    [[ "$output" == *"Test Failed (Magento\\InventoryCatalog\\Test\\Integration\\SomeTest::testBroken)"* ]]
+}
+
+@test "passes a module whose events log has no errored or failed test" {
+    run "$TEST_SH" .github/scripts/ci-integration-modules.sh "$MAGENTO" "$BATS_TEST_TMPDIR/reports" InventoryCatalog InventorySales
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"failed"* ]]
+}
+
+@test "fails a module that passed without writing the events log" {
+    NO_EVENTS_LOG=1 run "$TEST_SH" .github/scripts/ci-integration-modules.sh "$MAGENTO" "$BATS_TEST_TMPDIR/reports" InventoryCatalog
+
+    [ "$status" -eq 1 ]
+    [[ "$output" == *"failed: InventoryCatalog"* ]]
+    [[ "$output" == *"no events log"* ]]
 }
