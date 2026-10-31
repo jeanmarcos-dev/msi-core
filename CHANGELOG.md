@@ -17,7 +17,25 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.2.0 — 2026-10-31
+
+The main fixes: a configurable product is salable only in the websites where one of its children is enabled, assigned
+and salable ([msi-core#89](https://github.com/jeanmarcos-dev/msi-core/issues/89)); stocks that share a source keep the
+right salability after an order, a shipment or a reconciliation
+([msi-core#104](https://github.com/jeanmarcos-dev/msi-core/issues/104)); and saving a stock that drops a website no
+longer leaves that website without a stock ([msi-core#110](https://github.com/jeanmarcos-dev/msi-core/issues/110)).
+Two releases of one order can no longer release its stock twice, and saving thousands of existing source items is about
+four times faster.
+
+When upgrading from 1.1.x:
+
+- Deploy in maintenance mode. `setup:upgrade` creates `inventory_reservation_order_balance` and reinstalls the legacy
+  stock write triggers.
+- Reindex `inventory` afterwards.
+- Keep the `inventory.reservations.updateSalabilityStatus` consumer running.
+- Read the behaviour changes below before you deploy: a source that a shipment empties goes out of stock, virtual and
+  downloadable products with managed stock no longer take backorders, a source code that differs from the stored one
+  only in case is rejected, and Composer no longer installs the upstream requisition list module.
 
 ### Saving a stock that drops a website no longer leaves the website without a stock
 
