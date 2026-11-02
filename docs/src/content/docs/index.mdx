@@ -38,6 +38,10 @@ msi-core removes the split. Every stock, stock 1 included, goes through the same
 		Stock 1 is indexed, configured, edited and deleted like any other. Stock item configuration
 		moves into MSI. [Read more](/msi-core/features/default-stock/)
 	</Card>
+	<Card title="Checkout lock" icon="padlock">
+		The last unit cannot be sold twice, and orders for the same SKU no longer wait for each other's
+		payment. [Read more](/msi-core/features/checkout-lock/)
+	</Card>
 	<Card title="Source-level reservations" icon="random">
 		Reservations held per source close the cross-stock oversell gap, with locks per source and
 		sweeps that repair a drifted ledger. [Read more](/msi-core/features/source-reservations/)
@@ -68,7 +72,7 @@ msi-core removes the split. Every stock, stock 1 included, goes through the same
 | Composite salability in stock 1 | legacy CatalogInventory indexer | MSI composite indexers |
 | Stock item configuration | `cataloginventory_stock_item` | `inventory_stock_item_configuration` |
 | Reservations | per stock | per source, opt-in |
-| Place-order lock | per stock, around place-order | per source, only while the reservation is written |
+| Place-order lock | per stock, around place-order | [per source, only while the reservation is written](/msi-core/features/checkout-lock/) |
 | Stock change history | none | every source item change |
 | Upgrade | — | schema migration with downtime, no downgrade |
 | Breaks | — | raw SQL reads of `cataloginventory_stock_item` and `_stock_status` |

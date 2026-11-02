@@ -25,6 +25,7 @@ export default defineConfig({
 					label: 'Features',
 					items: [
 						'features/default-stock',
+						'features/checkout-lock',
 						'features/source-reservations',
 						'features/salable-by-source',
 						'features/adjustment-history',
