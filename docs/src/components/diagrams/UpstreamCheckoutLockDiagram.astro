@@ -1,0 +1,60 @@
+---
+import Diagram from '../Diagram.astro';
+
+const x = (seconds: number) => 110 + 38 * seconds;
+const seconds = Array.from({ length: 16 }, (_, second) => second);
+const rowTop = (row: number) => 34 + row * 42;
+const timeout = 10;
+const orders = [
+	{ name: 'Order A', waitUntil: 0, holdUntil: 4.7 },
+	{ name: 'Order B', waitUntil: 4.7, holdUntil: 9.4 },
+	{ name: 'Order C', waitUntil: 9.4, holdUntil: 14.1 },
+	{ name: 'Order D', waitUntil: timeout, holdUntil: null },
+];
+---
+
+<Diagram caption="Upstream MSI, four concurrent orders for the same SKU. Each holds the lock for its whole 4.7 s placement, so B and C queue behind the orders before them and D gives up at the 10 s GET_LOCK timeout. The race the lock protects is the 8 to 27 ms reserve() inside each orange bar.">
+	<svg viewBox="0 0 720 236" role="img" aria-labelledby="ucl-title">
+		<title id="ucl-title">Upstream lock held for the whole placement</title>
+
+		{seconds.map((second) => (
+			<>
+				<line class="grid" x1={x(second)} y1="26" x2={x(second)} y2="200" />
+				<text class="label" x={x(second)} y="16" text-anchor="middle">{second} s</text>
+			</>
+		))}
+
+		<line class="timeout" x1={x(timeout)} y1="26" x2={x(timeout)} y2="200" />
+
+		{orders.map((order, row) => (
+			<>
+				<text class="title" x="10" y={rowTop(row) + 19}>{order.name}</text>
+				{order.waitUntil > 0 && (
+					<>
+						<rect class="lock-wait" x={x(0)} y={rowTop(row)} width={x(order.waitUntil) - x(0)} height="28" rx="4" />
+						<text class="sub" x={x(0) + 8} y={rowTop(row) + 18}>waiting on GET_LOCK</text>
+					</>
+				)}
+				{order.holdUntil !== null && (
+					<>
+						<rect class="lock-held" x={x(order.waitUntil)} y={rowTop(row)} width={x(order.holdUntil) - x(order.waitUntil)} height="28" rx="4" />
+						<text class="title on-lock" x={x(order.waitUntil) + 8} y={rowTop(row) + 19}>lock held</text>
+						<text class="mono on-lock" x={x(order.holdUntil) - 8} y={rowTop(row) + 19} text-anchor="end">{order.holdUntil} s</text>
+					</>
+				)}
+			</>
+		))}
+
+		<line class="fail" x1={x(timeout) - 6} y1={rowTop(3) + 8} x2={x(timeout) + 6} y2={rowTop(3) + 20} />
+		<line class="fail" x1={x(timeout) - 6} y1={rowTop(3) + 20} x2={x(timeout) + 6} y2={rowTop(3) + 8} />
+		<text class="fail-text" x={x(timeout) + 14} y={rowTop(3) + 19}>timeout: order fails</text>
+
+		<rect class="lock-held" x="110" y="214" width="22" height="12" rx="3" />
+		<text class="sub" x="140" y="224">holding the lock</text>
+		<rect class="lock-wait" x="270" y="214" width="22" height="12" rx="3" />
+		<text class="sub" x="300" y="224">waiting on GET_LOCK</text>
+		<line class="fail" x1="460" y1="215" x2="470" y2="225" />
+		<line class="fail" x1="460" y1="225" x2="470" y2="215" />
+		<text class="sub" x="480" y="224">lock timeout</text>
+	</svg>
+</Diagram>
