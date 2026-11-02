@@ -145,3 +145,49 @@
 	stroke: var(--sl-color-gray-3);
 	stroke-width: 1.5;
 }
+
+.diagram .grid {
+	stroke: var(--sl-color-hairline);
+	stroke-width: 1;
+}
+
+.diagram .lock-held {
+	fill: var(--sl-color-orange);
+	stroke: var(--sl-color-orange-high);
+}
+
+.diagram .lock-wait {
+	fill: var(--sl-color-gray-6);
+	stroke: var(--sl-color-gray-4);
+	stroke-dasharray: 4 3;
+}
+
+.diagram .lock-free {
+	fill: var(--sl-color-accent-low);
+	stroke: var(--sl-color-accent);
+}
+
+.diagram .timeout {
+	stroke: var(--sl-color-red);
+	stroke-width: 1.5;
+	stroke-dasharray: 4 3;
+}
+
+.diagram .fail {
+	stroke: var(--sl-color-red);
+	stroke-width: 2.5;
+	stroke-linecap: round;
+}
+
+.diagram .fail-text {
+	fill: var(--sl-color-red-high);
+	font-weight: 600;
+}
+
+.diagram text.on-lock {
+	fill: var(--sl-color-black);
+}
+
+:root[data-theme='light'] .diagram text.on-lock {
+	fill: var(--sl-color-white);
+}
