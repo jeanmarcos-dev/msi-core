@@ -1,0 +1,106 @@
+---
+title: Checkout lock
+description: How msi-core keeps two orders from selling the same last unit without making orders wait for each other's payment, and why the upstream lock fails orders under load.
+---
+
+import UpstreamCheckoutLockDiagram from '../../../components/diagrams/UpstreamCheckoutLockDiagram.astro';
+import CheckoutLockDiagram from '../../../components/diagrams/CheckoutLockDiagram.astro';
+
+Always on, with nothing to configure. It applies whether or not
+[source-level reservations](/msi-core/features/source-reservations/) are enabled.
+
+## The race it closes
+
+To place an order, MSI checks the salable quantity of each item and then writes a reservation for it.
+Two orders for the last unit can both pass the check before either writes its reservation, and then
+both are placed.
+
+- In 2018 the reservation was written after the order was saved, which left the whole placement
+  open to that race ([magento/inventory#3072](https://github.com/magento/inventory/issues/3072)).
+- MC-33900 ([magento/inventory#3046](https://github.com/magento/inventory/pull/3046), 2020) moved
+  the reservation before the order is placed. That shrank the gap to a few milliseconds inside
+  `AppendReservations::reserve()`, but did not close it.
+- ACP2E-4509 ([`40a2ac4be9`](https://github.com/magento/inventory/commit/40a2ac4be9953c66b2839778e34e25c8539abb88))
+  closed it with a `GET_LOCK` per SKU and stock. It shipped in Magento 2.4.9 (`magento/inventory`
+  1.2.9) and was not backported to the 2.4.8, 2.4.7 or 2.4.6 patch releases. Mage-OS ships it in
+  `mage-os/mageos-inventory` 3.0.0 to 3.6.0.
+
+## What the upstream lock costs
+
+The upstream lock closes the race but covers far more than the race. It is taken around
+`placeOrder`, so the payment, shipping and tax calls, the order save and the emails all run while it
+is held. Measured in a development environment, `reserve()` takes 8 to 27 ms and the whole placement
+4.2 to 5.2 s.
+
+<UpstreamCheckoutLockDiagram />
+
+- **Orders that share a SKU queue behind each other's whole placement.** Each one waits up to 10 s
+  for the lock and then fails with *Could not acquire inventory lock for SKU: %1. Please try again.*
+  A real payment gateway makes the placement slower, so the timeout arrives with fewer orders.
+- **Stock that is not managed takes the lock too.** A catalog with Manage Stock = No writes no
+  reservations and cannot oversell, but its orders still wait on each other.
+- **Configurables and bundles lock the wrong SKU.** The lock keys come from the visible cart items,
+  which are the parents, while the reservation goes to the child simple. A standalone order and a
+  configurable order of the same simple do not exclude each other. With a 300 ms delay injected
+  between the check and the reservation write, the last unit was sold twice in 5 runs out of 5;
+  without it, in none of 10, because the real window is a few milliseconds.
+- **Locks are taken in cart order.** Two carts with the same SKUs in opposite order cross. MariaDB
+  (tested on 11.4) detects it at once and fails one of the two with `ERROR 1213`, which the lock does
+  not catch, so that customer sees a database error.
+- **Admin orders take no lock.** They call `QuoteManagement::submit()` directly and never pass
+  through `placeOrder`.
+
+A failed lock happens before the order is placed, so Magento does not call the payment method, but
+the order fails at the very last step of checkout. The full investigation is in
+[mage-os/mageos-inventory#13](https://github.com/mage-os/mageos-inventory/issues/13).
+`mage-os/mageos-inventory` 4.0.0 adopted the approach below
+([mage-os/mageos-inventory#15](https://github.com/mage-os/mageos-inventory/pull/15)).
+
+## What msi-core does
+
+The lock wraps `AppendReservations::reserve()`
+([`LockReservedSkusPlugin`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Plugin/InventorySales/LockReservedSkusPlugin.php)),
+so it is held while the salable quantity is checked and the reservation is written, and released
+before the payment, the order save and the emails.
+
+<CheckoutLockDiagram />
+
+- **Every path that reserves at placement takes it:** storefront and admin orders, REST,
+  multishipping and the initial placement of asynchronous orders.
+- **It locks the SKUs that get a reservation.** Those are the child simples of a configurable or a
+  bundle, never the parent, so a standalone order and a composite order of the same simple exclude
+  each other. SKUs with `manage_stock = 0`, per item or globally, and every SKU when
+  `can_subtract = 0`, take no lock
+  ([`GetSkusRequiringReservation`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Model/GetSkusRequiringReservation.php)).
+  Neither does a reservation that gives stock back, such as the rollback of a rejected asynchronous
+  order.
+- **One lock per SKU and source.** An order takes a lock for each SKU on each enabled source of its
+  stock, or per SKU and stock when the stock has no enabled source. Orders with no SKU and source in
+  common run in parallel, and two stocks that share a source contend for it.
+- **Locks are taken in one global order,** sorted by name, so two orders cannot wait on each other
+  ([`AcquireStockItemLocks`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Model/ResourceModel/AcquireStockItemLocks.php)).
+
+## When the lock cannot be taken
+
+Each lock waits up to 10 s. When one times out, or the database reports a deadlock, the order
+releases the locks it already holds, backs off for 50 ms and tries again, then for 100 ms; after
+three attempts it fails with *Could not acquire inventory lock for the requested items. Please try
+again.*
+
+That happens inside `reserve()`, before the order is placed
+([`AppendReservationsAfterOrderPlacementPlugin`](https://github.com/jeanmarcos-dev/msi-core/blob/main/InventorySales/Plugin/Sales/OrderManagement/AppendReservationsAfterOrderPlacementPlugin.php)),
+so no order is saved, Magento does not call the payment method, and the customer can place it again.
+With the hold measured above, an order would wait 10 s only behind roughly 370 others for the same
+SKU and source.
+
+## Limits
+
+- **A caller that places orders inside its own database transaction is not protected until it
+  commits.** The lock is released when `reserve()` returns, but other orders only see the
+  reservation once it is committed. Magento opens no transaction there; check checkout and payment
+  modules that wrap the placement in one.
+- **The lock does not make stocks see each other's reservations.** Two stocks that share a source
+  are serialised on it, but with reservations held per stock each still counts the full quantity of
+  the source. [Source-level reservations](/msi-core/features/source-reservations/) close that gap.
+- **The locks are MySQL user-level locks.** They belong to the database connection, so a connection
+  that closes releases them, and in application server mode they are released when the request ends.

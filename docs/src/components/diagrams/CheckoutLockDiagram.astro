@@ -1,0 +1,43 @@
+---
+import Diagram from '../Diagram.astro';
+
+const x = (seconds: number) => 110 + 38 * seconds;
+const seconds = Array.from({ length: 16 }, (_, second) => second);
+const rowTop = (row: number) => 34 + row * 42;
+const placement = 4.7;
+const heldWidth = 4;
+const orders = [
+	{ name: 'Order A', start: 0, waited: '0 ms' },
+	{ name: 'Order B', start: 0.027, waited: 'up to 27 ms' },
+	{ name: 'Order C', start: 0.054, waited: 'up to 54 ms' },
+	{ name: 'Order D', start: 0.081, waited: 'up to 81 ms' },
+];
+---
+
+<Diagram caption="msi-core, the same four orders on the same time scale. Each holds the lock only while reserve() checks the salable quantity and writes the reservation, 8 to 27 ms, drawn wider than scale so it stays visible. Payment, order save and emails run without it, so the orders finish together.">
+	<svg viewBox="0 0 720 236" role="img" aria-labelledby="cl-title">
+		<title id="cl-title">msi-core lock held only while reserving</title>
+
+		{seconds.map((second) => (
+			<>
+				<line class="grid" x1={x(second)} y1="26" x2={x(second)} y2="200" />
+				<text class="label" x={x(second)} y="16" text-anchor="middle">{second} s</text>
+			</>
+		))}
+
+		{orders.map((order, row) => (
+			<>
+				<text class="title" x="10" y={rowTop(row) + 19}>{order.name}</text>
+				<rect class="lock-held" x={x(order.start)} y={rowTop(row)} width={heldWidth} height="28" rx="1" />
+				<rect class="lock-free" x={x(order.start) + heldWidth} y={rowTop(row)} width={x(order.start + placement) - x(order.start) - heldWidth} height="28" rx="4" />
+				<text class="title accent-text" x={x(order.start) + heldWidth + 8} y={rowTop(row) + 19}>no lock held</text>
+				<text class="label mono" x={x(order.start + placement) + 7} y={rowTop(row) + 19}>{placement} s, waited {order.waited}</text>
+			</>
+		))}
+
+		<rect class="lock-held" x="110" y="214" width="22" height="12" rx="3" />
+		<text class="sub" x="140" y="224">holding the lock, 8 to 27 ms</text>
+		<rect class="lock-free" x="330" y="214" width="22" height="12" rx="3" />
+		<text class="sub" x="360" y="224">rest of the placement, without the lock</text>
+	</svg>
+</Diagram>
