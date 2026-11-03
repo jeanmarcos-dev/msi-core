@@ -6,8 +6,8 @@ Security fixes ship for the latest minor version of `jeanmarcos/msi-core` only, 
 
 | Version | Supported |
 |---|---|
-| 1.1.x | yes |
-| < 1.1 | no |
+| 1.2.x | yes |
+| < 1.2 | no |
 
 [`jeanmarcos/inventory`](https://github.com/jeanmarcos-dev/inventory) is no longer maintained and
 gets no security fixes. [Upgrading](https://jeanmarcos-dev.github.io/msi-core/start/upgrade/)
