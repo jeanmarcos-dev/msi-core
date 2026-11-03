@@ -1,5 +1,11 @@
 # MSI Core
 
+[![Packagist](https://img.shields.io/packagist/v/jeanmarcos/msi-core)](https://packagist.org/packages/jeanmarcos/msi-core)
+[![tests](https://github.com/jeanmarcos-dev/msi-core/actions/workflows/tests.yml/badge.svg?branch=next-release)](https://github.com/jeanmarcos-dev/msi-core/actions/workflows/tests.yml)
+[![License](https://img.shields.io/packagist/l/jeanmarcos/msi-core)](https://github.com/jeanmarcos-dev/msi-core/blob/next-release/LICENSE_AFL.txt)
+![Magento 2.4.9 · Mage-OS 3.x](https://img.shields.io/badge/Magento-2.4.9%20·%20Mage--OS%203.x-orange)
+![PHP 8.3 – 8.5](https://img.shields.io/badge/PHP-8.3%20–%208.5-777bb4)
+
 **Multi-Source Inventory as the only inventory system in Magento Open Source.**
 
 **Documentation: [jeanmarcos-dev.github.io/msi-core](https://jeanmarcos-dev.github.io/msi-core/)**
@@ -34,7 +40,6 @@ system instead of two, at the cost of a schema migration.
 ## Install
 
 ```bash
-composer config repositories.msi-core vcs https://github.com/jeanmarcos-dev/msi-core
 composer require "jeanmarcos/msi-core:^1.0"
 ```
 
