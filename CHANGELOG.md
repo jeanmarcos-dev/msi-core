@@ -32,6 +32,18 @@ change.
   the stock index counts as not salable. Present since 1.0.0: upstream introduced it in ACP2E-4220,
   and it ships in `magento/inventory` 1.2.9 (Magento 2.4.9).
 
+### Product lookups find a SKU whatever its case
+
+`GetProductIdsBySkus` and `GetProductTypesBySkus` match the requested SKUs without regard to case and
+key their result by the SKU as requested, which is what their caches already returned once warm.
+With a cold cache, a SKU that differed from the catalog's only in case was not found: the id lookup
+threw, which failed the salability update of the whole order, and the type lookup returned it under
+the catalog's spelling, so the AC-18791 code above skipped it
+([msi-core#125](https://github.com/jeanmarcos-dev/msi-core/issues/125)). Reservations carry such a
+SKU when a configurable's child SKU changes case after the order is placed, or when third-party code
+writes them. Two SKUs that differ only in leading zeros, such as `01234` and `1234`, stay apart
+([magento/magento2#35171](https://github.com/magento/magento2/issues/35171)).
+
 ---
 
 # msi-core 1.2.0 — 2026-10-31

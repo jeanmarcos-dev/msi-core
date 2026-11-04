@@ -35,8 +35,21 @@ class GetProductIdsBySkus implements GetProductIdsBySkusInterface
      */
     public function execute(array $skus): array
     {
-        $idsBySkus = $this->productResource->getProductsIdsBySkus($skus);
-        $notFoundedSkus = array_diff($skus, array_keys($idsBySkus));
+        $idsByStoredSkus = [];
+        foreach ($this->productResource->getProductsIdsBySkus($skus) as $storedSku => $id) {
+            $idsByStoredSkus[mb_convert_case((string)$storedSku, MB_CASE_LOWER, 'UTF-8')] = $id;
+        }
+
+        $idsBySkus = [];
+        $notFoundedSkus = [];
+        foreach ($skus as $sku) {
+            $storedSku = mb_convert_case((string)$sku, MB_CASE_LOWER, 'UTF-8');
+            if (array_key_exists($storedSku, $idsByStoredSkus)) {
+                $idsBySkus[$sku] = $idsByStoredSkus[$storedSku];
+            } else {
+                $notFoundedSkus[] = $sku;
+            }
+        }
 
         if (!empty($notFoundedSkus)) {
             throw new NoSuchEntityException(

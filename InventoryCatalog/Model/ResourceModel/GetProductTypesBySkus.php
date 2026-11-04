@@ -47,25 +47,19 @@ class GetProductTypesBySkus implements GetProductTypesBySkusInterface
                 $skus
             );
 
+        $typesByStoredSkus = [];
+        foreach ($connection->fetchPairs($select) as $storedSku => $productType) {
+            $typesByStoredSkus[mb_convert_case((string)$storedSku, MB_CASE_LOWER, 'UTF-8')] = (string)$productType;
+        }
+
         $result = [];
-        foreach ($connection->fetchPairs($select) as $sku => $productType) {
-            $result[$this->getResultKey((string)$sku, $skus)] = (string)$productType;
+        foreach ($skus as $sku) {
+            $storedSku = mb_convert_case((string)$sku, MB_CASE_LOWER, 'UTF-8');
+            if (array_key_exists($storedSku, $typesByStoredSkus)) {
+                $result[$sku] = $typesByStoredSkus[$storedSku];
+            }
         }
 
         return $result;
-    }
-
-    /**
-     * Return correct key for result array in GetProductTypesBySkus
-     * Allows for different case sku to be passed in search array
-     * with original cased sku to be passed back in result array
-     *
-     * @param string $sku
-     * @param array $productSkuList
-     * @return string
-     */
-    private function getResultKey(string $sku, array $productSkuList): string
-    {
-        return in_array(strtolower($sku), array_map('strtolower', $productSkuList)) ? $sku : '';
     }
 }
