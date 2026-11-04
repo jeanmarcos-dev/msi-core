@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Magento\InventoryCatalog\Model;
 
+use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\ResourceModel\Product as ProductResourceModel;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryCatalogApi\Model\GetProductIdsBySkusInterface;
@@ -35,8 +36,18 @@ class GetProductIdsBySkus implements GetProductIdsBySkusInterface
      */
     public function execute(array $skus): array
     {
+        $connection = $this->productResource->getConnection();
+        $select = $connection->select()
+            ->from(
+                $this->productResource->getEntityTable(),
+                [ProductInterface::SKU, $this->productResource->getEntityIdField()]
+            )->where(
+                ProductInterface::SKU . ' IN (?)',
+                $skus
+            );
+
         $idsByStoredSkus = [];
-        foreach ($this->productResource->getProductsIdsBySkus($skus) as $storedSku => $id) {
+        foreach ($connection->fetchPairs($select) as $storedSku => $id) {
             $idsByStoredSkus[mb_convert_case((string)$storedSku, MB_CASE_LOWER, 'UTF-8')] = $id;
         }
 

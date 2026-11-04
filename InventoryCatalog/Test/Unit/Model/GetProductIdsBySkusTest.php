@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Magento\InventoryCatalog\Test\Unit\Model;
 
 use Magento\Catalog\Model\ResourceModel\Product as ProductResourceModel;
+use Magento\Framework\DB\Adapter\AdapterInterface;
+use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryCatalog\Model\GetProductIdsBySkus;
 use PHPUnit\Framework\TestCase;
@@ -47,8 +49,18 @@ class GetProductIdsBySkusTest extends TestCase
 
     private function createModel(array $requestedSkus, array $idsByStoredSkus): GetProductIdsBySkus
     {
+        $select = $this->createMock(Select::class);
+        $select->method('from')->with('catalog_product_entity', ['sku', 'entity_id'])->willReturnSelf();
+        $select->expects($this->once())->method('where')->with('sku IN (?)', $requestedSkus)->willReturnSelf();
+
+        $connection = $this->createMock(AdapterInterface::class);
+        $connection->method('select')->willReturn($select);
+        $connection->method('fetchPairs')->with($select)->willReturn($idsByStoredSkus);
+
         $productResource = $this->createMock(ProductResourceModel::class);
-        $productResource->method('getProductsIdsBySkus')->with($requestedSkus)->willReturn($idsByStoredSkus);
+        $productResource->method('getConnection')->willReturn($connection);
+        $productResource->method('getEntityTable')->willReturn('catalog_product_entity');
+        $productResource->method('getEntityIdField')->willReturn('entity_id');
 
         return new GetProductIdsBySkus($productResource);
     }

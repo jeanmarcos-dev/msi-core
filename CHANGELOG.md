@@ -71,6 +71,18 @@ and after, and cleans the products that appeared, disappeared or changed
 ([msi-core#130](https://github.com/jeanmarcos-dev/msi-core/issues/130)). A full reindex of the
 `inventory` indexer was not affected: it cleans every product.
 
+### Looking up the ids of many SKUs takes linear time
+
+`GetProductIdsBySkus` took time quadratic in the number of SKUs it was given. It called Magento's
+`Product::getProductsIdsBySkus()`, which lowercases the whole requested list once for every row it
+returns. It now reads the ids from `catalog_product_entity` and maps them in one pass, as
+`GetProductTypesBySkus` does since the case fix above. On a catalog of 4412 products, a lookup of
+every SKU went from about 500 ms to 13 ms, and one of 1000 SKUs from 31 ms to 3 ms
+([msi-core#127](https://github.com/jeanmarcos-dev/msi-core/issues/127)). The cost showed wherever
+many SKUs went through the lookup at once: imports, bulk source assignments and transfers, and the
+cache flushes after a reindex or a large stock update. The result is unchanged. Code that plugs into
+`Product::getProductsIdsBySkus()` no longer sees this lookup.
+
 ---
 
 # msi-core 1.2.0 — 2026-10-31
