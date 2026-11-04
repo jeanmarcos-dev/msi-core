@@ -10,17 +10,11 @@ namespace Magento\InventoryIndexer\Test\Unit\Model\Queue\UpdateIndexSalabilitySt
 use Magento\InventoryCatalogApi\Model\GetParentSkusOfChildrenSkusInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryIndexer\Indexer\Stock\DataProvider;
-use Magento\InventoryIndexer\Model\Queue\GetSalabilityDataForUpdate;
-use Magento\InventoryIndexer\Model\Queue\ReservationData;
-use Magento\InventoryIndexer\Model\Queue\UpdateIndexSalabilityStatus\IndexProcessor;
-use Magento\InventoryIndexer\Model\ResourceModel\UpdateIsSalable;
-use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexName;
-use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexNameBuilder;
-use Magento\InventoryMultiDimensionalIndexerApi\Model\IndexStructureInterface;
+use Magento\InventoryIndexer\Model\Queue\UpdateIndexSalabilityStatus\DerivedParentSalability;
 use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use PHPUnit\Framework\TestCase;
 
-class IndexProcessorTest extends TestCase
+class DerivedParentSalabilityTest extends TestCase
 {
     private const STOCK_ID = 3;
     private const TYPES = [
@@ -31,96 +25,68 @@ class IndexProcessorTest extends TestCase
         'bundle' => 'bundle',
     ];
 
-    public function testWritesTheChildAndTheConfigurableItLeftWithoutSalableChildren(): void
+    public function testDropsTheDerivedParentsAndKeepsTheRest(): void
     {
-        [$processor, $writes] = $this->createProcessor(
-            ['child' => false, 'conf' => true],
+        $salability = $this->createSalability([], [], []);
+
+        $this->assertSame(
+            ['child' => false, 'bundle' => false],
+            $salability->withoutDerivedParents(['child' => false, 'conf' => true, 'group' => true, 'bundle' => false])
+        );
+    }
+
+    public function testReportsAConfigurableLeftWithoutSalableChildren(): void
+    {
+        $salability = $this->createSalability(
             ['child' => ['conf']],
             ['conf' => '1'],
             ['configurable' => ['conf' => '0']]
         );
 
-        $this->assertSame(['child' => false, 'conf' => false], $processor->execute($this->reservation()));
-        $this->assertSame([['child' => false], ['conf' => false]], $writes->items);
+        $this->assertSame(['conf' => false], $salability->getChanges(['child'], self::STOCK_ID));
     }
 
-    public function testLeavesAParentWhoseChildrenStillMakeItSalable(): void
+    public function testReportsAGroupedParentBroughtBackByAChild(): void
     {
-        [$processor, $writes] = $this->createProcessor(
-            ['child' => false],
-            ['child' => ['conf', 'group']],
-            ['conf' => '1', 'group' => '1'],
-            ['configurable' => ['conf' => '1'], 'grouped' => ['group' => '1']]
-        );
-
-        $this->assertSame(['child' => false], $processor->execute($this->reservation()));
-        $this->assertSame([['child' => false], []], $writes->items);
-    }
-
-    public function testBringsBackAGroupedParentWhenAChildBecomesSalable(): void
-    {
-        [$processor] = $this->createProcessor(
-            ['child' => true],
+        $salability = $this->createSalability(
             ['child' => ['group']],
             ['group' => '0'],
             ['grouped' => ['group' => '1']]
         );
 
-        $this->assertSame(['child' => true, 'group' => true], $processor->execute($this->reservation()));
+        $this->assertSame(['group' => true], $salability->getChanges(['child'], self::STOCK_ID));
     }
 
-    public function testLooksUpNoParentWhenNoChildChanged(): void
+    public function testLeavesOutParentsWhoseSalabilityDidNotChange(): void
     {
-        [$processor, $writes] = $this->createProcessor([], [], [], []);
+        $salability = $this->createSalability(
+            ['child' => ['conf', 'group']],
+            ['conf' => '1', 'group' => '1'],
+            ['configurable' => ['conf' => '1'], 'grouped' => ['group' => '1']]
+        );
 
-        $this->assertSame([], $processor->execute($this->reservation()));
-        $this->assertSame([[], []], $writes->items);
+        $this->assertSame([], $salability->getChanges(['child'], self::STOCK_ID));
+    }
+
+    public function testLooksUpNoParentWithoutChildren(): void
+    {
+        $salability = $this->createSalability([], [], []);
+
+        $this->assertSame([], $salability->getChanges([], self::STOCK_ID));
     }
 
     public function testLeavesABundleToTheSalabilityCheck(): void
     {
-        [$processor, $writes] = $this->createProcessor(
-            ['other-child' => false, 'bundle' => false],
-            ['other-child' => ['bundle'], 'bundle' => []],
-            [],
-            []
-        );
+        $salability = $this->createSalability(['other-child' => ['bundle']], [], []);
 
-        $this->assertSame(
-            ['other-child' => false, 'bundle' => false],
-            $processor->execute($this->reservation())
-        );
-        $this->assertSame([['other-child' => false, 'bundle' => false], []], $writes->items);
+        $this->assertSame([], $salability->getChanges(['other-child'], self::STOCK_ID));
     }
 
-    private function createProcessor(
-        array $salabilityChanges,
+    private function createSalability(
         array $parentsByChild,
         array $storedParents,
         array $computedByType
-    ): array {
-        $writes = new \stdClass();
-        $writes->items = [];
-
-        $indexNameBuilder = $this->createMock(IndexNameBuilder::class);
-        $indexNameBuilder->method('setIndexId')->willReturnSelf();
-        $indexNameBuilder->method('addDimension')->willReturnSelf();
-        $indexNameBuilder->method('setAlias')->willReturnSelf();
-        $indexNameBuilder->method('build')->willReturn($this->createMock(IndexName::class));
-
-        $indexStructure = $this->createMock(IndexStructureInterface::class);
-        $indexStructure->method('isExist')->willReturn(true);
-
-        $updateIsSalable = $this->createMock(UpdateIsSalable::class);
-        $updateIsSalable->method('execute')->willReturnCallback(
-            function (...$arguments) use ($writes): void {
-                $writes->items[] = $arguments[1];
-            }
-        );
-
-        $getSalabilityDataForUpdate = $this->createMock(GetSalabilityDataForUpdate::class);
-        $getSalabilityDataForUpdate->method('execute')->willReturn($salabilityChanges);
-
+    ): DerivedParentSalability {
         $getParentSkus = $this->createMock(GetParentSkusOfChildrenSkusInterface::class);
         if ($parentsByChild) {
             $getParentSkus->method('execute')->willReturnCallback(
@@ -163,23 +129,12 @@ class IndexProcessorTest extends TestCase
             $dataProvider->expects($this->never())->method('getSiblingsData');
         }
 
-        $processor = new IndexProcessor(
-            $indexNameBuilder,
-            $indexStructure,
-            $updateIsSalable,
-            $getSalabilityDataForUpdate,
+        return new DerivedParentSalability(
             $getParentSkus,
             $getTypes,
             $getStockItemsData,
             $dataProvider,
             ['configurable', 'grouped']
         );
-
-        return [$processor, $writes];
-    }
-
-    private function reservation(): ReservationData
-    {
-        return new ReservationData(['child'], self::STOCK_ID);
     }
 }
