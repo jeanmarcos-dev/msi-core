@@ -157,7 +157,7 @@ class GetSalabilityDataForUpdateTest extends TestCase
                 function ($skus) {
                     $result = [];
                     foreach ($skus as $sku) {
-                        $result[$sku] = ['is_salable' => $this->salability[$sku] ?? false];
+                        $result[$sku] = ['is_salable' => (string)(int)($this->salability[$sku] ?? false)];
                     }
                     return $result;
                 }
