@@ -57,6 +57,20 @@ the parent's row, such as the stock APIs by stock id and `/V1/stockStatuses`, se
 after the update ([msi-core#128](https://github.com/jeanmarcos-dev/msi-core/issues/128)). Bundles were
 not affected: their salability check already looks at their children.
 
+### A stock reindex cleans the cache of the products whose salability it changes
+
+A reindex of one or more stocks cleaned the product cache only of the products that left the stock
+index, not of those whose `is_salable` changed while they stayed in it. With the price indexer on
+"Update on Save", the price reindex that follows a stock reindex cleaned every product of the stock
+as a side effect. With the price indexer on schedule, nothing did, so pages cached before the reindex
+kept the old salability. This reindex runs after the reconcile sweep, a stock save, a sales channel
+replacement, and from the `inventory.indexer.stock` consumer. When the sweep released the
+reservations of a complete order, the products became salable again but their cached pages still
+showed them out of stock. The reindex now compares each product's `is_salable` on every stock before
+and after, and cleans the products that appeared, disappeared or changed
+([msi-core#130](https://github.com/jeanmarcos-dev/msi-core/issues/130)). A full reindex of the
+`inventory` indexer was not affected: it cleans every product.
+
 ---
 
 # msi-core 1.2.0 — 2026-10-31
