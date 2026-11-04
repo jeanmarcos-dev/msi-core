@@ -14,6 +14,13 @@
             </argument>
         </arguments>
     </type>
+    <type name="Magento\InventoryIndexer\Model\Queue\UpdateIndexSalabilityStatus\IndexProcessor">
+        <arguments>
+            <argument name="parentTypesDerivedFromChildren" xsi:type="array">
+                <item name="configurable" xsi:type="string">configurable</item>
+            </argument>
+        </arguments>
+    </type>
     <type name="Magento\InventoryIndexer\Indexer\SiblingProductsProvidersPool">
         <arguments>
             <argument name="siblingProductsProviders" xsi:type="array">
