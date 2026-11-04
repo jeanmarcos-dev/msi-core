@@ -42,6 +42,7 @@ jobs:
           - group: 1
             modules: >-
               InventoryCatalog
+              InventoryCache
               InventoryShipping
               InventoryBundleProduct
               InventorySalesAdminUi

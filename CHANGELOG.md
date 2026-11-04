@@ -44,6 +44,19 @@ SKU when a configurable's child SKU changes case after the order is placed, or w
 writes them. Two SKUs that differ only in leading zeros, such as `01234` and `1234`, stay apart
 ([magento/magento2#35171](https://github.com/magento/magento2/issues/35171)).
 
+### A configurable or grouped product follows its children after an order
+
+When an order sold out the last salable child of a configurable or grouped product, the salability
+update that runs after the order set the child's `is_salable` to 0 in the stock index but left the
+parent's at 1 until the next reindex, and did not clean the parent's product cache. It took the
+parent's salability from `IsProductSalable`, which for these two types checks only the parent's own
+stock status. The update now recomputes the configurable and grouped parents of the children whose
+salability changed from the children's index rows, as a reindex does, writes those that change and
+cleans their cache. It does the same when a cancellation makes a child salable again. Code that reads
+the parent's row, such as the stock APIs by stock id and `/V1/stockStatuses`, sees the change right
+after the update ([msi-core#128](https://github.com/jeanmarcos-dev/msi-core/issues/128)). Bundles were
+not affected: their salability check already looks at their children.
+
 ---
 
 # msi-core 1.2.0 — 2026-10-31
