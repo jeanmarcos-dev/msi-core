@@ -25,8 +25,6 @@ use Magento\InventorySalesApi\Api\Data\SalesEventExtensionFactory;
 use Magento\InventorySalesApi\Api\Data\SalesEventInterface;
 use Magento\InventorySalesApi\Api\Data\SalesEventInterfaceFactory;
 use Magento\InventorySalesApi\Api\PlaceReservationsForSalesEventInterface;
-use Magento\InventorySalesApi\Api\StockResolverInterface;
-use Magento\InventorySalesApi\Model\GetStockItemsDataInterface;
 use Magento\InventorySalesApi\Test\Fixture\StockSalesChannels as StockSalesChannelsFixture;
 use Magento\TestFramework\Fixture\AppIsolation;
 use Magento\TestFramework\Fixture\Cache;
@@ -286,7 +284,7 @@ class ReservationCacheInvalidationTest extends TestCase
         $step = sprintf('%s of %s on %s', $eventType, $quantity, self::CHILD);
         self::assertSame(
             [self::CHILD => $expectedSalable, $parentSku => $expectedSalable],
-            $this->indexedSalability([self::CHILD, $parentSku]),
+            (new IndexedSalability())->onBaseWebsite([self::CHILD, $parentSku]),
             $step
         );
         self::assertSame(
@@ -295,22 +293,6 @@ class ReservationCacheInvalidationTest extends TestCase
             $step
         );
         self::assertSame(['app' => true, 'full_page' => true], $canaries->bystanderKept(), $step);
-    }
-
-    private function indexedSalability(array $skus): array
-    {
-        $objectManager = Bootstrap::getObjectManager();
-        $stockId = (int)$objectManager->get(StockResolverInterface::class)
-            ->execute(SalesChannelInterface::TYPE_WEBSITE, 'base')
-            ->getStockId();
-        $rows = $objectManager->get(GetStockItemsDataInterface::class)->execute($skus, $stockId);
-
-        $salability = [];
-        foreach ($skus as $sku) {
-            $salability[$sku] = (bool)($rows[$sku][GetStockItemsDataInterface::IS_SALABLE] ?? false);
-        }
-
-        return $salability;
     }
 
     private function placeReservation(string $incrementId, float $quantity, string $eventType): void
