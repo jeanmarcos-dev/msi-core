@@ -17,6 +17,23 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+Upstream `magento/inventory` `develop` merged up to `fca70cb`. No schema, configuration or API
+change.
+
+### Fixes taken from upstream
+
+- **AC-18791** — the `inventory.reservations.updateSalabilityStatus` consumer no longer cleans the
+  product cache of every item on every order, and no longer fails on a SKU that has no product. It
+  compared each SKU's salability with the `is_salable` of the stock index, which MySQL returns as a
+  string, so every SKU of the order and its parents counted as changed and had its cache cleaned
+  whether its salability changed or not. A SKU with no product is now skipped, and one missing from
+  the stock index counts as not salable. Present since 1.0.0: upstream introduced it in ACP2E-4220,
+  and it ships in `magento/inventory` 1.2.9 (Magento 2.4.9).
+
+---
+
 # msi-core 1.2.0 — 2026-10-31
 
 The main fixes: a configurable product is salable only in the websites where one of its children is enabled, assigned
