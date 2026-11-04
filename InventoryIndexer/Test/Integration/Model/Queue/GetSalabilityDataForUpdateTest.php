@@ -12,21 +12,15 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\Queue\GetSalabilityDataForUpdate;
 use Magento\InventoryIndexer\Model\Queue\ReservationData;
+use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\TestFramework\Fixture\AppIsolation;
 use Magento\TestFramework\Fixture\DataFixture;
-use Magento\TestFramework\Fixture\DataFixtureStorage;
-use Magento\TestFramework\Fixture\DataFixtureStorageManager;
 use Magento\TestFramework\Fixture\DbIsolation;
 use Magento\TestFramework\Helper\Bootstrap;
 use PHPUnit\Framework\TestCase;
 
 class GetSalabilityDataForUpdateTest extends TestCase
 {
-    /**
-     * @var DataFixtureStorage
-     */
-    private DataFixtureStorage $fixtures;
-
     /**
      * @var GetSalabilityDataForUpdate
      */
@@ -44,7 +38,6 @@ class GetSalabilityDataForUpdateTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->fixtures = DataFixtureStorageManager::getStorage();
         $objectManager = Bootstrap::getObjectManager();
         $this->model = $objectManager->get(GetSalabilityDataForUpdate::class);
         $this->defaultStockProvider = $objectManager->get(DefaultStockProviderInterface::class);
@@ -77,15 +70,15 @@ class GetSalabilityDataForUpdateTest extends TestCase
     {
         $stockId = (int) $this->defaultStockProvider->getId();
 
-        $productWithoutStatus = $this->fixtures->get('withoutStatus');
-        $connection = $this->resourceConnection->getConnection();
-        $stockStatusTable = $this->resourceConnection->getTableName('cataloginventory_stock_status');
-        $connection->delete($stockStatusTable, ['product_id = ?' => (int)$productWithoutStatus->getId()]);
+        $stockIndexTable = Bootstrap::getObjectManager()->get(StockIndexTableNameResolverInterface::class)
+            ->execute($stockId);
+        $this->resourceConnection->getConnection()->delete($stockIndexTable, ['sku = ?' => 'without-stock-status']);
 
         $reservationData = new ReservationData(['with-stock-status', 'without-stock-status'], $stockId);
 
         $result = $this->model->execute($reservationData);
 
         self::assertIsArray($result);
+        self::assertArrayNotHasKey('with-stock-status', $result);
     }
 }
