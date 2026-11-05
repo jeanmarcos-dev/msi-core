@@ -17,10 +17,30 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.2.1 — 2026-11-05
+
+The main fixes: a configurable or grouped product follows the salability of its children right after
+an order or a cancellation, instead of at the next reindex
+([msi-core#128](https://github.com/jeanmarcos-dev/msi-core/issues/128)); a stock reindex cleans the
+cache of the products whose salability it changes
+([msi-core#130](https://github.com/jeanmarcos-dev/msi-core/issues/130)); and a SKU that differs from
+the catalog's only in case is found by the product lookups
+([msi-core#125](https://github.com/jeanmarcos-dev/msi-core/issues/125)) and deducted by a credit memo
+without "Return to Stock" ([msi-core#135](https://github.com/jeanmarcos-dev/msi-core/issues/135)).
+Looking up the ids of many SKUs takes linear time instead of quadratic
+([msi-core#127](https://github.com/jeanmarcos-dev/msi-core/issues/127)).
 
 Upstream `magento/inventory` `develop` merged up to `fca70cb`. No schema, configuration or API
 change.
+
+When upgrading from 1.2.0:
+
+- Deploy as usual. Nothing changes in the database or the configuration.
+- Reindex `inventory` once afterwards. It corrects the configurable and grouped products that orders
+  placed before the upgrade left salable, and cleans the cache of every product.
+- Code that plugs into `Product::getProductsIdsBySkus()` no longer sees msi-core's lookup of product
+  ids by SKU, and `DeductSourceItemQuantityOnRefundPlugin` no longer takes the product resource model
+  in its constructor. Neither class is `@api`.
 
 ### Fixes taken from upstream
 
