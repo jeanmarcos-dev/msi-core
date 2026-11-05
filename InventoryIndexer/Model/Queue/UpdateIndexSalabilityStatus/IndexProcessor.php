@@ -33,12 +33,14 @@ class IndexProcessor
      * @param IndexStructureInterface $indexStructure
      * @param UpdateIsSalable $updateIsSalable
      * @param GetSalabilityDataForUpdate $getSalabilityDataForUpdate
+     * @param DerivedParentSalability $derivedParentSalability
      */
     public function __construct(
         private readonly IndexNameBuilder $indexNameBuilder,
         private readonly IndexStructureInterface $indexStructure,
         private readonly UpdateIsSalable $updateIsSalable,
         private readonly GetSalabilityDataForUpdate $getSalabilityDataForUpdate,
+        private readonly DerivedParentSalability $derivedParentSalability,
     ) {
     }
 
@@ -51,7 +53,9 @@ class IndexProcessor
      */
     public function execute(ReservationData $reservationData): array
     {
-        $dataForUpdate = $this->getSalabilityDataForUpdate->execute($reservationData);
+        $dataForUpdate = $this->derivedParentSalability->withoutDerivedParents(
+            $this->getSalabilityDataForUpdate->execute($reservationData)
+        );
 
         $stockId = $reservationData->getStock();
         $mainIndexName = $this->indexNameBuilder->setIndexId(InventoryIndexer::INDEXER_ID)
@@ -63,6 +67,12 @@ class IndexProcessor
         }
         $this->updateIsSalable->execute($mainIndexName, $dataForUpdate, $this->connectionName);
 
-        return $dataForUpdate;
+        $parentsForUpdate = $this->derivedParentSalability->getChanges(
+            array_map('strval', array_keys($dataForUpdate)),
+            $stockId
+        );
+        $this->updateIsSalable->execute($mainIndexName, $parentsForUpdate, $this->connectionName);
+
+        return $dataForUpdate + $parentsForUpdate;
     }
 }

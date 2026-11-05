@@ -17,6 +17,106 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.2.1 — 2026-11-05
+
+The main fixes: a configurable or grouped product follows the salability of its children right after
+an order or a cancellation, instead of at the next reindex
+([msi-core#128](https://github.com/jeanmarcos-dev/msi-core/issues/128)); a stock reindex cleans the
+cache of the products whose salability it changes
+([msi-core#130](https://github.com/jeanmarcos-dev/msi-core/issues/130)); and a SKU that differs from
+the catalog's only in case is found by the product lookups
+([msi-core#125](https://github.com/jeanmarcos-dev/msi-core/issues/125)) and deducted by a credit memo
+without "Return to Stock" ([msi-core#135](https://github.com/jeanmarcos-dev/msi-core/issues/135)).
+Looking up the ids of many SKUs takes linear time instead of quadratic
+([msi-core#127](https://github.com/jeanmarcos-dev/msi-core/issues/127)).
+
+Upstream `magento/inventory` `develop` merged up to `fca70cb`. No schema, configuration or API
+change.
+
+When upgrading from 1.2.0:
+
+- Deploy as usual. Nothing changes in the database or the configuration.
+- Reindex `inventory` once afterwards. It corrects the configurable and grouped products that orders
+  placed before the upgrade left salable, and cleans the cache of every product.
+- Code that plugs into `Product::getProductsIdsBySkus()` no longer sees msi-core's lookup of product
+  ids by SKU, and `DeductSourceItemQuantityOnRefundPlugin` no longer takes the product resource model
+  in its constructor. Neither class is `@api`.
+
+### Fixes taken from upstream
+
+- **AC-18791** — the `inventory.reservations.updateSalabilityStatus` consumer no longer cleans the
+  product cache of every item on every order, and no longer fails on a SKU that has no product. It
+  compared each SKU's salability with the `is_salable` of the stock index, which MySQL returns as a
+  string, so every SKU of the order and its parents counted as changed and had its cache cleaned
+  whether its salability changed or not. A SKU with no product is now skipped, and one missing from
+  the stock index counts as not salable. Present since 1.0.0: upstream introduced it in ACP2E-4220,
+  and it ships in `magento/inventory` 1.2.9 (Magento 2.4.9).
+
+### Product lookups find a SKU whatever its case
+
+`GetProductIdsBySkus` and `GetProductTypesBySkus` match the requested SKUs without regard to case and
+key their result by the SKU as requested, which is what their caches already returned once warm.
+With a cold cache, a SKU that differed from the catalog's only in case was not found: the id lookup
+threw, which failed the salability update of the whole order, and the type lookup returned it under
+the catalog's spelling, so the AC-18791 code above skipped it
+([msi-core#125](https://github.com/jeanmarcos-dev/msi-core/issues/125)). Reservations carry such a
+SKU when a configurable's child SKU changes case after the order is placed, or when third-party code
+writes them. Two SKUs that differ only in leading zeros, such as `01234` and `1234`, stay apart
+([magento/magento2#35171](https://github.com/magento/magento2/issues/35171)).
+
+### A configurable or grouped product follows its children after an order
+
+When an order sold out the last salable child of a configurable or grouped product, the salability
+update that runs after the order set the child's `is_salable` to 0 in the stock index but left the
+parent's at 1 until the next reindex, and did not clean the parent's product cache. It took the
+parent's salability from `IsProductSalable`, which for these two types checks only the parent's own
+stock status. The update now recomputes the configurable and grouped parents of the children whose
+salability changed from the children's index rows, as a reindex does, writes those that change and
+cleans their cache. It does the same when a cancellation makes a child salable again. Code that reads
+the parent's row, such as the stock APIs by stock id and `/V1/stockStatuses`, sees the change right
+after the update ([msi-core#128](https://github.com/jeanmarcos-dev/msi-core/issues/128)). Bundles were
+not affected: their salability check already looks at their children.
+
+### A stock reindex cleans the cache of the products whose salability it changes
+
+A reindex of one or more stocks cleaned the product cache only of the products that left the stock
+index, not of those whose `is_salable` changed while they stayed in it. With the price indexer on
+"Update on Save", the price reindex that follows a stock reindex cleaned every product of the stock
+as a side effect. With the price indexer on schedule, nothing did, so pages cached before the reindex
+kept the old salability. This reindex runs after the reconcile sweep, a stock save, a sales channel
+replacement, and from the `inventory.indexer.stock` consumer. When the sweep released the
+reservations of a complete order, the products became salable again but their cached pages still
+showed them out of stock. The reindex now compares each product's `is_salable` on every stock before
+and after, and cleans the products that appeared, disappeared or changed
+([msi-core#130](https://github.com/jeanmarcos-dev/msi-core/issues/130)). A full reindex of the
+`inventory` indexer was not affected: it cleans every product.
+
+### Looking up the ids of many SKUs takes linear time
+
+`GetProductIdsBySkus` took time quadratic in the number of SKUs it was given. It called Magento's
+`Product::getProductsIdsBySkus()`, which lowercases the whole requested list once for every row it
+returns. It now reads the ids from `catalog_product_entity` and maps them in one pass, as
+`GetProductTypesBySkus` does since the case fix above. On a catalog of 4412 products, a lookup of
+every SKU went from about 500 ms to 13 ms, and one of 1000 SKUs from 31 ms to 3 ms
+([msi-core#127](https://github.com/jeanmarcos-dev/msi-core/issues/127)). The cost showed wherever
+many SKUs went through the lookup at once: imports, bulk source assignments and transfers, and the
+cache flushes after a reindex or a large stock update. The result is unchanged. Code that plugs into
+`Product::getProductsIdsBySkus()` no longer sees this lookup.
+
+### A credit memo deducts a grouped product's child whose SKU changed case
+
+A credit memo created without "Return to Stock" deducts the refunded quantity from the source and
+compensates the order's reservation. It skipped a grouped product's child whose SKU in the catalog
+differed only in case from the one on the order: the source was not deducted and the reservation
+stayed open, and if the reconcile sweep later released it, the salable quantity went up by the
+refunded quantity although the source was never deducted
+([msi-core#135](https://github.com/jeanmarcos-dev/msi-core/issues/135)). Other items were not
+affected, because their SKU is read from the catalog. Products deleted since the order are still
+skipped. `DeductSourceItemQuantityOnRefundPlugin` no longer takes the product resource model in its
+constructor.
+
+---
+
 # msi-core 1.2.0 — 2026-10-31
 
 The main fixes: a configurable product is salable only in the websites where one of its children is enabled, assigned

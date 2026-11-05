@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventoryCache\Plugin\InventoryIndexer\Indexer\Stock\Strategy\Sync;
 
 use Magento\InventoryCache\Model\FlushCacheByProductIds;
-use Magento\InventoryIndexer\Model\ResourceModel\GetProductIdsByStockIds;
+use Magento\InventoryCache\Model\ResourceModel\GetProductSalabilityByStockIds;
 use Magento\InventoryIndexer\Indexer\Stock\Strategy\Sync;
 
 /**
@@ -17,45 +17,52 @@ use Magento\InventoryIndexer\Indexer\Stock\Strategy\Sync;
 class CacheFlush
 {
     /**
-     * @var FlushCacheByProductIds
-     */
-    private $flushCacheByProductIds;
-
-    /**
-     * @var GetProductIdsByStockIds
-     */
-    private $getProductIdsByStockIds;
-
-    /**
      * @param FlushCacheByProductIds $flushCacheByProductIds
-     * @param GetProductIdsByStockIds $getProductIdsForCacheFlush
+     * @param GetProductSalabilityByStockIds $getProductSalabilityByStockIds
      */
     public function __construct(
-        FlushCacheByProductIds $flushCacheByProductIds,
-        GetProductIdsByStockIds $getProductIdsForCacheFlush
+        private readonly FlushCacheByProductIds $flushCacheByProductIds,
+        private readonly GetProductSalabilityByStockIds $getProductSalabilityByStockIds
     ) {
-        $this->flushCacheByProductIds = $flushCacheByProductIds;
-        $this->getProductIdsByStockIds = $getProductIdsForCacheFlush;
     }
 
     /**
-     * Clean cache after non default stock reindex.
+     * Clean the products whose stock index row appeared, disappeared or changed salability.
      *
      * @param Sync $subject
      * @param callable $proceed
      * @param array $stockIds
      * @return void
-     * @throws \Exception in case product entity type hasn't been initialize.
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function aroundExecuteList(Sync $subject, callable $proceed, array $stockIds)
     {
-        $beforeReindexProductIds = $this->getProductIdsByStockIds->execute($stockIds);
+        $before = $this->getProductSalabilityByStockIds->execute($stockIds);
         $proceed($stockIds);
-        $afterReindexProductIds = $this->getProductIdsByStockIds->execute($stockIds);
-        $productIdsForCacheClean = array_diff($beforeReindexProductIds, $afterReindexProductIds);
-        if ($productIdsForCacheClean) {
-            $this->flushCacheByProductIds->execute($productIdsForCacheClean);
+        $after = $this->getProductSalabilityByStockIds->execute($stockIds);
+
+        $productIds = $this->getChangedProductIds($before, $after);
+        if ($productIds) {
+            $this->flushCacheByProductIds->execute($productIds);
         }
+    }
+
+    /**
+     * Collect the products whose salability differs between two readings of the stock indexes.
+     *
+     * @param array $before
+     * @param array $after
+     * @return int[]
+     */
+    private function getChangedProductIds(array $before, array $after): array
+    {
+        $changed = [];
+        foreach (array_keys($before + $after) as $stockId) {
+            $old = $before[$stockId] ?? [];
+            $new = $after[$stockId] ?? [];
+            $changed[] = array_keys(array_diff_assoc($old, $new) + array_diff_assoc($new, $old));
+        }
+
+        return array_values(array_unique(array_merge([], ...$changed)));
     }
 }

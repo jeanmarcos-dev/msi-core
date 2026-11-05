@@ -17,7 +17,6 @@ use Magento\Sales\Api\Data\CreditmemoInterface;
 use Magento\Sales\Api\Data\CreditmemoItemInterface as CreditmemoItem;
 use Magento\Sales\Api\Data\OrderItemInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Catalog\Model\ResourceModel\Product as ProductResourceModel;
 
 class DeductSourceItemQuantityOnRefundPlugin
 {
@@ -52,18 +51,12 @@ class DeductSourceItemQuantityOnRefundPlugin
     private $orderRepository;
 
     /**
-     * @var ProductResourceModel
-     */
-    private $productResource;
-
-    /**
      * @param GetSkuFromOrderItemInterface $getSkuFromOrderItem
      * @param ItemsToRefundInterfaceFactory $itemsToRefundFactory
      * @param IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType
      * @param GetProductTypesBySkusInterface $getProductTypesBySkus
      * @param DeductSourceItemQuantityOnRefund $deductSourceItemQuantityOnRefund
      * @param OrderRepositoryInterface $orderRepository
-     * @param ProductResourceModel $productResource
      */
     public function __construct(
         GetSkuFromOrderItemInterface $getSkuFromOrderItem,
@@ -71,8 +64,7 @@ class DeductSourceItemQuantityOnRefundPlugin
         IsSourceItemManagementAllowedForProductTypeInterface $isSourceItemManagementAllowedForProductType,
         GetProductTypesBySkusInterface $getProductTypesBySkus,
         DeductSourceItemQuantityOnRefund $deductSourceItemQuantityOnRefund,
-        OrderRepositoryInterface $orderRepository,
-        ProductResourceModel $productResource
+        OrderRepositoryInterface $orderRepository
     ) {
         $this->getSkuFromOrderItem = $getSkuFromOrderItem;
         $this->itemsToRefundFactory = $itemsToRefundFactory;
@@ -80,7 +72,6 @@ class DeductSourceItemQuantityOnRefundPlugin
         $this->getProductTypesBySkus = $getProductTypesBySkus;
         $this->deductSourceItemQuantityOnRefund = $deductSourceItemQuantityOnRefund;
         $this->orderRepository = $orderRepository;
-        $this->productResource = $productResource;
     }
 
     /**
@@ -139,11 +130,11 @@ class DeductSourceItemQuantityOnRefundPlugin
             }
         }
 
-        $existingProductIdsBySkus = $this->productResource->getProductsIdsBySkus($productSkus);
+        $existingProductTypesBySkus = $this->getProductTypesBySkus->execute($productSkus);
 
         $itemsToDeductFromSource = [];
         foreach ($itemsToRefund as $sku => $data) {
-            if (array_key_exists($sku, $existingProductIdsBySkus)) {
+            if (isset($existingProductTypesBySkus[$sku])) {
                 $itemsToDeductFromSource[] = $this->itemsToRefundFactory->create([
                     'sku' => $sku,
                     'qty' => $data['qty'],

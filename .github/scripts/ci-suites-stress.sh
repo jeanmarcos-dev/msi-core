@@ -49,6 +49,10 @@ echo "::group::checkouts, 6 workers"
 parallel checkout-worker.php 6 8
 echo "::endgroup::"
 
+echo "::group::cache contract"
+run "$suites/cache-contract.php"
+echo "::endgroup::"
+
 echo "::group::cancel and ledger"
 run "$suites/cancel-orders.php"
 run "$suites/ledger.php"
