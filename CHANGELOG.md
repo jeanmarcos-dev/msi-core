@@ -83,6 +83,18 @@ many SKUs went through the lookup at once: imports, bulk source assignments and 
 cache flushes after a reindex or a large stock update. The result is unchanged. Code that plugs into
 `Product::getProductsIdsBySkus()` no longer sees this lookup.
 
+### A credit memo deducts a grouped product's child whose SKU changed case
+
+A credit memo created without "Return to Stock" deducts the refunded quantity from the source and
+compensates the order's reservation. It skipped a grouped product's child whose SKU in the catalog
+differed only in case from the one on the order: the source was not deducted and the reservation
+stayed open, and if the reconcile sweep later released it, the salable quantity went up by the
+refunded quantity although the source was never deducted
+([msi-core#135](https://github.com/jeanmarcos-dev/msi-core/issues/135)). Other items were not
+affected, because their SKU is read from the catalog. Products deleted since the order are still
+skipped. `DeductSourceItemQuantityOnRefundPlugin` no longer takes the product resource model in its
+constructor.
+
 ---
 
 # msi-core 1.2.0 — 2026-10-31
