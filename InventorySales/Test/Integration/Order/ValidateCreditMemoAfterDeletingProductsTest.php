@@ -35,7 +35,7 @@ use PHPUnit\Framework\TestCase;
  * @magentoAppIsolation enabled
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
  */
-class ValidateCreditMemoAfterDeletingProducts extends TestCase
+class ValidateCreditMemoAfterDeletingProductsTest extends TestCase
 {
     /**
      * @var ObjectManagerInterface
