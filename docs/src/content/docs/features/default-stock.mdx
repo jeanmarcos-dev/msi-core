@@ -27,6 +27,12 @@ describes what it breaks and how to migrate.
 - The `if ($stockId === $defaultStockId)` branch is gone from the salability readers, the product
   collections and filters, the price index, search, catalog rules and visual merchandiser: around
   fifty branches across twenty modules.
+- The last ones are gone as well. Stock 1 filters out the configurable options it cannot sell, and its
+  stock item configuration requires the SKU to be in one of its sources, like any stock. The salable
+  quantity column of the admin, the cache of SKU assignments and Adobe Commerce's Order by SKU no
+  longer treat it apart.
+- The cart reads stock 1 from its index. Core still preloads the cart's stock status from
+  `cataloginventory_stock_status`, but nothing copies that frozen status into the MSI cache anymore.
 - The read fallback to `cataloginventory_stock_item` is removed. It only existed because the view held
   no rows for disabled products; the real table does, because the index is built from
   `inventory_source_item` rather than from the enabled catalog.

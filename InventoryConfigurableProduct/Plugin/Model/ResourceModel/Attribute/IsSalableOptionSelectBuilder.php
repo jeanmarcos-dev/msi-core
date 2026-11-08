@@ -14,7 +14,6 @@ use Magento\Framework\DB\Select;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
 use Magento\Store\Model\StoreManagerInterface;
@@ -40,11 +39,6 @@ class IsSalableOptionSelectBuilder
     private $stockIndexTableNameResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private $defaultStockProvider;
-
-    /**
      * @var StockConfigurationInterface
      */
     private $stockConfig;
@@ -53,21 +47,17 @@ class IsSalableOptionSelectBuilder
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
      * @param StockIndexTableNameResolverInterface $stockIndexTableNameResolver
-     * @param DefaultStockProviderInterface|null $defaultStockProvider
      * @param StockConfigurationInterface|null $stockConfig
      */
     public function __construct(
         StoreManagerInterface $storeManager,
         StockResolverInterface $stockResolver,
         StockIndexTableNameResolverInterface $stockIndexTableNameResolver,
-        ?DefaultStockProviderInterface $defaultStockProvider = null,
         ?StockConfigurationInterface $stockConfig = null
     ) {
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
         $this->stockIndexTableNameResolver = $stockIndexTableNameResolver;
-        $this->defaultStockProvider = $defaultStockProvider ?: ObjectManager::getInstance()
-            ->get(DefaultStockProviderInterface::class);
         $this->stockConfig = $stockConfig ?: ObjectManager::getInstance()
             ->get(StockConfigurationInterface::class);
     }
@@ -90,9 +80,6 @@ class IsSalableOptionSelectBuilder
         $websiteCode = $this->storeManager->getWebsite()->getCode();
         $stock = $this->stockResolver->execute(SalesChannelInterface::TYPE_WEBSITE, $websiteCode);
         $stockId = (int)$stock->getStockId();
-        if ($stockId === $this->defaultStockProvider->getId()) {
-            return $select;
-        }
         $stockTable = $this->stockIndexTableNameResolver->execute($stockId);
 
         if (!$this->stockConfig->isShowOutOfStock()) {
