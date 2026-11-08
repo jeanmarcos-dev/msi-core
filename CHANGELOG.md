@@ -50,6 +50,16 @@ returned the select untouched for stock 1, and since it replaces core's `InStock
 by name, nothing filtered those options. Stock 1 now joins its own index like any stock
 ([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). The same code is in upstream.
 
+### Websites are left without a stock when stock 1 does not exist
+
+**This changes behaviour.** msi-core lets you delete stock 1, but then creating a website failed with
+`Stock with id "1" does not exist.` after the website had been saved, and saving a stock that dropped
+a website failed with `Could not replace Sales Channels for Stock` and left that website without a
+stock anyway. Both now complete. A new website, or a website that a stock save drops, still goes to
+stock 1 when it exists, and is left without a stock when it does not. Nothing creates stock 1 again or
+picks another stock, so such a website needs a stock before its storefront takes orders
+([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). Present since 1.0.0.
+
 ### The stock item configuration of stock 1 requires the SKU to be in the stock
 
 **This changes behaviour.** `GetStockItemConfigurationInterface::execute()` throws

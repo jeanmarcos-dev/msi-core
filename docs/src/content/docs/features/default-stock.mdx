@@ -39,6 +39,9 @@ describes what it breaks and how to migrate.
 - Stock 1 is editable and deletable, and its sources can be assigned and unassigned. The admin website
   still resolves to stock 1, and fails with a clear error rather than a raw `NoSuchEntityException`
   when someone deletes it.
+- A new website goes to stock 1, and so does a website that a stock save drops. When stock 1 does
+  not exist, that website is left without a stock instead of failing the save. Nothing creates stock 1
+  again or picks another stock, so assign the website to a stock before its storefront takes orders.
 
 ## Stock item configuration lives in MSI
 
