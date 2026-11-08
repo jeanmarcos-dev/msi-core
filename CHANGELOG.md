@@ -17,6 +17,20 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+Upstream `magento/inventory` `develop` merged up to `c83f8b3`. No schema, configuration or API
+change.
+
+### Not taken
+
+- **ACP2E-5457**, which stops checkout from failing with *Could not acquire inventory lock* on
+  products without managed stock: upstream skips those SKUs in `CartManagementPlugin`. This line
+  removed that plugin in 1.1.2, and its reservation lock has skipped SKUs with `manage_stock = 0` or
+  `can_subtract = 0` since then.
+
+---
+
 # msi-core 1.2.1 — 2026-11-05
 
 The main fixes: a configurable or grouped product follows the salability of its children right after
