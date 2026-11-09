@@ -24,3 +24,8 @@ for registration in "$source"/*/registration.php; do
 done
 
 sed -i 's#<rule ref="\(.*Magento2Framework\)"/>#<rule ref="\1"><exclude name="Magento2Framework.Header.Copyright"/><exclude name="Magento2Framework.Header.CopyrightAnotherExtensionsFiles"/><exclude name="Magento2Framework.Header.CopyrightGraphQL"/></rule>#' dev/tests/static/framework/Magento/ruleset.xml
+
+cat > dev/tests/static/testsuite/Magento/Test/Php/_files/phpstan/blacklist/msi-core.txt <<'LIST'
+app/code/Magento/InventoryAdvancedCheckout/Plugin
+app/code/Magento/InventoryVisualMerchandiser/Plugin
+LIST
