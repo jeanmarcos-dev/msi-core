@@ -74,9 +74,11 @@ The other stock 1 branches are gone too. Stock 1 warms its cache of SKU assignme
 and in Adobe Commerce, Order by SKU checks salability with MSI on stock 1 instead of handing it to the
 legacy implementation. Adobe Commerce is not covered by CI, which runs Magento Open Source and
 Mage-OS. `GetStockItemConfiguration`, `GetSalableQuantityDataBySku`, `IsSalableOptionSelectBuilder`,
-`AreProductsAssignedToStockCacheProxy` and `AreProductsSalablePlugin` no longer take
-`DefaultStockProviderInterface` in their constructor, and `StockRegistryStockStatusCache` is removed.
-None of them is `@api`.
+`AreProductsAssignedToStockCacheProxy`, `AreProductsSalablePlugin` and the Visual Merchandiser
+`QuantityAndStockPlugin` no longer take `DefaultStockProviderInterface` in their constructor.
+`StockRegistryStockStatusCache` is removed, and so are `StockStatusExpressionForDefaultStock` and the
+three `InventoryBundleProductIndexer` plugins that fed reservations to the legacy bundle stock
+indexer, which msi-core never runs. None of them is `@api`.
 
 ---
 
