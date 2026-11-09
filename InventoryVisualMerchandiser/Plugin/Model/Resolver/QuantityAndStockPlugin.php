@@ -12,7 +12,6 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Ddl\Table;
 use Magento\Framework\EntityManager\MetadataPool;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Api\Data\SalesChannelInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
@@ -54,11 +53,6 @@ class QuantityAndStockPlugin
     private StockIndexTableNameResolverInterface $stockIndexTableNameResolver;
 
     /**
-     * @var DefaultStockProviderInterface
-     */
-    private DefaultStockProviderInterface $defaultStockProvider;
-
-    /**
      * @var MetadataPool
      */
     private MetadataPool $metadataPool;
@@ -68,7 +62,6 @@ class QuantityAndStockPlugin
      * @param StoreManagerInterface $storeManager
      * @param StockResolverInterface $stockResolver
      * @param StockIndexTableNameResolverInterface $stockIndexTableNameResolver
-     * @param DefaultStockProviderInterface $defaultStockProvider
      * @param MetadataPool $metadataPool
      */
     public function __construct(
@@ -76,14 +69,12 @@ class QuantityAndStockPlugin
         StoreManagerInterface                $storeManager,
         StockResolverInterface               $stockResolver,
         StockIndexTableNameResolverInterface $stockIndexTableNameResolver,
-        DefaultStockProviderInterface        $defaultStockProvider,
         MetadataPool                         $metadataPool
     ) {
         $this->resource = $resource;
         $this->storeManager = $storeManager;
         $this->stockResolver = $stockResolver;
         $this->stockIndexTableNameResolver = $stockIndexTableNameResolver;
-        $this->defaultStockProvider = $defaultStockProvider;
         $this->metadataPool = $metadataPool;
     }
 

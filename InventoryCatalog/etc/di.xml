@@ -182,7 +182,6 @@
     <type name="Magento\CatalogInventory\Model\ResourceModel\Indexer\Stock\GetStatusExpression">
         <arguments>
             <argument name="statusExpressions" xsi:type="array">
-                <item name="default" xsi:type="object">Magento\InventoryCatalog\Model\ResourceModel\StockStatusExpressionForDefaultStock</item>
                 <item name="bundle" xsi:type="object">Magento\CatalogInventory\Model\ResourceModel\Indexer\Stock\StatusExpression\DefaultExpression</item>
                 <item name="grouped" xsi:type="object">Magento\CatalogInventory\Model\ResourceModel\Indexer\Stock\StatusExpression\DefaultExpression</item>
             </argument>

@@ -12,7 +12,6 @@ use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
 use Magento\Framework\EntityManager\MetadataPool;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryIndexer\Model\StockIndexTableNameResolverInterface;
 use Magento\InventorySalesApi\Api\StockResolverInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
@@ -51,11 +50,6 @@ class QuantityAndStockPluginTest extends TestCase
     private StockIndexTableNameResolverInterface $stockIndexTableNameResolver;
 
     /**
-     * @var DefaultStockProviderInterface|MockObject
-     */
-    private DefaultStockProviderInterface $defaultStockProvider;
-
-    /**
      * @var MetadataPool|MockObject
      */
     private MetadataPool $metadataPool;
@@ -69,7 +63,6 @@ class QuantityAndStockPluginTest extends TestCase
         $this->storeManager = $this->createMock(StoreManagerInterface::class);
         $this->stockResolver = $this->createMock(StockResolverInterface::class);
         $this->stockIndexTableNameResolver = $this->createMock(StockIndexTableNameResolverInterface::class);
-        $this->defaultStockProvider = $this->createMock(DefaultStockProviderInterface::class);
         $this->metadataPool = $this->createMock(MetadataPool::class);
 
         parent::setUp();
@@ -147,7 +140,6 @@ class QuantityAndStockPluginTest extends TestCase
             $this->storeManager,
             $this->stockResolver,
             $this->stockIndexTableNameResolver,
-            $this->defaultStockProvider,
             $this->metadataPool
         );
         $plugin->aroundJoinStock($subject, $callback, $collection);

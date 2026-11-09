@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Magento\InventorySales\Plugin\InventoryApi\StockRepository;
 
 use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\InventoryApi\Api\Data\StockInterface;
 use Magento\InventoryApi\Api\StockRepositoryInterface;
 use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
@@ -89,7 +90,7 @@ class SaveSalesChannelsLinksPlugin
         try {
             $this->replaceSalesChannelsOnStock->execute($salesChannels, $stockId);
 
-            if (count($unAssignedSalesChannels)) {
+            if (count($unAssignedSalesChannels) && $this->isDefaultStockPresent($subject)) {
                 $mergedSalesChannels = array_merge(
                     $unAssignedSalesChannels,
                     $this->getAssignedSalesChannelsForStock->execute($this->defaultStockProvider->getId())
@@ -105,5 +106,22 @@ class SaveSalesChannelsLinksPlugin
         }
 
         return $stockId;
+    }
+
+    /**
+     * Check whether the default stock still exists.
+     *
+     * @param StockRepositoryInterface $stockRepository
+     * @return bool
+     */
+    private function isDefaultStockPresent(StockRepositoryInterface $stockRepository): bool
+    {
+        try {
+            $stockRepository->get($this->defaultStockProvider->getId());
+        } catch (NoSuchEntityException) {
+            return false;
+        }
+
+        return true;
     }
 }

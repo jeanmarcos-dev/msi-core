@@ -10,10 +10,9 @@ namespace Magento\InventorySales\Model;
 
 use Magento\Inventory\Model\AreProductsAssignedToStockCache;
 use Magento\InventoryApi\Model\CacheInterface;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 
 /**
- * This class is a wrapper for AreProductsAssignedToStockCache, which allows to skip warming data for default stock.
+ * This class is a wrapper for AreProductsAssignedToStockCache.
  *
  * @see \Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface::execute
  */
@@ -21,11 +20,9 @@ class AreProductsAssignedToStockCacheProxy implements CacheInterface
 {
     /**
      * @param AreProductsAssignedToStockCache $areProductsAssignedToStockCache
-     * @param DefaultStockProviderInterface $defaultStockProvider
      */
     public function __construct(
-        private readonly AreProductsAssignedToStockCache $areProductsAssignedToStockCache,
-        private readonly DefaultStockProviderInterface $defaultStockProvider
+        private readonly AreProductsAssignedToStockCache $areProductsAssignedToStockCache
     ) {
     }
 
@@ -34,9 +31,7 @@ class AreProductsAssignedToStockCacheProxy implements CacheInterface
      */
     public function warmup(array $skus, int $stockId): void
     {
-        if ($stockId !== $this->defaultStockProvider->getId()) {
-            $this->areProductsAssignedToStockCache->warmup($skus, $stockId);
-        }
+        $this->areProductsAssignedToStockCache->warmup($skus, $stockId);
     }
 
     /**

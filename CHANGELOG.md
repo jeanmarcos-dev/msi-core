@@ -29,6 +29,57 @@ change.
   removed that plugin in 1.1.2, and its reservation lock has skipped SKUs with `manage_stock = 0` or
   `can_subtract = 0` since then.
 
+### A cart on stock 1 reads the stock index, not the stock status frozen at the upgrade
+
+On a website assigned to stock 1, a product that was out of stock when the store moved to msi-core
+and was restocked later showed as out of stock in the cart, with *This product is out of stock.*,
+and the cart could not be checked out. The reverse happened too: a product out of stock in the index
+but in stock in the legacy table read as salable. When the products of a cart are loaded, core
+preloads their stock status from `cataloginventory_stock_status`, which msi-core no longer writes, and
+`StockRegistryStockStatusCache` copied that status into the MSI cache of stock 1, only for stock 1.
+The class is removed, so the cache of stock 1 is warmed from its index, in one query per cart, as on
+every other stock ([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). Present
+since 1.0.0. Upstream is not affected: there, the stock 1 index is a view over that same table.
+
+### Stock 1 offers only the configurable options it can sell
+
+**This changes behaviour.** With "Display Out of Stock Products" set to No, the options of a
+configurable product kept a child that was not salable, on the product page's `jsonConfig` and in
+GraphQL `configurable_options`, when the website was assigned to stock 1. `IsSalableOptionSelectBuilder`
+returned the select untouched for stock 1, and since it replaces core's `InStockOptionSelectBuilder`
+by name, nothing filtered those options. Stock 1 now joins its own index like any stock
+([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). The same code is in upstream.
+
+### Websites are left without a stock when stock 1 does not exist
+
+**This changes behaviour.** msi-core lets you delete stock 1, but then creating a website failed with
+`Stock with id "1" does not exist.` after the website had been saved, and saving a stock that dropped
+a website failed with `Could not replace Sales Channels for Stock` and left that website without a
+stock anyway. Both now complete. A new website, or a website that a stock save drops, still goes to
+stock 1 when it exists, and is left without a stock when it does not. Nothing creates stock 1 again or
+picks another stock, so such a website needs a stock before its storefront takes orders
+([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). Present since 1.0.0.
+
+### The stock item configuration of stock 1 requires the SKU to be in the stock
+
+**This changes behaviour.** `GetStockItemConfigurationInterface::execute()` throws
+`SkuIsNotAssignedToStockException` for stock 1 when the SKU admits source items and has none in the
+sources of stock 1, as it already did for any other stock. Stock 1 used to return the configuration
+anyway. Code that asks stock 1 for the configuration of a SKU outside it now gets the exception.
+Salability does not change: such a SKU was already not salable on stock 1, and only the error code
+of the salable check changes, to `requested-sku-is-not-assigned-to-given-stock`. The salable quantity
+column of the admin reads `manage_stock` from each stock it lists instead of from stock 1.
+
+The other stock 1 branches are gone too. Stock 1 warms its cache of SKU assignments like any stock,
+and in Adobe Commerce, Order by SKU checks salability with MSI on stock 1 instead of handing it to the
+legacy implementation. Adobe Commerce is not covered by CI, which runs Magento Open Source and
+Mage-OS. `GetStockItemConfiguration`, `GetSalableQuantityDataBySku`, `IsSalableOptionSelectBuilder`,
+`AreProductsAssignedToStockCacheProxy`, `AreProductsSalablePlugin` and the Visual Merchandiser
+`QuantityAndStockPlugin` no longer take `DefaultStockProviderInterface` in their constructor.
+`StockRegistryStockStatusCache` is removed, and so are `StockStatusExpressionForDefaultStock` and the
+three `InventoryBundleProductIndexer` plugins that fed reservations to the legacy bundle stock
+indexer, which msi-core never runs. None of them is `@api`.
+
 ---
 
 # msi-core 1.2.1 — 2026-11-05
