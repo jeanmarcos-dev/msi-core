@@ -80,6 +80,26 @@ Mage-OS. `GetStockItemConfiguration`, `GetSalableQuantityDataBySku`, `IsSalableO
 three `InventoryBundleProductIndexer` plugins that fed reservations to the legacy bundle stock
 indexer, which msi-core never runs. None of them is `@api`.
 
+### GraphQL reads the stock status of a product listing with one query
+
+`ProductInterface.stock_status` checked salability one product at a time, so a listing ran one stock
+status query per product. A new batch resolver, `InventoryGraphQl\Model\Resolver\StockStatus`,
+collects the SKUs of the response and checks them together. A 24-product listing went from 25
+salability selects to 2 and from 47 queries to 24, with the same response. Taken from
+[magento/inventory#3481](https://github.com/magento/inventory/pull/3481) by
+[lbajsarowicz](https://github.com/lbajsarowicz), which fixes
+[magento/inventory#3480](https://github.com/magento/inventory/issues/3480).
+
+msi-core adds `ConfigurableBatchStockStatusPlugin` on the new resolver, so a configurable product
+without a salable child in the website of the request is still reported as out of stock, as
+`ConfigurableStockStatusPlugin` does on `StockStatusProvider`. Without it the batch resolver reported
+such a product as in stock.
+
+`StockStatusProvider` keeps its signature. Plugins on `StockStatusProvider::resolve()` no longer run
+for the products of a listing, only for a bundle being bought and for requests without a product
+model or SKU; an extension that changes `stock_status` through such a plugin has to plug into
+`StockStatus::resolve()` or into `AreProductsSalableInterface`.
+
 ---
 
 # msi-core 1.2.1 — 2026-11-05
