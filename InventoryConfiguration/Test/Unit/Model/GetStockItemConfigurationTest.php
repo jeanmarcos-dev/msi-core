@@ -14,7 +14,6 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
 use Magento\InventoryApi\Model\IsProductAssignedToStockInterface;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryCatalogApi\Model\GetProductTypesBySkusInterface;
 use Magento\InventoryConfiguration\Model\GetNonBackorderableProductTypes;
 use Magento\InventoryConfiguration\Model\GetStockItemConfiguration;
@@ -24,6 +23,7 @@ use Magento\InventoryConfiguration\Model\NonBackorderableStockItemConfigurationF
 use Magento\InventoryConfiguration\Model\StockItemConfiguration;
 use Magento\InventoryConfiguration\Model\StockItemConfigurationFactory;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
+use Magento\InventoryConfigurationApi\Exception\SkuIsNotAssignedToStockException;
 use Magento\InventoryConfigurationApi\Model\IsSourceItemManagementAllowedForSkuInterface;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -107,12 +107,75 @@ class GetStockItemConfigurationTest extends TestCase
         self::assertSame(-5.0, $configuration->getMinQty());
     }
 
+    public static function stockIds(): array
+    {
+        return [
+            'stock 1' => [1],
+            'a merchant stock' => [5],
+        ];
+    }
+
+    #[DataProvider('stockIds')]
+    public function testASkuOutsideTheStockIsRejected(int $stockId): void
+    {
+        $getStockItemConfiguration = $this->getStockItemConfiguration(
+            [],
+            'simple',
+            false,
+            self::BACKORDERS_NO,
+            0.0,
+            true,
+            false
+        );
+
+        $this->expectException(SkuIsNotAssignedToStockException::class);
+        $getStockItemConfiguration->execute('SKU-1', $stockId);
+    }
+
+    #[DataProvider('stockIds')]
+    public function testASkuInTheStockGetsItsConfiguration(int $stockId): void
+    {
+        $configuration = $this->getStockItemConfiguration(
+            [],
+            'simple',
+            false,
+            self::BACKORDERS_YES,
+            -5.0,
+            true,
+            true
+        )->execute('SKU-1', $stockId);
+
+        self::assertSame(self::BACKORDERS_YES, $configuration->getBackorders());
+    }
+
+    #[DataProvider('stockIds')]
+    public function testAProductTypeWithoutSourceItemsGetsItsConfiguration(int $stockId): void
+    {
+        $configuration = $this->getStockItemConfiguration(
+            [],
+            'configurable',
+            false,
+            self::BACKORDERS_YES,
+            -5.0,
+            false,
+            false
+        )->execute('SKU-1', $stockId);
+
+        self::assertSame(self::BACKORDERS_YES, $configuration->getBackorders());
+    }
+
+    /**
+     * @SuppressWarnings(PHPMD.ExcessiveParameterList)
+     * @SuppressWarnings(PHPMD.BooleanArgumentFlag)
+     */
     private function getStockItemConfiguration(
         array $nonBackorderableTypes,
         ?string $type,
         bool $useConfig,
         int $backorders,
-        float $minQty
+        float $minQty,
+        bool $sourceItemManagementAllowed = false,
+        bool $assignedToStock = false
     ): GetStockItemConfiguration {
         $stockItem = $this->createStub(StockItemInterface::class);
         $stockItem->method('getUseConfigBackorders')->willReturn($useConfig);
@@ -134,15 +197,17 @@ class GetStockItemConfigurationTest extends TestCase
 
         $getProductTypesBySkus = $this->createStub(GetProductTypesBySkusInterface::class);
         $getProductTypesBySkus->method('execute')->willReturn($type === null ? [] : ['SKU-1' => $type]);
-        $defaultStockProvider = $this->createStub(DefaultStockProviderInterface::class);
-        $defaultStockProvider->method('getId')->willReturn(1);
+
+        $isProductAssignedToStock = $this->createStub(IsProductAssignedToStockInterface::class);
+        $isProductAssignedToStock->method('execute')->willReturn($assignedToStock);
+        $isSourceItemManagementAllowed = $this->createStub(IsSourceItemManagementAllowedForSkuInterface::class);
+        $isSourceItemManagementAllowed->method('execute')->willReturn($sourceItemManagementAllowed);
 
         return new GetStockItemConfiguration(
             $getStockItemConfigurationBySku,
             $configurationFactory,
-            $this->createStub(IsProductAssignedToStockInterface::class),
-            $defaultStockProvider,
-            $this->createStub(IsSourceItemManagementAllowedForSkuInterface::class),
+            $isProductAssignedToStock,
+            $isSourceItemManagementAllowed,
             $getProductTypesBySkus,
             new GetNonBackorderableProductTypes($nonBackorderableTypes),
             $nonBackorderableFactory

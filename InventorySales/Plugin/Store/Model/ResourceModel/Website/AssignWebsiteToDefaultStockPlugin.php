@@ -91,8 +91,11 @@ class AssignWebsiteToDefaultStockPlugin
             return $result;
         }
 
-        $defaultStockId = $this->defaultStockProvider->getId();
-        $defaultStock = $this->stockRepository->get($defaultStockId);
+        try {
+            $defaultStock = $this->stockRepository->get($this->defaultStockProvider->getId());
+        } catch (NoSuchEntityException) {
+            return $result;
+        }
 
         $extensionAttributes = $defaultStock->getExtensionAttributes();
         $salesChannels = $extensionAttributes->getSalesChannels();

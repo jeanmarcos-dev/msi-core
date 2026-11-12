@@ -10,7 +10,6 @@
         <arguments>
             <argument name="pool" xsi:type="array">
                 <item name="stock_registry_stock_item" xsi:type="object">Magento\InventoryCatalog\Model\StockRegistryStockItemCache</item>
-                <item name="stock_registry_stock_status" xsi:type="object">Magento\InventoryCatalog\Model\StockRegistryStockStatusCache</item>
             </argument>
         </arguments>
     </type>

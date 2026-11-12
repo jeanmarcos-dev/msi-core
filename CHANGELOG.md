@@ -17,6 +17,112 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.2.2 — 2026-11-11
+
+The main fixes: a website assigned to stock 1 reads its cart and its configurable options from the
+stock index, like any other stock, instead of from the stock status frozen when the store moved to
+msi-core ([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). GraphQL reads the
+`stock_status` of a product listing with one salability query instead of one per product
+([magento/inventory#3481](https://github.com/magento/inventory/pull/3481)).
+
+Upstream `magento/inventory` `develop` merged up to `c83f8b3`. No schema, configuration or API
+change.
+
+When upgrading from 1.2.1:
+
+- Deploy as usual. Nothing changes in the database or the configuration.
+- On a website assigned to stock 1 with "Display Out of Stock Products" set to No, a configurable
+  product stops offering the options it cannot sell.
+- `GetStockItemConfigurationInterface::execute()` throws `SkuIsNotAssignedToStockException` for
+  stock 1 when the SKU is not in its sources, as it already did for any other stock.
+- Plugins on `StockStatusProvider::resolve()` no longer run for the products of a GraphQL listing.
+  Plug into `StockStatus::resolve()` or into `AreProductsSalableInterface` instead.
+- `GetStockItemConfiguration`, `GetSalableQuantityDataBySku`, `IsSalableOptionSelectBuilder`,
+  `AreProductsAssignedToStockCacheProxy`, `AreProductsSalablePlugin` and the Visual Merchandiser
+  `QuantityAndStockPlugin` no longer take `DefaultStockProviderInterface` in their constructor, and
+  `StockRegistryStockStatusCache` and `StockStatusExpressionForDefaultStock` are removed. None of
+  them is `@api`.
+
+### Not taken
+
+- **ACP2E-5457**, which stops checkout from failing with *Could not acquire inventory lock* on
+  products without managed stock: upstream skips those SKUs in `CartManagementPlugin`. This line
+  removed that plugin in 1.1.2, and its reservation lock has skipped SKUs with `manage_stock = 0` or
+  `can_subtract = 0` since then.
+
+### A cart on stock 1 reads the stock index, not the stock status frozen at the upgrade
+
+On a website assigned to stock 1, a product that was out of stock when the store moved to msi-core
+and was restocked later showed as out of stock in the cart, with *This product is out of stock.*,
+and the cart could not be checked out. The reverse happened too: a product out of stock in the index
+but in stock in the legacy table read as salable. When the products of a cart are loaded, core
+preloads their stock status from `cataloginventory_stock_status`, which msi-core no longer writes, and
+`StockRegistryStockStatusCache` copied that status into the MSI cache of stock 1, only for stock 1.
+The class is removed, so the cache of stock 1 is warmed from its index, in one query per cart, as on
+every other stock ([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). Present
+since 1.0.0. Upstream is not affected: there, the stock 1 index is a view over that same table.
+
+### Stock 1 offers only the configurable options it can sell
+
+**This changes behaviour.** With "Display Out of Stock Products" set to No, the options of a
+configurable product kept a child that was not salable, on the product page's `jsonConfig` and in
+GraphQL `configurable_options`, when the website was assigned to stock 1. `IsSalableOptionSelectBuilder`
+returned the select untouched for stock 1, and since it replaces core's `InStockOptionSelectBuilder`
+by name, nothing filtered those options. Stock 1 now joins its own index like any stock
+([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). The same code is in upstream.
+
+### Websites are left without a stock when stock 1 does not exist
+
+**This changes behaviour.** msi-core lets you delete stock 1, but then creating a website failed with
+`Stock with id "1" does not exist.` after the website had been saved, and saving a stock that dropped
+a website failed with `Could not replace Sales Channels for Stock` and left that website without a
+stock anyway. Both now complete. A new website, or a website that a stock save drops, still goes to
+stock 1 when it exists, and is left without a stock when it does not. Nothing creates stock 1 again or
+picks another stock, so such a website needs a stock before its storefront takes orders
+([msi-core#141](https://github.com/jeanmarcos-dev/msi-core/issues/141)). Present since 1.0.0.
+
+### The stock item configuration of stock 1 requires the SKU to be in the stock
+
+**This changes behaviour.** `GetStockItemConfigurationInterface::execute()` throws
+`SkuIsNotAssignedToStockException` for stock 1 when the SKU admits source items and has none in the
+sources of stock 1, as it already did for any other stock. Stock 1 used to return the configuration
+anyway. Code that asks stock 1 for the configuration of a SKU outside it now gets the exception.
+Salability does not change: such a SKU was already not salable on stock 1, and only the error code
+of the salable check changes, to `requested-sku-is-not-assigned-to-given-stock`. The salable quantity
+column of the admin reads `manage_stock` from each stock it lists instead of from stock 1.
+
+The other stock 1 branches are gone too. Stock 1 warms its cache of SKU assignments like any stock,
+and in Adobe Commerce, Order by SKU checks salability with MSI on stock 1 instead of handing it to the
+legacy implementation. Adobe Commerce is not covered by CI, which runs Magento Open Source and
+Mage-OS. `GetStockItemConfiguration`, `GetSalableQuantityDataBySku`, `IsSalableOptionSelectBuilder`,
+`AreProductsAssignedToStockCacheProxy`, `AreProductsSalablePlugin` and the Visual Merchandiser
+`QuantityAndStockPlugin` no longer take `DefaultStockProviderInterface` in their constructor.
+`StockRegistryStockStatusCache` is removed, and so are `StockStatusExpressionForDefaultStock` and the
+three `InventoryBundleProductIndexer` plugins that fed reservations to the legacy bundle stock
+indexer, which msi-core never runs. None of them is `@api`.
+
+### GraphQL reads the stock status of a product listing with one query
+
+`ProductInterface.stock_status` checked salability one product at a time, so a listing ran one stock
+status query per product. A new batch resolver, `InventoryGraphQl\Model\Resolver\StockStatus`,
+collects the SKUs of the response and checks them together. A 24-product listing went from 25
+salability selects to 2 and from 47 queries to 24, with the same response. Taken from
+[magento/inventory#3481](https://github.com/magento/inventory/pull/3481) by
+[lbajsarowicz](https://github.com/lbajsarowicz), which fixes
+[magento/inventory#3480](https://github.com/magento/inventory/issues/3480).
+
+msi-core adds `ConfigurableBatchStockStatusPlugin` on the new resolver, so a configurable product
+without a salable child in the website of the request is still reported as out of stock, as
+`ConfigurableStockStatusPlugin` does on `StockStatusProvider`. Without it the batch resolver reported
+such a product as in stock.
+
+`StockStatusProvider` keeps its signature. Plugins on `StockStatusProvider::resolve()` no longer run
+for the products of a listing, only for a bundle being bought and for requests without a product
+model or SKU; an extension that changes `stock_status` through such a plugin has to plug into
+`StockStatus::resolve()` or into `AreProductsSalableInterface`.
+
+---
+
 # msi-core 1.2.1 — 2026-11-05
 
 The main fixes: a configurable or grouped product follows the salability of its children right after

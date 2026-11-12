@@ -16,7 +16,7 @@ STUB
 echo "git $*" >> "$CALLS"
 if [ "$1" = clone ]; then
     eval "target=\${$#}"
-    mkdir -p "$target/app/code/Magento/Catalog" "$target/dev/tests/static/framework/Magento"
+    mkdir -p "$target/app/code/Magento/Catalog" "$target/dev/tests/static/framework/Magento" "$target/dev/tests/static/testsuite/Magento/Test/Php/_files/phpstan/blacklist"
     cp "$RULESET" "$target/dev/tests/static/framework/Magento/ruleset.xml"
 fi
 STUB
@@ -123,4 +123,13 @@ XML
     grep -qF 'magento-coding-standard/Magento2Framework">' "$ruleset"
     ! grep -q 'Header.License' "$ruleset"
     grep -qF '<exclude-pattern>' "$ruleset"
+}
+
+@test "keeps PHPStan off the plugins that need Adobe Commerce classes" {
+    run "$TEST_SH" .github/scripts/ci-static-project.sh "$BATS_TEST_TMPDIR/magento"
+
+    [ "$status" -eq 0 ]
+    list=$BATS_TEST_TMPDIR/magento/dev/tests/static/testsuite/Magento/Test/Php/_files/phpstan/blacklist/msi-core.txt
+    [ "$(cat "$list")" = "app/code/Magento/InventoryAdvancedCheckout/Plugin
+app/code/Magento/InventoryVisualMerchandiser/Plugin" ]
 }

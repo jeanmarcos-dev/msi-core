@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Magento\InventorySalesAdminUi\Test\Unit\Model;
 
 use Magento\InventoryApi\Api\StockRepositoryInterface;
-use Magento\InventoryCatalogApi\Api\DefaultStockProviderInterface;
 use Magento\InventoryConfigurationApi\Api\Data\StockItemConfigurationInterface;
 use Magento\InventoryConfigurationApi\Api\GetStockItemConfigurationInterface;
+use Magento\InventoryConfigurationApi\Exception\SkuIsNotAssignedToStockException;
 use Magento\InventorySalesAdminUi\Model\GetSalableQuantityDataBySku;
 use Magento\InventorySalesAdminUi\Model\ResourceModel\GetAssignedStockIdsBySku;
 use Magento\InventorySalesAdminUi\Model\ResourceModel\GetStockNamesByIds;
@@ -41,11 +41,6 @@ class GetSalableQuantityDataBySkuTest extends TestCase
     private $getStockItemConfigurationMock;
 
     /**
-     * @var DefaultStockProviderInterface|MockObject
-     */
-    private $defaultStockProviderMock;
-
-    /**
      * @var GetStockNamesByIds|MockObject
      */
     private $getStockNamesByIdsMock;
@@ -61,7 +56,6 @@ class GetSalableQuantityDataBySkuTest extends TestCase
         $this->stockRepositoryMock = $this->createMock(StockRepositoryInterface::class);
         $this->getAssignedStockIdsBySkuMock = $this->createMock(GetAssignedStockIdsBySku::class);
         $this->getStockItemConfigurationMock = $this->createMock(GetStockItemConfigurationInterface::class);
-        $this->defaultStockProviderMock = $this->createMock(DefaultStockProviderInterface::class);
         $this->getStockNamesByIdsMock = $this->createMock(GetStockNamesByIds::class);
 
         $this->getSalableQuantityDataBySku = new GetSalableQuantityDataBySku(
@@ -69,7 +63,6 @@ class GetSalableQuantityDataBySkuTest extends TestCase
             $this->stockRepositoryMock,
             $this->getAssignedStockIdsBySkuMock,
             $this->getStockItemConfigurationMock,
-            $this->defaultStockProviderMock,
             $this->getStockNamesByIdsMock
         );
     }
@@ -78,15 +71,11 @@ class GetSalableQuantityDataBySkuTest extends TestCase
     {
         $sku = 'product1';
 
-        $this->defaultStockProviderMock->expects(self::once())
-            ->method('getId')
-            ->willReturn(1);
         $stockItemConfigurationMock = $this->createMock(StockItemConfigurationInterface::class);
-        $this->getStockItemConfigurationMock->expects(self::once())
+        $this->getStockItemConfigurationMock->expects(self::exactly(2))
             ->method('execute')
-            ->with($sku, 1)
-            ->willReturn($stockItemConfigurationMock);
-        $stockItemConfigurationMock->expects(self::once())
+            ->willReturnMap([[$sku, 2, $stockItemConfigurationMock], [$sku, 3, $stockItemConfigurationMock]]);
+        $stockItemConfigurationMock->expects(self::exactly(2))
             ->method('isManageStock')
             ->willReturn(true);
         $this->getAssignedStockIdsBySkuMock->expects(self::once())
@@ -127,15 +116,11 @@ class GetSalableQuantityDataBySkuTest extends TestCase
     {
         $sku = 'product2';
 
-        $this->defaultStockProviderMock->expects(self::once())
-            ->method('getId')
-            ->willReturn(1);
         $stockItemConfigurationMock = $this->createMock(StockItemConfigurationInterface::class);
-        $this->getStockItemConfigurationMock->expects(self::once())
+        $this->getStockItemConfigurationMock->expects(self::exactly(2))
             ->method('execute')
-            ->with($sku, 1)
-            ->willReturn($stockItemConfigurationMock);
-        $stockItemConfigurationMock->expects(self::once())
+            ->willReturnMap([[$sku, 4, $stockItemConfigurationMock], [$sku, 5, $stockItemConfigurationMock]]);
+        $stockItemConfigurationMock->expects(self::exactly(2))
             ->method('isManageStock')
             ->willReturn(false);
         $this->getAssignedStockIdsBySkuMock->expects(self::once())
@@ -163,5 +148,29 @@ class GetSalableQuantityDataBySkuTest extends TestCase
             ],
         ];
         self::assertEquals($expectedData, $data);
+    }
+
+    public function testReadsManageStockFromTheStockOfEachRow(): void
+    {
+        $sku = 'only-in-stock-2';
+
+        $stockItemConfigurationMock = $this->createStub(StockItemConfigurationInterface::class);
+        $stockItemConfigurationMock->method('isManageStock')->willReturn(true);
+        $this->getStockItemConfigurationMock->method('execute')->willReturnCallback(
+            function (string $requestedSku, int $stockId) use ($sku, $stockItemConfigurationMock) {
+                if ($requestedSku === $sku && $stockId === 2) {
+                    return $stockItemConfigurationMock;
+                }
+                throw new SkuIsNotAssignedToStockException(__('The requested sku is not assigned to given stock.'));
+            }
+        );
+        $this->getAssignedStockIdsBySkuMock->method('execute')->with($sku)->willReturn([2]);
+        $this->getStockNamesByIdsMock->method('execute')->willReturn([2 => 'Stock 2']);
+        $this->getProductSalableQtyMock->method('execute')->with($sku, 2)->willReturn(7.0);
+
+        self::assertEquals(
+            [['stock_id' => 2, 'stock_name' => 'Stock 2', 'qty' => 7.0, 'manage_stock' => true]],
+            $this->getSalableQuantityDataBySku->execute($sku)
+        );
     }
 }

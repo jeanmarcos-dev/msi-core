@@ -14,7 +14,10 @@ use Magento\Eav\Model\Config;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\GraphQl\Config\Element\Field;
+use Magento\Framework\GraphQl\Query\Resolver\BatchRequestItemInterface;
+use Magento\Framework\GraphQl\Query\Resolver\ContextInterface;
 use Magento\Framework\GraphQl\Schema\Type\ResolveInfo;
+use Magento\InventoryGraphQl\Model\Resolver\StockStatus;
 use Magento\InventoryGraphQl\Model\Resolver\StockStatusProvider;
 use Magento\InventoryIndexer\Indexer\Stock\StockIndexer;
 use Magento\Store\Model\StoreManagerInterface;
@@ -112,12 +115,25 @@ class ConfigurableStockStatusPluginTest extends TestCase
         $info = $this->createMock(ResolveInfo::class);
         $info->operation = new OperationDefinitionNode(['operation' => 'query']);
 
-        return $objectManager->get(StockStatusProvider::class)->resolve(
+        $single = $objectManager->get(StockStatusProvider::class)->resolve(
             $this->createMock(Field::class),
             null,
             $info,
             ['model' => $product]
         );
+        self::assertSame($single, $this->batchStockStatusOf($product));
+
+        return $single;
+    }
+
+    private function batchStockStatusOf(Product $product): string
+    {
+        $request = $this->createStub(BatchRequestItemInterface::class);
+        $request->method('getValue')->willReturn(['model' => $product]);
+
+        return Bootstrap::getObjectManager()->get(StockStatus::class)
+            ->resolve($this->createStub(ContextInterface::class), $this->createStub(Field::class), [$request])
+            ->findResponseFor($request);
     }
 
     private function productId(string $sku): int

@@ -13,4 +13,7 @@
     <type name="Magento\InventoryGraphQl\Model\Resolver\StockStatusProvider">
         <plugin name="inventory_configurable_product_stock_status_of_the_website" type="Magento\InventoryConfigurableProduct\Plugin\GraphQl\ConfigurableStockStatusPlugin"/>
     </type>
+    <type name="Magento\InventoryGraphQl\Model\Resolver\StockStatus">
+        <plugin name="inventory_configurable_product_batch_stock_status_of_the_website" type="Magento\InventoryConfigurableProduct\Plugin\GraphQl\ConfigurableBatchStockStatusPlugin"/>
+    </type>
 </config>
