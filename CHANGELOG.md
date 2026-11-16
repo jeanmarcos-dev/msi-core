@@ -17,6 +17,26 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+Upstream `magento/inventory` `develop` merged up to `bd43804`. No schema, configuration or API
+change.
+
+### Not taken
+
+- **ACP2E-5240**, which releases the reservations of an order that failed to be placed: upstream's
+  `inventory_cleanup_reservations` cron deletes every reservation older than a day whose order does
+  not exist, and stamps each reservation with an `event_timestamp` to tell its age. This line
+  releases those placements since 1.1.2 with the reconcile sweep, which appends a compensation
+  instead of deleting the reservation, then reindexes the stock and cleans the cache of the products
+  it changes. Deleting the reservation does neither, so the product would read as out of stock
+  until the next reindex. The sweep stays off by default
+  (`cataloginventory/source_reservations/reconcile_sweep_enabled`): an exception during placement
+  is compensated at once, so only a process killed after the reservation leaves one behind, and
+  `bin/magento inventory:reservation:reconcile` releases it.
+
+---
+
 # msi-core 1.2.2 — 2026-11-11
 
 The main fixes: a website assigned to stock 1 reads its cart and its configurable options from the
