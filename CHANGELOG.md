@@ -17,6 +17,22 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core — unreleased
+
+### A pickup location search accepts a sort without a field or a direction
+
+Since 1.2.0 the web API accepts the sort of a pickup location search, and an item of
+`searchRequest[sort]` without a `field`, or a `distance` sort without a `direction`, failed with HTTP
+400 and a raw PHP `TypeError` message. A sort without a field is now skipped, as the `getList`
+endpoints skip it, and a `distance` sort without a direction sorts descending, as a sort on any other
+field does. Only REST and SOAP can send such a sort: GraphQL always sets both. Taken from
+[magento/inventory#3482](https://github.com/magento/inventory/pull/3482) by
+[SilinMykola](https://github.com/SilinMykola), with its integration test that runs the web API input
+processor on a search with a sort. The rest of that pull request, `setSort()` and its web API test,
+has been in this line since 1.2.0 ([msi-core#50](https://github.com/jeanmarcos-dev/msi-core/issues/50)).
+
+---
+
 # msi-core 1.2.2 — 2026-11-11
 
 The main fixes: a website assigned to stock 1 reads its cart and its configurable options from the
