@@ -47,6 +47,20 @@ field does. Only REST and SOAP can send such a sort: GraphQL always sets both. T
 processor on a search with a sort. The rest of that pull request, `setSort()` and its web API test,
 has been in this line since 1.2.0 ([msi-core#50](https://github.com/jeanmarcos-dev/msi-core/issues/50)).
 
+### The ready-for-pickup email is sent from the Sales Representative address by default
+
+The "Order Ready For Pickup" email took its sender from a `storepickup` identity that exists only as
+a configuration default (`sales@example.com`, "Store pickup"). Stores > Configuration > General >
+Store Email Addresses has no group for it, so the Admin showed General Contact as the sender while the
+email went out from `sales@example.com`, and a mail provider that accepts only verified senders
+rejected it. The default of `sales_email/order_ready_for_pickup/identity` is now `sales`, the Sales
+Representative, as for the order, invoice, shipment and credit memo emails, so the Admin shows the
+sender the email uses. A store that set this sender keeps it, and the `storepickup` identity is still
+defined for a store that selected it from the CLI. Taken from
+[magento/inventory#3483](https://github.com/magento/inventory/pull/3483) by
+[thai2301](https://github.com/thai2301), with its integration test, and fixes
+[magento/inventory#3472](https://github.com/magento/inventory/issues/3472).
+
 ---
 
 # msi-core 1.2.2 — 2026-11-11
