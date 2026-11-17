@@ -17,6 +17,68 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
+# msi-core 1.2.3 — 2026-11-17
+
+The main fixes, both for in-store pickup and both taken from upstream: a pickup location search
+over REST or SOAP no longer fails with HTTP 400 on a sort without a field or a direction
+([magento/inventory#3482](https://github.com/magento/inventory/pull/3482)), and the ready-for-pickup
+email is sent from the Sales Representative address by default instead of `sales@example.com`
+([magento/inventory#3483](https://github.com/magento/inventory/pull/3483)).
+
+Upstream `magento/inventory` `develop` merged up to `bd43804`, which brings only MFTF tests to this
+line.
+
+When upgrading from 1.2.2:
+
+- Deploy as usual. Nothing changes in the database.
+- A store that leaves Order Ready For Pickup Email Sender at "Use system value" sends that email
+  from its Sales Representative address. Make sure your mail provider accepts that address, or set
+  the sender under Stores > Configuration > Sales > Sales Emails.
+- A REST or SOAP pickup location search with a sort item without a `field`, or a `distance` sort
+  without a `direction`, returns its results instead of HTTP 400.
+- No public method or constructor signature changes.
+
+### Not taken
+
+- **ACP2E-5240**, which releases the reservations of an order that failed to be placed: upstream's
+  `inventory_cleanup_reservations` cron deletes every reservation older than a day whose order does
+  not exist, and stamps each reservation with an `event_timestamp` to tell its age. This line
+  releases those placements since 1.1.2 with the reconcile sweep, which appends a compensation
+  instead of deleting the reservation, then reindexes the stock and cleans the cache of the products
+  it changes. Deleting the reservation does neither, so the product would read as out of stock
+  until the next reindex. The sweep stays off by default
+  (`cataloginventory/source_reservations/reconcile_sweep_enabled`): an exception during placement
+  is compensated at once, so only a process killed after the reservation leaves one behind, and
+  `bin/magento inventory:reservation:reconcile` releases it.
+
+### A pickup location search accepts a sort without a field or a direction
+
+Since 1.2.0 the web API accepts the sort of a pickup location search, and an item of
+`searchRequest[sort]` without a `field`, or a `distance` sort without a `direction`, failed with HTTP
+400 and a raw PHP `TypeError` message. A sort without a field is now skipped, as the `getList`
+endpoints skip it, and a `distance` sort without a direction sorts descending, as a sort on any other
+field does. Only REST and SOAP can send such a sort: GraphQL always sets both. Taken from
+[magento/inventory#3482](https://github.com/magento/inventory/pull/3482) by
+[SilinMykola](https://github.com/SilinMykola), with its integration test that runs the web API input
+processor on a search with a sort. The rest of that pull request, `setSort()` and its web API test,
+has been in this line since 1.2.0 ([msi-core#50](https://github.com/jeanmarcos-dev/msi-core/issues/50)).
+
+### The ready-for-pickup email is sent from the Sales Representative address by default
+
+The "Order Ready For Pickup" email took its sender from a `storepickup` identity that exists only as
+a configuration default (`sales@example.com`, "Store pickup"). Stores > Configuration > General >
+Store Email Addresses has no group for it, so the Admin showed General Contact as the sender while the
+email went out from `sales@example.com`, and a mail provider that accepts only verified senders
+rejected it. The default of `sales_email/order_ready_for_pickup/identity` is now `sales`, the Sales
+Representative, as for the order, invoice, shipment and credit memo emails, so the Admin shows the
+sender the email uses. A store that set this sender keeps it, and the `storepickup` identity is still
+defined for a store that selected it from the CLI. Taken from
+[magento/inventory#3483](https://github.com/magento/inventory/pull/3483) by
+[thai2301](https://github.com/thai2301), with its integration test, and fixes
+[magento/inventory#3472](https://github.com/magento/inventory/issues/3472).
+
+---
+
 # msi-core 1.2.2 — 2026-11-11
 
 The main fixes: a website assigned to stock 1 reads its cart and its configurable options from the
