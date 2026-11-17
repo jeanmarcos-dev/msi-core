@@ -17,10 +17,26 @@ Versions follow [`VERSIONING.md`](VERSIONING.md). Dates are the tag dates.
 
 ---
 
-# msi-core — unreleased
+# msi-core 1.2.3 — 2026-11-17
 
-Upstream `magento/inventory` `develop` merged up to `bd43804`. No schema, configuration or API
-change.
+The main fixes, both for in-store pickup and both taken from upstream: a pickup location search
+over REST or SOAP no longer fails with HTTP 400 on a sort without a field or a direction
+([magento/inventory#3482](https://github.com/magento/inventory/pull/3482)), and the ready-for-pickup
+email is sent from the Sales Representative address by default instead of `sales@example.com`
+([magento/inventory#3483](https://github.com/magento/inventory/pull/3483)).
+
+Upstream `magento/inventory` `develop` merged up to `bd43804`, which brings only MFTF tests to this
+line.
+
+When upgrading from 1.2.2:
+
+- Deploy as usual. Nothing changes in the database.
+- A store that leaves Order Ready For Pickup Email Sender at "Use system value" sends that email
+  from its Sales Representative address. Make sure your mail provider accepts that address, or set
+  the sender under Stores > Configuration > Sales > Sales Emails.
+- A REST or SOAP pickup location search with a sort item without a `field`, or a `distance` sort
+  without a `direction`, returns its results instead of HTTP 400.
+- No public method or constructor signature changes.
 
 ### Not taken
 
